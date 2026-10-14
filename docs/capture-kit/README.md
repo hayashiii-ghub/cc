@@ -1,8 +1,19 @@
-# Context capture kit
+# cc: capture kit
 
-This folder keeps the small, reusable pieces needed to record Context product demos without preserving a dedicated recording desktop.
+The current Japanese/English website uses HTML/CSS app illustrations in
+[`ShelfPreview.tsx`](../../site/app/ShelfPreview.tsx), with sample items rather
+than screenshots or videos. This recording kit is retained for future demos
+and historical reference; archived footage may show the former Context name
+and interface.
 
-The published, compressed demo videos stay in `site/public/context/`. Raw recordings are intentionally excluded from Git.
+This folder keeps the small, reusable pieces needed to record product demos without preserving a dedicated recording desktop.
+
+Previous compressed website videos and captures are preserved in
+[`../media-archive/website/`](../media-archive/website/README.md), with a mapping
+of their former filenames. They are not served by the current site. The editable
+montage and its normalized clips remain under `../../videos/context-hero-montage/`.
+Raw recordings remain local under that project's `assets/source/` and are
+intentionally excluded from Git; keep those originals separately backed up.
 
 ## Contents
 
@@ -22,14 +33,14 @@ The published, compressed demo videos stay in `site/public/context/`. Raw record
 
 ## Recording and export
 
-- Capture the 3024 × 1964 display at 30 fps.
-- Compose or crop to 1920 × 1080, then deliver 1600 × 900 MP4, WebM, and poster assets.
-- Keep the full 16:9 frame on narrow screens; the site should scale it without cropping.
+- The original recordings used a 3024 × 1964 display at 30 fps.
+- The archived video workflow normalized to 1920 × 1080 and delivered 1600 × 900 MP4, WebM, and poster assets.
+- If a future page uses these videos, keep the full 16:9 frame on narrow screens and scale it without cropping.
 - Review every take for notifications, private content, unexpected Finder windows, and cursor mistakes before publishing.
 
 The Swift helpers post synthetic pointer and keyboard events. Their coordinates were tuned for a 3024 × 1964 display and may not match another setup. Inspect them before use, and grant Accessibility or Screen Recording access only when macOS requests it for the tool you intentionally run.
 
-`local-drop-target.html` runs locally and does not make network requests. Its visual attached state is useful for composition, but browser drop acceptance was not used to verify Context behavior.
+`local-drop-target.html` runs locally and does not make network requests. Its visual attached state is useful for composition, but browser drop acceptance was not used to verify cc: behavior.
 
 ## After recording
 
@@ -44,7 +55,7 @@ Return the Mac to the state that existed before this recording setup:
 
 ## Recording cautions
 
-- Keep only the intended `Context Demo` Finder window in frame.
-- Do not drag shelf content back into the same `Context Demo` folder if Finder asks to replace `Brand assets`.
+- Keep only the intended `cc Demo` Finder window in frame.
+- Do not drag shelf content back into the same `cc Demo` folder if Finder asks to replace `Brand assets`.
 - Avoid touching the physical top edge while dragging to Notch Island; macOS may open Mission Control.
 - Treat the scripts as optional capture helpers, not automated product tests.

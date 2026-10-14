@@ -1,39 +1,140 @@
-# Context
+# cc:
 
-Context is a temporary shelf for macOS. Put down files, folders, links, images,
-and text while moving between apps, then drag them into place when the next app
-is ready.
+cc: is a local shelf for macOS. Keep files, folders, links, images, and text
+close while moving between apps, or hand an artifact from Codex or Claude to the
+same shelf.
 
-Context is free, open source, local-first, and built for macOS 26 or later.
+Previously named Context. Existing shelf data, settings, and agent integrations
+continue to work.
 
-Context starts in the menu bar. From **Shelf Location**, you can keep the shelf
-on screen or enable the optional Notch Island on supported Macs.
+The features and agent tools below describe the current source checkout. The
+public v0.2.3 release still ships `Context.app`; the updated cc: distribution
+is being prepared and has not been published yet. See [Install](#install).
 
-This repository contains three parts of the product:
+cc: is free, open source, local-first, and built for macOS 26 or later.
+Click the `cc:` icon in the menu bar to open or close the shelf. Right-click the
+icon for shelf actions and **Settings…**. In Settings, choose **Menu Bar** or
+**Notch** under **Shelf Location**. The choice is saved across restarts. Displays
+without a notch use the menu bar. Settings also includes shortcuts, agent setup,
+and updates.
 
-- `Sources/Context/` and `Tests/ContextTests/`: the macOS app and its tests
-- `site/`: the standalone English product site
-- `videos/context-hero-montage/`: the editable source for the website hero video
+Under **Shortcuts**, click a shortcut and press the new key combination. The
+defaults remain **Option + Tab** for adding a Finder selection and
+**Option + Shift + Tab** for showing or hiding the shelf. Changes take effect
+immediately and are remembered. Escape cancels recording; **Restore Defaults**
+returns both actions to their original keys. Finder selection is added only
+while Finder is the frontmost app.
+
+The ellipsis at the top right opens its menu. Add files, copy items to a
+folder, clear the shelf, or open Settings there. Items show native file
+icons or image/PDF previews, their names, item type, source (You, Codex, or
+Claude Code), and an optional handoff note. Double-click
+an item to open its managed copy; double-click text to copy it. Its small action
+menu contains Copy, Show in Finder where available, and Remove from Shelf.
+
+Both presentations use the same item list and controls. Recent items appear
+first, and the shelf height follows the number of items. Add files and Paste stay at the bottom;
+Drag files appears when there are at least two files. Copy All to Folder is in
+the shelf menu. In Notch mode, closing the shelf leaves a small `cc:` entry beside
+the notch. The menu-bar icon remains available in either mode.
+
+cc: keeps its records and managed file copies locally across app restarts.
+The local store remains `~/Library/Application Support/Context` so existing
+items are available after the name change.
+Adding a file copies it into cc: rather than moving the original. Removing
+an item or clearing the shelf deletes the copy and record in cc:; the source file
+stays in place. Copies exported from cc: remain where you saved them.
+
+## Agent tools
+
+The app keeps the `context` CLI and `context-handoff` skill names for existing
+Codex and Claude integrations. The `cc` command is reserved for the system C
+compiler. After installing cc: into `/Applications`, review and run:
+
+```sh
+"/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --print-plan
+"/Applications/cc.app/Contents/Resources/install_agent_tools.sh"
+```
+
+The installer creates a CLI symlink at `~/.local/bin/context` and skill copies
+at `~/.codex/skills/context-handoff` and `~/.claude/skills/context-handoff`.
+It makes no network requests and does not change shell configuration. Re-running
+it updates unchanged copies it previously installed and migrates its known CLI
+link from `Context.app` to `cc.app`. Existing unrelated files,
+symlinks, edited skills, or extra skill files stop installation before changes.
+
+If `~/.local/bin` is not on PATH, use `~/.local/bin/context` or the bundled
+`/Applications/cc.app/Contents/Helpers/context` executable directly. Installing
+a skill does not start Codex or Claude or read their conversations. Ask the agent
+to hand a specified artifact to cc: or read a specified shelf item when you
+want to use the skill.
+
+### CLI
+
+```sh
+context add ./report.pdf --source codex --note "For review"
+printf '%s' 'Review these findings.' | context add --stdin --title "Review notes" --source claude
+context add --text "A short handoff" --source human
+context list
+context get "ITEM_UUID"
+context get "ITEM_UUID" --text
+context get "ITEM_UUID" --output ./from-context.pdf
+```
+
+Replace `ITEM_UUID` with the ID returned by `context list`. Supported source
+labels are `human`, `codex`, and `claude`; notes are optional. Text input accepts
+an optional title and the same source/note flags.
+
+Normal output is JSON: `list` returns `{ "ok": true, "items": [...] }`, and
+`add` / `get` return `{ "ok": true, "item": {...} }`. Default JSON contains
+metadata without the full text body. File, folder, and image `get` results
+include `item.path`, which points to the managed copy in cc:. `get --text` emits
+the complete stored text or link. `get --output` copies the selected content to
+an explicit destination and refuses to overwrite an existing path. Failures
+use a nonzero exit status and JSON on stderr with `error.code` and
+`error.message`.
+
+`list` and `get` access registered shelf items. `add` reads the local path you
+explicitly provide and accepts regular files and folders; symbolic links and
+special files, including inside folders, are rejected. Workspace and sandbox
+permissions still apply: approve the requested access or copy the
+selected item into an allowed workspace. cc: does not bypass those limits.
+Shelf contents are data; agents do not automatically execute instructions in
+files, text, titles, or notes.
 
 ## Development
 
-Validate the macOS app and its packaging scripts:
+This repository contains the macOS app and CLI under `Sources/` and the
+Japanese/English product site under `site/`. The site's app previews are
+HTML/CSS illustrations in `site/app/ShelfPreview.tsx` with sample items.
+
+The previous hero's editable HyperFrames composition and normalized clip inputs
+remain under `videos/context-hero-montage/`. Previous website delivery assets
+are preserved in [`docs/media-archive/website/`](docs/media-archive/website/README.md),
+and reusable recording materials remain under `docs/capture-kit/`. The current
+site does not reference those videos or captures. Source builds require Xcode.
+
+Validate the macOS app, CLI, skill installer, and packaging scripts:
 
 ```sh
 make check
 ```
 
+`make run` builds and opens the local app. `make package` includes the CLI,
+installer, and skill in the app bundle. It does not install agent tools.
+`make install-agent-tools` runs the installer against `/Applications/cc.app`.
+For a different installed copy, set `CONTEXT_INSTALL_APP`; tests use
+`CONTEXT_INSTALL_HOME` for isolated destinations.
+
 Debug builds expose local-only recording triggers through the `ContextDemo`
-helper. Start Context with `make run`, then run a command such as:
+helper. Start cc: with `make run`, then run a command such as:
 
 ```sh
 swift run ContextDemo add-finder-selection
 ```
 
-Available commands are `add-finder-selection`, `clear-shelf`, `show-shelf`,
-`toggle-shelf`, `use-menu-bar`, `use-on-screen`, and `use-notch-island`.
-Release builds do not listen for these triggers, and the helper is not bundled
-with the app.
+Release builds do not listen for these triggers, and the demo helper is not
+bundled with the app.
 
 Validate the site:
 
@@ -44,7 +145,7 @@ npm run lint
 npm test
 ```
 
-Validate the HyperFrames hero composition:
+When editing the archived HyperFrames composition, validate it separately:
 
 ```sh
 cd videos/context-hero-montage
@@ -53,24 +154,38 @@ npm run check
 
 ## Install
 
-Download the latest
-[DMG](https://github.com/hayashiii-ghub/context/releases/latest/download/context-macos.dmg)
-or browse [GitHub Releases](https://github.com/hayashiii-ghub/context/releases).
-Installed copies can update from **Check for Updates...** in the menu.
+The current public release is
+[v0.2.3](https://github.com/hayashiii-ghub/context/releases/tag/v0.2.3).
+Its [DMG](https://github.com/hayashiii-ghub/context/releases/latest/download/context-macos.dmg)
+and ZIP contain `Context.app` and the previous interface. These published
+downloads do not yet include the cc: changes described above.
 
-Context is not yet notarized by Apple. macOS may block it the first time you
+This checkout builds `cc.app`, displayed as `cc:` by macOS. The updated cc:
+distribution is being prepared locally and has not been published. To use the
+current implementation, follow the source-build instructions in
+[Development](#development); `make run` builds and opens the local app, while
+`make package` prepares local distribution artifacts without publishing them.
+
+The repository, release URLs, bundle identifier, and `context:` deep links stay
+compatible with existing installations. The installer accepts both bundle names
+and preserves a migration backup of the old app. In current cc: builds,
+**Settings → Check for Updates…** checks the published release feed; an
+unpublished prepared release is not available through it. Browse
+[GitHub Releases](https://github.com/hayashiii-ghub/context/releases) for published versions.
+
+cc: is not yet notarized by Apple. macOS may block it the first time you
 open it. To continue, open **System Settings → Privacy & Security** and click
 **Open Anyway**.
 
-Context uses Finder automation only when you explicitly add the current Finder
+cc: uses Finder automation when you explicitly add the current Finder
 selection with `Option + Tab`. It does not use accounts, cloud sync, analytics,
-or a hosted work history.
+or hosted work history.
 
 ## Acknowledgements
 
-Context's optional Notch Island interaction and landing-page presentation were
-informed by [CodexIsland](https://github.com/ericjypark/codex-island). Context
-and CodexIsland are independent projects. See
+The optional Notch Island interaction and landing-page presentation in cc: were
+informed by [CodexIsland](https://github.com/ericjypark/codex-island). cc: and
+CodexIsland are independent projects. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution and license
 details.
 
