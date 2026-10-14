@@ -136,7 +136,7 @@ npm test
 
 ## Install
 
-Download [cc: v0.4.0](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.0)
+Download [cc: v0.4.1](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.1)
 as a [DMG](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.dmg)
 or [ZIP](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.zip).
 The product site is [cc.hayashiii-gpt.chatgpt.site](https://cc.hayashiii-gpt.chatgpt.site).

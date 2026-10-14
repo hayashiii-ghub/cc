@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 
-const title = "cc: — A copy for what’s next.";
+const title = "cc: · A copy for what’s next.";
 const description =
   "Files, links, and notes. Ready for your next app or agent.";
 

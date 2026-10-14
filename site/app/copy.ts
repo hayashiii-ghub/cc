@@ -5,9 +5,9 @@ export const siteLanguageStorageKey = "cc-language";
 export const siteCopy = {
   en: {
     meta: {
-      title: "cc: — A copy for what’s next.",
+      title: "cc: · A copy for what’s next.",
       description: "Files, links, and notes. Ready for your next app or agent.",
-      imageAlt: "cc: — A copy for what’s next.",
+      imageAlt: "cc: · A copy for what’s next.",
     },
     skip: "Skip to content",
     primary: "Primary",
@@ -41,7 +41,7 @@ export const siteCopy = {
     installName: "cc: for macOS",
     markAlt: "cc: mark",
     downloadDmg: "Download DMG",
-    installMeta: "v0.4.0 · macOS 26+ · Apple Silicon & Intel",
+    installMeta: "v0.4.1 · macOS 26+ · Apple Silicon & Intel",
     installNote: "cc: is not yet notarized by Apple. macOS may block it the first time you open it. To continue, open System Settings → Privacy & Security and click “Open Anyway.”",
     faqEyebrow: "— FAQ",
     faqTitle: "A few things to know.",
@@ -90,9 +90,9 @@ export const siteCopy = {
   },
   ja: {
     meta: {
-      title: "cc: — 次の一歩に、コピーを。",
+      title: "cc: · 次の一歩に、コピーを。",
       description: "ファイル、リンク、メモ。次のアプリやエージェントへ渡す準備を。",
-      imageAlt: "cc: — 次の一歩に、コピーを。",
+      imageAlt: "cc: · 次の一歩に、コピーを。",
     },
     skip: "本文へ移動",
     primary: "メインナビゲーション",
@@ -126,7 +126,7 @@ export const siteCopy = {
     installName: "cc: · macOS版",
     markAlt: "cc:のマーク",
     downloadDmg: "DMGをダウンロード",
-    installMeta: "v0.4.0 · macOS 26+ · Apple Silicon・Intel対応",
+    installMeta: "v0.4.1 · macOS 26+ · Apple Silicon・Intel対応",
     installNote: "cc:はAppleの公証をまだ受けていません。初回起動時にmacOSが開くのを止める場合があります。起動を承認するには、システム設定 → プライバシーとセキュリティで「このまま開く」を選びます。",
     faqEyebrow: "— よくある質問",
     faqTitle: "使う前に、知っておきたいこと。",
