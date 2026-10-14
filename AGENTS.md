@@ -13,8 +13,9 @@ This repository contains the standalone cc: product for macOS.
 User-facing product copy should use `cc:`.
 Keep the existing `Context` source/product names, bundle identifier, data directory,
 `context` CLI, `context-handoff` skill name, and release URLs stable for compatibility.
-This checkout builds `cc.app`. The public v0.2.3 release still contains
-`Context.app`; the updated cc: distribution is being prepared and is not yet published.
+Release packages contain `cc.app`, displayed as `cc:` by macOS. The installer
+also accepts legacy `Context.app` packages and preserves a migration backup
+when replacing an existing legacy installation.
 
 ## Validation
 

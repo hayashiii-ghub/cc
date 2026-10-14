@@ -7,9 +7,8 @@ same shelf.
 Previously named Context. Existing shelf data, settings, and agent integrations
 continue to work.
 
-The features and agent tools below describe the current source checkout. The
-public v0.2.3 release still ships `Context.app`; the updated cc: distribution
-is being prepared and has not been published yet. See [Install](#install).
+cc: v0.3.0 ships as `cc.app`, with the bundled `context` CLI and an optional
+agent handoff skill. See [Install](#install).
 
 cc: is free, open source, local-first, and built for macOS 26 or later.
 Click the `cc:` icon in the menu bar to open or close the shelf. Right-click the
@@ -154,24 +153,21 @@ npm run check
 
 ## Install
 
-The current public release is
-[v0.2.3](https://github.com/hayashiii-ghub/context/releases/tag/v0.2.3).
-Its [DMG](https://github.com/hayashiii-ghub/context/releases/latest/download/context-macos.dmg)
-and ZIP contain `Context.app` and the previous interface. These published
-downloads do not yet include the cc: changes described above.
+Download [cc: v0.3.0](https://github.com/hayashiii-ghub/context/releases/tag/v0.3.0)
+for macOS 26 or later on Apple Silicon or Intel.
+The [DMG](https://github.com/hayashiii-ghub/context/releases/latest/download/context-macos.dmg)
+and [ZIP](https://github.com/hayashiii-ghub/context/releases/latest/download/context-macos.zip)
+contain `cc.app`, displayed as `cc:` by macOS, its CLI, and Sparkle. Open the
+DMG and drag `cc.app` to Applications.
 
-This checkout builds `cc.app`, displayed as `cc:` by macOS. The updated cc:
-distribution is being prepared locally and has not been published. To use the
-current implementation, follow the source-build instructions in
-[Development](#development); `make run` builds and opens the local app, while
-`make package` prepares local distribution artifacts without publishing them.
+The repository, release URLs, bundle identifier, local data directory,
+`context` CLI, and `context:` deep links remain compatible with existing
+installations. The command-line installer accepts both `Context.app` and
+`cc.app` and preserves a migration backup when replacing the old app.
 
-The repository, release URLs, bundle identifier, and `context:` deep links stay
-compatible with existing installations. The installer accepts both bundle names
-and preserves a migration backup of the old app. In current cc: builds,
-**Settings → Check for Updates…** checks the published release feed; an
-unpublished prepared release is not available through it. Browse
-[GitHub Releases](https://github.com/hayashiii-ghub/context/releases) for published versions.
+Use **Settings → Check for Updates…** to check the existing Sparkle release
+feed. Update archives are verified with Ed25519 signatures. Browse
+[GitHub Releases](https://github.com/hayashiii-ghub/context/releases) for release notes.
 
 cc: is not yet notarized by Apple. macOS may block it the first time you
 open it. To continue, open **System Settings → Privacy & Security** and click
