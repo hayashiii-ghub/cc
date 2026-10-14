@@ -14,7 +14,7 @@ resolve_context_version() {
   fi
 
   if [[ ! "$raw_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "Invalid Context version: $raw_version (expected vMAJOR.MINOR.PATCH)" >&2
+    echo "Invalid cc: version: $raw_version (expected vMAJOR.MINOR.PATCH)" >&2
     return 2
   fi
 

@@ -42,7 +42,8 @@ struct FileActionServiceTests {
             )
         ]
 
-        try FileActionService().export(items: items, to: destinationDirectory, mode: .copy)
+        let result = FileActionService().exportAll(items: items, to: destinationDirectory)
+        #expect(result.failures.isEmpty)
 
         let exportedNames = try FileManager.default.contentsOfDirectory(
             at: destinationDirectory,
@@ -69,7 +70,7 @@ struct FileActionServiceTests {
             ShelfItem(kind: .file, title: "available.txt", detail: root.path, url: availableURL)
         ]
 
-        let result = FileActionService().exportAll(items: items, to: destinationDirectory, mode: .copy)
+        let result = FileActionService().exportAll(items: items, to: destinationDirectory)
 
         #expect(result.exportedURLs.map(\.lastPathComponent) == ["available.txt"])
         #expect(result.failures.count == 1)
@@ -98,14 +99,14 @@ struct FileActionServiceTests {
             ShelfItem(kind: .text, title: "Snippet", detail: "4 characters", text: "text")
         ]
 
-        let result = FileActionService().exportAll(items: items, to: destinationDirectory, mode: .copy)
+        let result = FileActionService().exportAll(items: items, to: destinationDirectory)
         let exportedNames = result.exportedURLs.map(\.lastPathComponent).sorted()
 
         #expect(result.failures.isEmpty)
         #expect(exportedNames == ["Snippet.txt", "notes 2.txt", "notes.txt"])
     }
 
-    @Test func moveModeMovesImageFilesInsteadOfCopyingThem() throws {
+    @Test func exportsImageFilesWithoutChangingTheSource() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
         let destinationDirectory = root.appendingPathComponent("Destination", isDirectory: true)
@@ -116,17 +117,20 @@ struct FileActionServiceTests {
         try Data("image".utf8).write(to: sourceURL)
         let item = ShelfItem(kind: .image, title: "photo.png", detail: root.path, url: sourceURL)
 
-        try FileActionService().export(items: [item], to: destinationDirectory, mode: .move)
+        let result = FileActionService().exportAll(items: [item], to: destinationDirectory)
+        let exportedURL = destinationDirectory.appendingPathComponent("photo.png")
 
-        #expect(!FileManager.default.fileExists(atPath: sourceURL.path))
-        #expect(FileManager.default.fileExists(
-            atPath: destinationDirectory.appendingPathComponent("photo.png").path
-        ))
+        #expect(result.failures.isEmpty)
+        #expect(result.exportedURLs == [exportedURL])
+        #expect(try String(contentsOf: sourceURL, encoding: .utf8) == "image")
+        #expect(try String(contentsOf: exportedURL, encoding: .utf8) == "image")
     }
 }
 
 @MainActor
 struct ShelfStoreExportTests {
+    private let shelfFixture = ShelfStoreTestFixture()
+
     @Test func exportAllKeepsShelfItemsAndSourceFiles() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
@@ -139,8 +143,8 @@ struct ShelfStoreExportTests {
         try Data("first".utf8).write(to: firstURL)
         try Data("second".utf8).write(to: secondURL)
 
-        let store = ShelfStore()
-        store.addFileURLs([firstURL, secondURL])
+        let store = shelfFixture.makeStore()
+        await store.addFileURLs([firstURL, secondURL]).value
 
         store.exportAllItems(to: destinationDirectory)
 
@@ -161,55 +165,16 @@ struct ShelfStoreExportTests {
         ))
     }
 
-    @Test func partialMoveRemovesSuccessfulItemsAndKeepsFailuresOnTheShelf() async throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
-        let destinationDirectory = root.appendingPathComponent("Destination", isDirectory: true)
-        let availableURL = root.appendingPathComponent("available.txt")
-        let missingURL = root.appendingPathComponent("missing.txt")
-        defer { try? FileManager.default.removeItem(at: root) }
-
-        try FileManager.default.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
-        try Data("available".utf8).write(to: availableURL)
-        let store = ShelfStore(errorPresenter: { _ in })
-        store.addFileURLs([availableURL, missingURL])
-
-        store.moveItems(to: destinationDirectory)
-        for _ in 0..<100 where store.isExporting {
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        #expect(!store.isExporting)
-        #expect(store.items.map(\.url) == [missingURL])
-        #expect(!FileManager.default.fileExists(atPath: availableURL.path))
-        #expect(FileManager.default.fileExists(
-            atPath: destinationDirectory.appendingPathComponent("available.txt").path
-        ))
-    }
-
-    @Test func zipCreationRunsAsynchronouslyAndKeepsShelfItems() async throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
-        let sourceURL = root.appendingPathComponent("notes.txt")
-        let archiveURL = root.appendingPathComponent("Shelf.zip")
-        defer { try? FileManager.default.removeItem(at: root) }
-
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        try Data("notes".utf8).write(to: sourceURL)
-        try Data("old archive".utf8).write(to: archiveURL)
-        let store = ShelfStore(errorPresenter: { _ in })
-        store.addFileURLs([sourceURL])
-
-        store.createZip(at: archiveURL)
-
-        #expect(store.isExporting)
-        for _ in 0..<200 where store.isExporting {
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        #expect(!store.isExporting)
+    @Test func missingSourceDoesNotEnterShelfOrRemoveSuccessfulCopies() async throws {
+        let source = shelfFixture.rootURL.appendingPathComponent("source.txt")
+        try FileManager.default.createDirectory(at: shelfFixture.rootURL, withIntermediateDirectories: true)
+        try Data("snapshot".utf8).write(to: source)
+        var errors: [Error] = []
+        let store = shelfFixture.makeStore(errorPresenter: { errors.append($0) })
+        await store.addFileURLs([source, source.appendingPathExtension("missing")]).value
         #expect(store.items.count == 1)
-        #expect(FileManager.default.fileExists(atPath: archiveURL.path))
-        #expect(try Data(contentsOf: archiveURL) != Data("old archive".utf8))
+        #expect(errors.count == 1)
+        #expect(!store.isImporting)
+        #expect(try String(contentsOf: source, encoding: .utf8) == "snapshot")
     }
 }

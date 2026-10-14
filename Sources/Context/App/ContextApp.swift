@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CoreFoundation
 import OSLog
 import Sparkle
@@ -34,53 +35,52 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
     )!
 
     private let store = ShelfStore()
+    private let presentationPreferences = ShelfPresentationPreferences()
+    private let shortcutPreferences = ShortcutPreferences()
+    private lazy var shortcutController = ShortcutController(
+        preferences: shortcutPreferences,
+        onAddFinderSelection: { [weak self] in self?.addFinderSelection() },
+        onToggleShelf: { [weak self] in self?.toggleShelf() }
+    )
     private let finderSelectionReader = FinderSelectionReader()
-    private let presentationPreference = ShelfPresentationPreference()
     private let updateController = AppUpdateController()
-    private lazy var shelfWindowController = ShelfWindowController(
-        store: store,
-        onReturnToMenuBar: { [weak self] in
-            self?.selectPresentationMode(.menuBar)
+    private lazy var settingsWindowController = SettingsWindowController(
+        preferences: presentationPreferences,
+        shortcutController: shortcutController,
+        onCheckForUpdates: { [weak self] in
+            self?.updateController.controller.checkForUpdates(nil)
         },
-        onShowMenu: { [weak self] in
-            self?.showStatusMenu()
+        onOpenReleasePage: { [weak self] in
+            self?.openReleasePage()
         }
     )
     private lazy var menuBarShelfController = MenuBarShelfController(
         store: store,
-        onKeepOnScreen: { [weak self] in
-            self?.selectPresentationMode(.floating)
-        },
-        onShowMenu: { [weak self] in
-            self?.showStatusMenu()
+        onShowMenu: { [weak self] view in
+            self?.showShelfMenu(relativeTo: view)
         }
     )
-    private lazy var notchShelfController = NotchIslandController(
+    private lazy var notchShelfController: NotchIslandController = NotchIslandController(
         store: store,
-        onWillShowShelf: { [weak self] in
-            self?.hideNonNotchShelves()
-        },
         onAddFinderSelection: { [weak self] in
-            self?.addFinderSelectionFromNotch()
+            self?.notchShelfController.hideShelf()
+            self?.addFiles()
         },
-        onShowMenu: { [weak self] in
-            self?.showStatusMenu()
+        onShowMenu: { [weak self] view in
+            self?.showShelfMenu(relativeTo: view)
         },
-        onUnavailable: { [weak self] in
-            self?.fallBackFromUnavailableNotch()
+        onWillShow: { [weak self] in
+            self?.menuBarShelfController.hideShelf()
         }
     )
-    private var addFinderSelectionHotKey: GlobalHotKey?
-    private var toggleShelfHotKey: GlobalHotKey?
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    private var unreadItemsObserver: AnyCancellable?
+    private var presentationObserver: AnyCancellable?
     private var copyMenuItem: NSMenuItem?
-    private var moveMenuItem: NSMenuItem?
-    private var zipMenuItem: NSMenuItem?
+    private var addClipboardMenuItem: NSMenuItem?
     private var clearMenuItem: NSMenuItem?
-    private var floatingShelfMenuItem: NSMenuItem?
-    private var menuBarShelfMenuItem: NSMenuItem?
-    private var notchShelfMenuItem: NSMenuItem?
+    private var menuTrackingDepth = 0
 
 #if DEBUG
     private static let demoNotificationPrefix = "work.hayashigoto.Context.demo."
@@ -117,14 +117,40 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        store.discardStaleManagedFiles()
+        store.startObserving()
 
         configureStatusItem()
+        observeUnreadItems()
+        configureApplicationMenu()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(menuTrackingDidBegin),
+            name: NSMenu.didBeginTrackingNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(menuTrackingDidEnd),
+            name: NSMenu.didEndTrackingNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
         updateController.start()
-        applySavedPresentationMode()
-        toggleShelfHotKey = GlobalHotKey(shortcut: .toggleShelf) { [weak self] in
-            self?.togglePreferredShelf()
-        }
+        updatePresentationAvailability()
+        presentationObserver = presentationPreferences.$mode
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] mode in
+                self?.applyPresentationMode(mode)
+            }
+        shortcutController.start(finderIsFrontmost: FinderShortcutAvailability.isEnabled(
+            frontmostBundleIdentifier: NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        ))
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(frontmostApplicationDidChange),
@@ -141,29 +167,47 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
 
     func applicationWillTerminate(_ notification: Notification) {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
 #if DEBUG
         CFNotificationCenterRemoveEveryObserver(
             CFNotificationCenterGetDarwinNotifyCenter(),
             Unmanaged.passUnretained(self).toOpaque()
         )
 #endif
+        menuBarShelfController.hideShelf()
         notchShelfController.stop()
-        addFinderSelectionHotKey = nil
-        toggleShelfHotKey = nil
-        store.clear()
+        shortcutController.stop()
+        unreadItemsObserver = nil
+        presentationObserver = nil
+        store.stopObserving()
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard let link = ContextDeepLink(url: url) else { continue }
+            store.refresh()
+            switch link {
+            case .shelf: showShelf()
+            case .clipboard: addClipboardText()
+            case .settings: showSettings()
+            case .item(let id):
+                if let item = store.items.first(where: { $0.id == id }) {
+                    store.open(item)
+                } else {
+                    showShelf()
+                }
+            }
+        }
     }
 
     func menuWillOpen(_ menu: NSMenu) {
         let hasItems = !store.items.isEmpty
-        let canManageItems = hasItems && !store.isExporting
+        let canManageItems = hasItems && !store.isExporting && !store.isImporting
         copyMenuItem?.isEnabled = canManageItems
-        moveMenuItem?.isEnabled = canManageItems
-        zipMenuItem?.isEnabled = canManageItems
         clearMenuItem?.isEnabled = canManageItems
-        floatingShelfMenuItem?.state = presentationPreference.mode == .floating ? .on : .off
-        menuBarShelfMenuItem?.state = presentationPreference.mode == .menuBar ? .on : .off
-        notchShelfMenuItem?.state = presentationPreference.mode == .notch ? .on : .off
-        notchShelfMenuItem?.isEnabled = hasNotchScreen
+        menu.items.first { $0.action == #selector(addFiles) }?.isEnabled = !store.isExporting && !store.isImporting
+        let clipboard = NSPasteboard.general.string(forType: .string)
+        addClipboardMenuItem?.isEnabled = !store.isExporting && store.canAddClipboardText(clipboard)
     }
 
     private func configureStatusItem() {
@@ -176,97 +220,75 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
-        let menu = NSMenu()
+        let menu = NSMenu(title: "cc:")
         menu.delegate = self
-
-        let addSelectionItem = NSMenuItem(
-            title: "Add Finder Selection",
-            action: #selector(addFinderSelection),
-            keyEquivalent: "\t"
-        )
-        addSelectionItem.keyEquivalentModifierMask = [.option]
-        menu.addItem(addSelectionItem)
-        let toggleShelfItem = NSMenuItem(
-            title: "Toggle Shelf",
-            action: #selector(toggleShelf),
-            keyEquivalent: "\t"
-        )
-        toggleShelfItem.keyEquivalentModifierMask = [.option, .shift]
-        menu.addItem(toggleShelfItem)
-
-        let shelfLocationItem = NSMenuItem(title: "Shelf Location", action: nil, keyEquivalent: "")
-        let shelfLocationMenu = NSMenu()
-        let floatingItem = NSMenuItem(
-            title: "On Screen",
-            action: #selector(useFloatingShelf),
-            keyEquivalent: ""
-        )
-        let menuBarItem = NSMenuItem(
-            title: "Menu Bar",
-            action: #selector(useMenuBarShelf),
-            keyEquivalent: ""
-        )
-        let notchItem = NSMenuItem(
-            title: "Notch Island",
-            action: #selector(useNotchShelf),
-            keyEquivalent: ""
-        )
-        floatingItem.target = self
-        menuBarItem.target = self
-        notchItem.target = self
-        shelfLocationMenu.addItem(menuBarItem)
-        shelfLocationMenu.addItem(floatingItem)
-        shelfLocationMenu.addItem(notchItem)
-        shelfLocationItem.submenu = shelfLocationMenu
-        floatingShelfMenuItem = floatingItem
-        menuBarShelfMenuItem = menuBarItem
-        notchShelfMenuItem = notchItem
-        menu.addItem(shelfLocationItem)
-
-        menu.addItem(
-            NSMenuItem(
-                title: "Add Clipboard Text",
-                action: #selector(addClipboardText),
-                keyEquivalent: ""
-            )
-        )
+        menu.autoenablesItems = false
+        menu.addItem(NSMenuItem(title: "Add Files…", action: #selector(addFiles), keyEquivalent: "o"))
+        let clipboardItem = NSMenuItem(title: "Add Clipboard Text", action: #selector(addClipboardText), keyEquivalent: "")
+        addClipboardMenuItem = clipboardItem
+        menu.addItem(clipboardItem)
         menu.addItem(.separator())
 
-        let copyItem = NSMenuItem(title: "Copy Items To...", action: #selector(copyItems), keyEquivalent: "")
-        let moveItem = NSMenuItem(title: "Move Items To...", action: #selector(moveItems), keyEquivalent: "")
-        let zipItem = NSMenuItem(title: "Create ZIP...", action: #selector(createZip), keyEquivalent: "")
+        let copyItem = NSMenuItem(title: "Copy All to Folder…", action: #selector(copyItems), keyEquivalent: "")
         copyMenuItem = copyItem
-        moveMenuItem = moveItem
-        zipMenuItem = zipItem
         menu.addItem(copyItem)
-        menu.addItem(moveItem)
-        menu.addItem(zipItem)
-
-        menu.addItem(.separator())
-
         let clearItem = NSMenuItem(title: "Clear Shelf", action: #selector(clearShelf), keyEquivalent: "")
+        clearItem.toolTip = "Remove items from cc:. Original files stay where they are."
         clearMenuItem = clearItem
         menu.addItem(clearItem)
-
         menu.addItem(.separator())
-        let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates...",
-            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
-            keyEquivalent: ""
-        )
-        menu.addItem(checkForUpdatesItem)
-        menu.addItem(NSMenuItem(title: "Open Release Page", action: #selector(openReleasePage), keyEquivalent: ""))
 
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Context", action: #selector(quit), keyEquivalent: "q"))
-
-        for item in menu.items where item.action != nil {
-            item.target = self
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Quit cc:", action: #selector(quit), keyEquivalent: "q"))
+        for entry in menu.items where entry.action != nil {
+            entry.target = self
         }
-        checkForUpdatesItem.target = updateController.controller
-
         statusMenu = menu
         statusItem = item
+    }
+
+    private func configureApplicationMenu() {
+        let mainMenu = NSMenu()
+        let applicationItem = NSMenuItem()
+        let applicationMenu = NSMenu(title: "cc:")
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        applicationMenu.addItem(settingsItem)
+        applicationMenu.addItem(.separator())
+        let quitItem = NSMenuItem(title: "Quit cc:", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        applicationMenu.addItem(quitItem)
+        applicationItem.submenu = applicationMenu
+        mainMenu.addItem(applicationItem)
+
+        let fileItem = NSMenuItem()
+        let fileMenu = NSMenu(title: "File")
+        fileMenu.delegate = self
+        fileMenu.autoenablesItems = false
+        let addFilesItem = NSMenuItem(title: "Add Files…", action: #selector(addFiles), keyEquivalent: "o")
+        addFilesItem.target = self
+        fileMenu.addItem(addFilesItem)
+        fileItem.submenu = fileMenu
+        mainMenu.addItem(fileItem)
+
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(NSMenuItem(title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+        windowItem.submenu = windowMenu
+        mainMenu.addItem(windowItem)
+        NSApp.mainMenu = mainMenu
+    }
+
+    private func observeUnreadItems() {
+        unreadItemsObserver = store.$unreadItemIDs
+            .removeDuplicates()
+            .sink { [weak self] ids in
+                guard let button = self?.statusItem?.button else { return }
+                button.image = ShelfIcon.templateImage(hasUnreadItems: !ids.isEmpty)
+                let label = ids.isEmpty ? "cc:" : "cc: · \(ids.count) new \(ids.count == 1 ? "item" : "items")"
+                button.toolTip = label
+                button.setAccessibilityLabel(label)
+            }
     }
 
     @objc private func statusItemButtonPressed(_ sender: NSStatusBarButton) {
@@ -278,7 +300,7 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
             let eventLocation = event.flatMap { event in
                 eventWindow?.convertPoint(toScreen: event.locationInWindow)
             }
-            togglePreferredShelf(
+            toggleShelf(
                 relativeTo: sender,
                 clickLocation: eventLocation ?? NSEvent.mouseLocation,
                 clickScreen: eventWindow?.screen
@@ -286,16 +308,17 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
     }
 
-    @objc private func toggleShelf() {
+    @objc private func addFiles() {
         DispatchQueue.main.async { [weak self] in
-            self?.togglePreferredShelf()
+            guard let self, !self.store.isImporting, self.store.addItemsFromOpenPanel() else { return }
+            self.showShelf()
         }
     }
 
     @objc private func addClipboardText() {
         guard store.addClipboardText(NSPasteboard.general.string(forType: .string)) else { return }
         DispatchQueue.main.async { [weak self] in
-            self?.showPreferredShelf()
+            self?.showShelf()
         }
     }
 
@@ -306,23 +329,9 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
     }
 
     private func updateFinderSelectionHotKey(frontmostBundleIdentifier: String?) {
-        let shouldEnable = FinderShortcutAvailability.isEnabled(
+        shortcutController.updateFinderAvailability(FinderShortcutAvailability.isEnabled(
             frontmostBundleIdentifier: frontmostBundleIdentifier
-        )
-
-        if shouldEnable, addFinderSelectionHotKey == nil {
-            addFinderSelectionHotKey = GlobalHotKey(shortcut: .addFinderSelection) { [weak self] in
-                self?.addFinderSelection()
-            }
-            if addFinderSelectionHotKey == nil {
-                finderImportLogger.error("Could not register the Option-Tab shortcut")
-            } else {
-                finderImportLogger.info("Option-Tab enabled for Finder")
-            }
-        } else if !shouldEnable, addFinderSelectionHotKey != nil {
-            addFinderSelectionHotKey = nil
-            finderImportLogger.info("Option-Tab disabled outside Finder")
-        }
+        ))
     }
 
     @objc private func addFinderSelection() {
@@ -335,12 +344,7 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
         }
 
         guard importCurrentFinderSelection() else { return }
-        showPreferredShelf()
-    }
-
-    private func addFinderSelectionFromNotch() {
-        notchShelfController.hideShelf()
-        _ = store.addItemsFromOpenPanel()
+        showShelf()
     }
 
     @discardableResult
@@ -385,8 +389,8 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
         "show-shelf",
         "toggle-shelf",
         "use-menu-bar",
-        "use-on-screen",
         "use-notch-island",
+        "show-settings",
     ]
 
     private static func demoNotificationName(_ command: String) -> CFString {
@@ -397,19 +401,19 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
         switch name {
         case Self.demoNotificationPrefix + "add-finder-selection":
             guard importCurrentFinderSelection() else { return }
-            showPreferredShelf()
+            showShelf()
         case Self.demoNotificationPrefix + "clear-shelf":
             store.clear()
         case Self.demoNotificationPrefix + "show-shelf":
-            showPreferredShelf()
+            showShelf()
         case Self.demoNotificationPrefix + "toggle-shelf":
-            togglePreferredShelf()
+            toggleShelf()
         case Self.demoNotificationPrefix + "use-menu-bar":
-            selectPresentationMode(.menuBar)
-        case Self.demoNotificationPrefix + "use-on-screen":
-            selectPresentationMode(.floating)
+            presentationPreferences.mode = .menuBar
         case Self.demoNotificationPrefix + "use-notch-island":
-            selectPresentationMode(.notch)
+            presentationPreferences.mode = .notch
+        case Self.demoNotificationPrefix + "show-settings":
+            showSettings()
         default:
             break
         }
@@ -417,138 +421,152 @@ final class ContextApplication: NSObject, NSApplicationDelegate, NSMenuDelegate 
 #endif
 
     @objc private func copyItems() {
-        store.copyItemsToChosenFolder()
-    }
-
-    @objc private func moveItems() {
-        store.moveItemsToChosenFolder()
-    }
-
-    @objc private func createZip() {
-        store.createZipArchive()
+        DispatchQueue.main.async { [weak self] in
+            self?.store.copyItemsToChosenFolder()
+        }
     }
 
     @objc private func clearShelf() {
         store.clear()
     }
 
-    @objc private func useFloatingShelf() {
-        selectPresentationMode(.floating)
-    }
-
-    @objc private func useMenuBarShelf() {
-        selectPresentationMode(.menuBar)
-    }
-
-    @objc private func useNotchShelf() {
-        selectPresentationMode(.notch)
-    }
-
     @objc private func openReleasePage() {
         NSWorkspace.shared.open(Self.releasesURL)
+    }
+
+    @objc private func showSettings() {
+        DispatchQueue.main.async { [weak self] in
+            self?.menuBarShelfController.hideShelf()
+            self?.notchShelfController.hideShelf()
+            self?.settingsWindowController.show()
+        }
     }
 
     @objc private func quit() {
         NSApp.terminate(nil)
     }
 
-    private func showPreferredShelf() {
-        switch presentationPreference.mode {
-        case .floating:
-            notchShelfController.stop()
-            menuBarShelfController.hideShelf()
-            shelfWindowController.showShelf()
-        case .menuBar:
-            notchShelfController.stop()
-            shelfWindowController.hideShelf()
-            guard let button = statusItem?.button else { return }
-            menuBarShelfController.showShelf(relativeTo: button)
-        case .notch:
-            shelfWindowController.hideShelf()
-            menuBarShelfController.hideShelf()
-            guard notchShelfController.start() else {
-                fallBackFromUnavailableNotch()
-                return
-            }
-            notchShelfController.showShelf()
+    private func showShelf() {
+        let location = NSEvent.mouseLocation
+        guard let (screen, mode) = presentationTarget(location: location) else { return }
+        if mode == .notch {
+            notchShelfController.showShelf(on: screen)
+            return
         }
+        guard let button = statusItem?.button else { return }
+        notchShelfController.hideShelf()
+        menuBarShelfController.showShelf(
+            relativeTo: button,
+            clickLocation: location,
+            clickScreen: screen
+        )
     }
 
-    private func togglePreferredShelf(
+    private func toggleShelf(
         relativeTo clickedButton: NSStatusBarButton? = nil,
         clickLocation: NSPoint? = nil,
         clickScreen: NSScreen? = nil
     ) {
-        switch presentationPreference.mode {
-        case .floating:
-            notchShelfController.stop()
-            menuBarShelfController.hideShelf()
-            shelfWindowController.toggleShelf()
-        case .menuBar:
-            notchShelfController.stop()
-            shelfWindowController.hideShelf()
-            guard let button = clickedButton ?? statusItem?.button else { return }
-            menuBarShelfController.toggleShelf(
-                relativeTo: button,
-                clickLocation: clickLocation,
-                clickScreen: clickScreen
+        let location = clickLocation ?? NSEvent.mouseLocation
+        guard let (screen, mode) = presentationTarget(
+            location: location,
+            preferredScreen: clickScreen
+        ) else { return }
+        if mode == .notch {
+            notchShelfController.toggleShelf(on: screen)
+            return
+        }
+        guard let button = clickedButton ?? statusItem?.button else { return }
+        notchShelfController.hideShelf()
+        menuBarShelfController.toggleShelf(
+            relativeTo: button,
+            clickLocation: location,
+            clickScreen: screen
+        )
+    }
+
+    private func presentationTarget(
+        location: NSPoint,
+        preferredScreen: NSScreen? = nil
+    ) -> (NSScreen, ShelfPresentationMode)? {
+        let screens = NSScreen.screens
+        let descriptors = screens.compactMap { screen -> ShelfScreenDescriptor? in
+            guard let id = screen.contextShelfDisplayID else { return nil }
+            return ShelfScreenDescriptor(
+                id: id,
+                frame: screen.frame,
+                hasNotch: screen.contextNotchGeometry != nil
             )
-        case .notch:
-            shelfWindowController.hideShelf()
-            menuBarShelfController.hideShelf()
-            guard notchShelfController.start() else {
-                fallBackFromUnavailableNotch()
-                return
-            }
-            notchShelfController.toggleShelf()
+        }
+        guard let route = ShelfScreenPolicy.route(
+            screens: descriptors,
+            location: location,
+            preferredScreenID: preferredScreen?.contextShelfDisplayID,
+            mode: presentationPreferences.mode
+        ), let screen = screens.first(where: { $0.contextShelfDisplayID == route.screenID }) else {
+            return nil
+        }
+        return (screen, route.mode)
+    }
+
+    @objc private func screenParametersDidChange() {
+        updatePresentationAvailability()
+        menuBarShelfController.handleScreenChanges()
+        synchronizeNotch()
+    }
+
+    private func updatePresentationAvailability() {
+        presentationPreferences.hasNotchedDisplay = NSScreen.screens.contains {
+            $0.contextNotchGeometry != nil
         }
     }
 
-    private func selectPresentationMode(_ mode: ShelfPresentationMode) {
-        presentationPreference.mode = mode.resolved(hasNotch: hasNotchScreen)
-        shelfWindowController.hideShelf()
+    private func applyPresentationMode(_ mode: ShelfPresentationMode) {
         menuBarShelfController.hideShelf()
         notchShelfController.stop()
-
-        DispatchQueue.main.async { [weak self] in
-            self?.showPreferredShelf()
+        if mode == .notch {
+            synchronizeNotch()
         }
+    }
+
+    private func synchronizeNotch() {
+        guard presentationPreferences.mode == .notch,
+              let screen = NSScreen.screens.first(where: { $0.contextNotchGeometry != nil }) else {
+            notchShelfController.stop()
+            return
+        }
+        _ = notchShelfController.start(on: screen)
     }
 
     private func showStatusMenu() {
         guard let statusItem, let statusMenu else { return }
 
-        notchShelfController.hideShelf()
         menuBarShelfController.hideShelf()
+        notchShelfController.hideShelf()
         statusItem.menu = statusMenu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
     }
 
-    private func hideNonNotchShelves() {
-        shelfWindowController.hideShelf()
-        menuBarShelfController.hideShelf()
+    private func showShelfMenu(relativeTo view: NSView) {
+        guard let statusMenu else { return }
+        let y = view.isFlipped ? view.bounds.maxY + 4 : view.bounds.minY - 4
+        statusMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: y), in: view)
     }
 
-    private var hasNotchScreen: Bool {
-        NSScreen.screens.contains { $0.contextNotchGeometry != nil }
+    @objc private func menuTrackingDidBegin() {
+        menuTrackingDepth += 1
+        guard menuTrackingDepth == 1 else { return }
+        // Item menus also extend outside the shelf and must not trigger dismissal.
+        menuBarShelfController.beginMenuTracking()
+        notchShelfController.beginMenuTracking()
     }
 
-    private func applySavedPresentationMode() {
-        let resolvedMode = presentationPreference.mode.resolved(hasNotch: hasNotchScreen)
-        presentationPreference.mode = resolvedMode
-        if resolvedMode == .notch, !notchShelfController.start() {
-            fallBackFromUnavailableNotch()
-        } else if resolvedMode != .notch {
-            notchShelfController.stop()
-        }
+    @objc private func menuTrackingDidEnd() {
+        menuTrackingDepth = max(0, menuTrackingDepth - 1)
+        guard menuTrackingDepth == 0 else { return }
+        menuBarShelfController.endMenuTracking()
+        notchShelfController.endMenuTracking()
     }
 
-    private func fallBackFromUnavailableNotch() {
-        guard presentationPreference.mode == .notch else { return }
-        presentationPreference.mode = .menuBar
-        notchShelfController.stop()
-        shelfWindowController.hideShelf()
-        menuBarShelfController.hideShelf()
-    }
 }

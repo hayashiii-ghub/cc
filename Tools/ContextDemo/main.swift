@@ -10,8 +10,8 @@ private let supportedCommands = [
     "show-shelf",
     "toggle-shelf",
     "use-menu-bar",
-    "use-on-screen",
     "use-notch-island",
+    "show-settings",
 ]
 
 private func printUsage() {
@@ -31,7 +31,7 @@ guard !NSRunningApplication.runningApplications(
     withBundleIdentifier: bundleIdentifier
 ).isEmpty else {
     FileHandle.standardError.write(
-        Data("Context is not running. Start a debug build with `make run`.\n".utf8)
+        Data("cc: is not running. Start a debug build with `make run`.\n".utf8)
     )
     exit(1)
 }
@@ -47,4 +47,4 @@ CFNotificationCenterPostNotification(
     nil,
     true
 )
-print("Triggered Context demo command: \(command)")
+print("Triggered cc: demo command: \(command)")

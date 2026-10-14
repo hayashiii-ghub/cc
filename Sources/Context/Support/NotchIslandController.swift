@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CoreGraphics
 import OSLog
 import SwiftUI
@@ -16,13 +17,13 @@ private let notchIslandWindowLogger = Logger(
 @MainActor
 final class NotchIslandController: NSObject {
     private let store: ShelfStore
-    private let onWillShowShelf: () -> Void
+    private let onWillShow: () -> Void
     private let onAddFinderSelection: () -> Void
-    private let onShowMenu: () -> Void
-    private let onUnavailable: () -> Void
+    private let onShowMenu: (NSView) -> Void
     private let presentation = NotchIslandPresentationState()
     private var phaseBeforeDrop: NotchIslandPhase = .compact
     private var geometry: NotchScreenGeometry?
+    private var preferredScreenID: UInt32?
     private var panel: NSPanel?
     private var localEventMonitor: Any?
     private var globalEventMonitor: Any?
@@ -30,33 +31,32 @@ final class NotchIslandController: NSObject {
     private var globalMouseMonitor: Any?
     private var confirmationTask: Task<Void, Never>?
     private var panelVerificationTask: Task<Void, Never>?
-    private var isObservingScreenChanges = false
+    private var itemCountObserver: AnyCancellable?
 
     init(
         store: ShelfStore,
-        onWillShowShelf: @escaping () -> Void,
         onAddFinderSelection: @escaping () -> Void,
-        onShowMenu: @escaping () -> Void,
-        onUnavailable: @escaping () -> Void
+        onShowMenu: @escaping (NSView) -> Void,
+        onWillShow: @escaping () -> Void = {}
     ) {
         self.store = store
-        self.onWillShowShelf = onWillShowShelf
+        self.onWillShow = onWillShow
         self.onAddFinderSelection = onAddFinderSelection
         self.onShowMenu = onShowMenu
-        self.onUnavailable = onUnavailable
         super.init()
+        itemCountObserver = store.$items
+            .map { $0.count }
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] count in
+                self?.resizePanel(itemCount: count)
+            }
     }
 
     @discardableResult
-    func start() -> Bool {
-        if !isObservingScreenChanges {
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(screenParametersDidChange),
-                name: NSApplication.didChangeScreenParametersNotification,
-                object: nil
-            )
-            isObservingScreenChanges = true
+    func start(on screen: NSScreen? = nil) -> Bool {
+        if let screen {
+            preferredScreenID = screen.contextShelfDisplayID
         }
         guard refreshScreen() else {
             stopMouseTracking()
@@ -67,19 +67,12 @@ final class NotchIslandController: NSObject {
     }
 
     func stop() {
-        if isObservingScreenChanges {
-            NotificationCenter.default.removeObserver(
-                self,
-                name: NSApplication.didChangeScreenParametersNotification,
-                object: nil
-            )
-            isObservingScreenChanges = false
-        }
         confirmationTask?.cancel()
         confirmationTask = nil
         phaseBeforeDrop = .compact
         presentation.phase = .compact
         geometry = nil
+        preferredScreenID = nil
         stopMouseTracking()
         stopEventMonitors()
         discardPanel()
@@ -95,29 +88,41 @@ final class NotchIslandController: NSObject {
         updateMouseCapture()
     }
 
-    @objc private func screenParametersDidChange() {
-        if refreshScreen() {
-            startMouseTracking()
-        } else {
-            stopMouseTracking()
-            onUnavailable()
+    func beginMenuTracking() {
+        stopEventMonitors()
+    }
+
+    func endMenuTracking() {
+        if isExpandedContext {
+            startEventMonitors()
         }
     }
 
+    var screenID: UInt32? {
+        preferredScreenID
+    }
+
     private func refreshScreen(allowRecovery: Bool = true) -> Bool {
-        guard let geometry = NSScreen.screens.lazy.compactMap(\.contextNotchGeometry).first else {
+        guard let preferredScreenID,
+              let targetScreen = NSScreen.screens.first(where: {
+                  $0.contextShelfDisplayID == preferredScreenID
+              }),
+              let geometry = targetScreen.contextNotchGeometry else {
             self.geometry = nil
             stopEventMonitors()
+            stopMouseTracking()
             discardPanel()
             return false
         }
-
         if let panel, !WindowServerPresentation.isOnScreen(panel) {
             discardPanel()
         }
+        let needsHostingUpdate = panel == nil || self.geometry != geometry
         self.geometry = geometry
-        configurePanel(for: geometry)
-        panel?.setFrame(geometry.expandedFrame, display: true)
+        if needsHostingUpdate {
+            configurePanel(for: geometry)
+        }
+        panel?.setFrame(geometry.expandedFrame(itemCount: store.items.count), display: true)
         panel?.orderFrontRegardless()
         updateMouseCapture()
         schedulePanelVerification(allowRecovery: allowRecovery)
@@ -125,13 +130,16 @@ final class NotchIslandController: NSObject {
     }
 
     private func configurePanel(for geometry: NotchScreenGeometry) {
-        let panel = panel ?? makePanel(frame: geometry.expandedFrame)
+        let frame = geometry.expandedFrame(itemCount: store.items.count)
+        let panel = panel ?? makePanel(frame: frame)
+        panel.identifier = NSUserInterfaceItemIdentifier("ContextIslandPanel-\(preferredScreenID ?? 0)")
         let rootView = NotchIslandView(
             store: store,
             presentation: presentation,
             topInset: geometry.topInset,
             notchWidth: geometry.notchFrame.width,
             sideTabWidth: NotchScreenGeometry.idleSideTabWidth,
+            contentWidth: frame.width,
             onToggleExpanded: { [weak self] in
                 self?.toggleShelf()
             },
@@ -141,10 +149,8 @@ final class NotchIslandController: NSObject {
             onAddFinderSelection: { [weak self] in
                 self?.onAddFinderSelection()
             },
-            onShowMenu: { [weak self] in
-                guard let self else { return }
-                self.hideShelf()
-                self.onShowMenu()
+            onShowMenu: { [weak self] view in
+                self?.onShowMenu(view)
             }
         )
         panel.contentView = NotchIslandDropReceiverView(
@@ -162,6 +168,15 @@ final class NotchIslandController: NSObject {
         )
     }
 
+    private func resizePanel(itemCount: Int) {
+        guard let geometry, let panel else { return }
+        let frame = geometry.expandedFrame(itemCount: itemCount)
+        guard frame != panel.frame else { return }
+        panel.setFrame(frame, display: true)
+        panel.contentView?.layoutSubtreeIfNeeded()
+        updateMouseCapture()
+    }
+
     private func makePanel(frame: NSRect) -> NSPanel {
         let panel = NotchIslandPanel(
             contentRect: frame,
@@ -169,7 +184,6 @@ final class NotchIslandController: NSObject {
             backing: .buffered,
             defer: false
         )
-        panel.identifier = NSUserInterfaceItemIdentifier("ContextNotchIslandPanel")
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
@@ -184,21 +198,23 @@ final class NotchIslandController: NSObject {
         return panel
     }
 
-    func toggleShelf() {
-        if isExpandedContext {
+    func toggleShelf(on screen: NSScreen? = nil) {
+        if isExpandedContext, screen == nil || screen?.contextShelfDisplayID == preferredScreenID {
             hideShelf()
         } else {
-            showShelf()
+            showShelf(on: screen)
         }
     }
 
-    func showShelf() {
-        guard geometry != nil else { return }
+    func showShelf(on screen: NSScreen? = nil) {
+        guard start(on: screen) else { return }
+        onWillShow()
+        store.refresh()
+        store.markSeen()
         confirmationTask?.cancel()
         confirmationTask = nil
         phaseBeforeDrop = .expanded
         presentation.phase = .expanded
-        onWillShowShelf()
         startEventMonitors()
         panel?.ignoresMouseEvents = false
         panel?.orderFrontRegardless()
@@ -316,18 +332,6 @@ final class NotchIslandController: NSObject {
             updateMouseCapture()
 
             if event.type == .leftMouseUp {
-                if presentation.phase == .targeted {
-                    let providers = NotchIslandDropReceiverView.itemProviders(
-                        from: NSPasteboard(name: .drag)
-                    )
-                    if !providers.isEmpty, store.handleDrop(providers: providers) {
-                        notchIslandDropLogger.debug(
-                            "Accepted notch drop from the global drag pasteboard"
-                        )
-                        showAcceptedState()
-                        return
-                    }
-                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
                     guard self?.presentation.phase == .targeted else { return }
                     self?.setDropTargeted(false)
@@ -337,7 +341,7 @@ final class NotchIslandController: NSObject {
         }
 
         if presentation.phase == .expanded {
-            panel.ignoresMouseEvents = !geometry.expandedFrame.contains(NSEvent.mouseLocation)
+            panel.ignoresMouseEvents = !geometry.expandedFrame(itemCount: store.items.count).contains(NSEvent.mouseLocation)
             return
         }
 
@@ -366,7 +370,7 @@ final class NotchIslandController: NSObject {
         case .targeted, .accepted:
             return geometry.dropFrame
         case .expanded:
-            return geometry.expandedFrame
+            return geometry.expandedFrame(itemCount: store.items.count)
         }
     }
 
@@ -444,6 +448,7 @@ private final class NotchIslandDropReceiverView: NSView {
         self.onTargetChange = onTargetChange
         self.onDrop = onDrop
         super.init(frame: .zero)
+        hostingView.sizingOptions = []
         registerForDraggedTypes(acceptedTypes)
         hostingView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(hostingView)
@@ -512,7 +517,7 @@ private final class NotchIslandDropReceiverView: NSView {
                 height: visibleTopInset + NotchScreenGeometry.dropExtraHeight
             )
         case .expanded:
-            size = NotchScreenGeometry.expandedSize
+            size = bounds.size
         }
 
         return NSRect(

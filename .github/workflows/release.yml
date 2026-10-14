@@ -96,7 +96,7 @@ jobs:
           EXPECTED_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0' }}
         run: |
           EXPECTED_VERSION="${EXPECTED_VERSION#v}"
-          ACTUAL_VERSION="$(plutil -extract CFBundleShortVersionString raw dist/package/Context.app/Contents/Info.plist)"
+          ACTUAL_VERSION="$(plutil -extract CFBundleShortVersionString raw dist/package/cc.app/Contents/Info.plist)"
           test "$ACTUAL_VERSION" = "$EXPECTED_VERSION"
 
       - name: Upload workflow artifact
@@ -115,7 +115,7 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           gh release view "$TAG_NAME" >/dev/null 2>&1 || \
-            gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Context for macOS."
+            gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "cc: for macOS."
           assets=(dist/context-macos.dmg dist/context-macos.zip script/install_latest.sh)
           if [[ -f dist/appcast.xml ]]; then
             assets+=(dist/appcast.xml)

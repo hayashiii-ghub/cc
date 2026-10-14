@@ -4,7 +4,6 @@ struct NotchScreenGeometry: Equatable {
     static let idleSideTabWidth: CGFloat = 38
     static let dropMinimumWidth: CGFloat = 230
     static let dropExtraHeight: CGFloat = 48
-    static let expandedSize = NSSize(width: 560, height: 250)
 
     let screenFrame: NSRect
     let visibleFrame: NSRect
@@ -64,8 +63,9 @@ struct NotchScreenGeometry: Equatable {
         )
     }
 
-    var expandedFrame: NSRect {
-        topCenteredFrame(size: Self.expandedSize)
+    func expandedFrame(itemCount: Int) -> NSRect {
+        let content = ShelfLayout.size(itemCount: itemCount)
+        return topCenteredFrame(size: NSSize(width: content.width, height: topInset + content.height))
     }
 
     private func topCenteredFrame(size: NSSize, edgeInset: CGFloat = 8) -> NSRect {
@@ -76,7 +76,7 @@ struct NotchScreenGeometry: Equatable {
         let centeredX = notchFrame.midX - width / 2
         return NSRect(
             x: min(max(centeredX, minimumX), maximumX),
-            y: screenFrame.maxY - size.height,
+            y: notchFrame.maxY - size.height,
             width: width,
             height: size.height
         )

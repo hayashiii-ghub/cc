@@ -1,6 +1,6 @@
-SHELL_SCRIPTS := script/app_bundle.sh script/build_and_run.sh script/package.sh script/install_latest.sh script/sparkle.sh script/test.sh script/test_app_bundle.sh script/test_install_latest.sh script/version.sh
+SHELL_SCRIPTS := script/app_bundle.sh script/build_and_run.sh script/package.sh script/install_latest.sh script/install_agent_tools.sh script/sparkle.sh script/test.sh script/test_app_bundle.sh script/test_install_latest.sh script/test_install_agent_tools.sh script/version.sh
 
-.PHONY: build check run package install-latest release status
+.PHONY: build check run package install-latest install-agent-tools release status
 
 VERSION ?=
 
@@ -11,8 +11,9 @@ check:
 	./script/test.sh
 	./script/test_install_latest.sh
 	./script/test_app_bundle.sh
+	./script/test_install_agent_tools.sh
 	@for script in $(SHELL_SCRIPTS); do \
-		bash -n "$$script"; \
+		bash -n "$$script" || exit 1; \
 	done
 
 run:
@@ -23,6 +24,9 @@ package:
 
 install-latest:
 	./script/install_latest.sh
+
+install-agent-tools:
+	./script/install_agent_tools.sh
 
 release:
 	@if [ -z "$(VERSION)" ]; then \

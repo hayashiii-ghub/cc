@@ -7,6 +7,8 @@ source "$ROOT_DIR/script/sparkle.sh"
 source "$ROOT_DIR/script/version.sh"
 
 APP_NAME="$CONTEXT_APP_NAME"
+APP_BUNDLE_NAME="$CONTEXT_APP_BUNDLE_NAME"
+APP_EXECUTABLE_NAME="$CONTEXT_EXECUTABLE_NAME"
 APP_VERSION="$(resolve_context_version "$ROOT_DIR")"
 ARTIFACT_BASENAME="context-macos"
 DIST_DIR="$ROOT_DIR/dist"
@@ -15,20 +17,20 @@ STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/context-package.XXXXXX")"
 PACKAGE_DIR="$STAGING_DIR/package"
 DMG_STAGING_DIR="$STAGING_DIR/dmg"
 DMG_MOUNT_DIR="$STAGING_DIR/dmg-mount"
-DMG_RW_PATH="$STAGING_DIR/$APP_NAME-rw.dmg"
+DMG_RW_PATH="$STAGING_DIR/$APP_BUNDLE_NAME-rw.dmg"
 DMG_BACKGROUND_DIR="$DMG_STAGING_DIR/.background"
 DMG_BACKGROUND_PATH="$DMG_BACKGROUND_DIR/background.png"
-APP_BUNDLE="$PACKAGE_DIR/$APP_NAME.app"
+APP_BUNDLE="$PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
-APP_BINARY="$APP_MACOS/$APP_NAME"
+APP_BINARY="$APP_MACOS/$APP_EXECUTABLE_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 ZIP_PATH="$DIST_DIR/$ARTIFACT_BASENAME.zip"
 DMG_PATH="$DIST_DIR/$ARTIFACT_BASENAME.dmg"
 SWIFTPM_CACHE_DIR="$ROOT_DIR/.build/cache"
 VALIDATION_DIR="$STAGING_DIR/validation"
-NOTARY_APP_ZIP_PATH="$STAGING_DIR/$APP_NAME-notary.zip"
+NOTARY_APP_ZIP_PATH="$STAGING_DIR/$APP_BUNDLE_NAME-notary.zip"
 CONTEXT_CODESIGN_IDENTITY="${CONTEXT_CODESIGN_IDENTITY:--}"
 CONTEXT_NOTARIZE="${CONTEXT_NOTARIZE:-0}"
 CONTEXT_NOTARY_KEYCHAIN_PROFILE="${CONTEXT_NOTARY_KEYCHAIN_PROFILE:-}"
@@ -50,18 +52,7 @@ sign_app() {
   local app="$1"
   xattr -cr "$app" 2>/dev/null || true
   context_sign_sparkle "$app"
-
-  if [[ "$CONTEXT_CODESIGN_IDENTITY" == "-" ]]; then
-    codesign --force --sign - "$app"
-  else
-    codesign --force \
-      --sign "$CONTEXT_CODESIGN_IDENTITY" \
-      --options runtime \
-      --timestamp \
-      "$app"
-  fi
-
-  codesign --verify --deep --strict "$app"
+  context_sign_cli_and_app "$app"
 }
 
 sign_disk_image() {
@@ -122,12 +113,13 @@ notarize_disk_image() {
 
 DEVELOPER_DIR_PATH="$(xcode-select -p 2>/dev/null || true)"
 XCBUILD_PATH="$(dirname "$DEVELOPER_DIR_PATH")/SharedFrameworks/XCBuild.framework/Versions/A/Support/xcbuild"
+SWBUILD_PATH="$(dirname "$DEVELOPER_DIR_PATH")/SharedFrameworks/SwiftBuild.framework/Versions/A/Support/swbuild"
 UNIVERSAL_MODE="${CONTEXT_UNIVERSAL:-auto}"
 
 if [[ "$UNIVERSAL_MODE" == "1" || "$UNIVERSAL_MODE" == "true" ]]; then
   SWIFT_BUILD_FLAGS=(-c release --arch arm64 --arch x86_64 --cache-path "$SWIFTPM_CACHE_DIR")
   BUILD_KIND="universal"
-elif [[ -x "$XCBUILD_PATH" ]]; then
+elif [[ -x "$XCBUILD_PATH" || -x "$SWBUILD_PATH" ]]; then
   SWIFT_BUILD_FLAGS=(-c release --arch arm64 --arch x86_64 --cache-path "$SWIFTPM_CACHE_DIR")
   BUILD_KIND="universal"
 else
@@ -137,7 +129,8 @@ fi
 
 echo "Building $BUILD_KIND release..."
 swift build "${SWIFT_BUILD_FLAGS[@]}"
-BUILD_BINARY="$(swift build "${SWIFT_BUILD_FLAGS[@]}" --show-bin-path)/$APP_NAME"
+BUILD_BIN_DIR="$(swift build "${SWIFT_BUILD_FLAGS[@]}" --show-bin-path)"
+BUILD_BINARY="$BUILD_BIN_DIR/$APP_EXECUTABLE_NAME"
 
 rm -rf "$DIST_PACKAGE_DIR" "$ZIP_PATH" "$DMG_PATH"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
@@ -145,6 +138,7 @@ cp "$BUILD_BINARY" "$APP_BINARY"
 context_copy_bundle_resources "$ROOT_DIR" "$APP_RESOURCES"
 chmod +x "$APP_BINARY"
 context_embed_sparkle "$ROOT_DIR" "$APP_BUNDLE" "$APP_BINARY"
+context_embed_cli "$APP_BUNDLE" "$BUILD_BIN_DIR/$CONTEXT_CLI_PRODUCT_NAME"
 
 context_write_info_plist "$INFO_PLIST" "$APP_VERSION"
 
@@ -154,24 +148,24 @@ sign_app "$APP_BUNDLE"
 
 mkdir -p "$DIST_PACKAGE_DIR"
 COPYFILE_DISABLE=1 ditto --norsrc --noextattr --noqtn --noacl \
-  "$APP_BUNDLE" "$DIST_PACKAGE_DIR/$APP_NAME.app"
-sign_app "$DIST_PACKAGE_DIR/$APP_NAME.app"
+  "$APP_BUNDLE" "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
+sign_app "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 
 if [[ "$CONTEXT_NOTARIZE" == "1" || "$CONTEXT_NOTARIZE" == "true" ]]; then
-  notarize_app_bundle "$DIST_PACKAGE_DIR/$APP_NAME.app"
+  notarize_app_bundle "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 fi
 
 mkdir -p "$DIST_DIR"
 COPYFILE_DISABLE=1 ditto -c -k --keepParent --norsrc --noextattr --noqtn --noacl \
-  "$DIST_PACKAGE_DIR/$APP_NAME.app" "$ZIP_PATH"
+  "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app" "$ZIP_PATH"
 mkdir -p "$VALIDATION_DIR"
 ditto -x -k "$ZIP_PATH" "$VALIDATION_DIR"
-codesign --verify --deep --strict "$VALIDATION_DIR/$APP_NAME.app"
+codesign --verify --deep --strict "$VALIDATION_DIR/$APP_BUNDLE_NAME.app"
 
 mkdir -p "$DMG_STAGING_DIR"
 COPYFILE_DISABLE=1 ditto --norsrc --noextattr --noqtn --noacl \
-  "$DIST_PACKAGE_DIR/$APP_NAME.app" "$DMG_STAGING_DIR/$APP_NAME.app"
-codesign --verify --deep --strict "$DMG_STAGING_DIR/$APP_NAME.app"
+  "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app" "$DMG_STAGING_DIR/$APP_BUNDLE_NAME.app"
+codesign --verify --deep --strict "$DMG_STAGING_DIR/$APP_BUNDLE_NAME.app"
 ln -s /Applications "$DMG_STAGING_DIR/Applications"
 mkdir -p "$DMG_BACKGROUND_DIR"
 swift - "$DMG_BACKGROUND_PATH" <<'SWIFT'
@@ -211,7 +205,7 @@ try pngData.write(to: outputURL)
 SWIFT
 
 hdiutil create \
-  -volname "$APP_NAME" \
+  -volname "$APP_BUNDLE_NAME" \
   -srcfolder "$DMG_STAGING_DIR" \
   -fs HFS+ \
   -format UDRW \
@@ -234,7 +228,7 @@ tell application "Finder"
     set icon size of icon view options of container window to 96
     set text size of icon view options of container window to 16
     set background picture of icon view options of container window to backgroundImageAlias
-    set position of item "$APP_NAME.app" to {180, 150}
+    set position of item "$APP_BUNDLE_NAME.app" to {180, 150}
     set position of item "Applications" to {420, 150}
     update without registering applications
     close container window
@@ -256,11 +250,11 @@ fi
 hdiutil verify "$DMG_PATH"
 
 hdiutil attach -nobrowse -readonly -mountpoint "$DMG_MOUNT_DIR" "$DMG_PATH" >/dev/null
-test -d "$DMG_MOUNT_DIR/$APP_NAME.app"
+test -d "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 test -L "$DMG_MOUNT_DIR/Applications"
-codesign --verify --deep --strict "$DMG_MOUNT_DIR/$APP_NAME.app"
+codesign --verify --deep --strict "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 if [[ "$CONTEXT_NOTARIZE" == "1" || "$CONTEXT_NOTARIZE" == "true" ]]; then
-  xcrun stapler validate "$DMG_MOUNT_DIR/$APP_NAME.app"
+  xcrun stapler validate "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 fi
 hdiutil detach "$DMG_MOUNT_DIR" >/dev/null
 

@@ -108,6 +108,7 @@ context_write_appcast() {
   local appcast_path="$root_dir/dist/appcast.xml"
 
   if ! private_key="$(context_sparkle_private_key "$root_dir")"; then
+    rm -f "$appcast_path"
     echo "Sparkle appcast skipped; missing SPARKLE_ED_PRIVATE_KEY" >&2
     return 0
   fi
@@ -117,18 +118,25 @@ context_write_appcast() {
   mkdir -p "$root_dir/dist"
   cp "$zip_path" "$archives_dir/context-macos.zip"
 
-  printf '%s' "$private_key" | "$bin_dir/generate_appcast" \
+  # Reusing a feed can retain hardware requirements from an earlier build of the same version.
+  if ! printf '%s' "$private_key" | "$bin_dir/generate_appcast" \
     --ed-key-file - \
     --download-url-prefix "$download_prefix" \
     --link "$CONTEXT_RELEASES_URL" \
     --maximum-deltas 0 \
-    -o "$appcast_path" \
-    "$archives_dir"
+    -o "$archives_dir/appcast.xml" \
+    "$archives_dir"; then
+    rm -f "$appcast_path"
+    rm -rf "$archives_dir"
+    return 1
+  fi
 
-  rm -rf "$archives_dir"
-
-  if [[ ! -f "$appcast_path" ]]; then
+  if [[ ! -f "$archives_dir/appcast.xml" ]]; then
+    rm -f "$appcast_path"
+    rm -rf "$archives_dir"
     echo "generate_appcast did not write $appcast_path" >&2
     return 1
   fi
+  mv "$archives_dir/appcast.xml" "$appcast_path"
+  rm -rf "$archives_dir"
 }

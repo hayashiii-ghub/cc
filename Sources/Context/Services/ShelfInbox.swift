@@ -36,24 +36,6 @@ struct ShelfInbox {
         return destinationURL
     }
 
-    func removeAllManagedItems() throws {
-        let directory = try directory()
-        let contents = try FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        )
-        for url in contents {
-            try FileManager.default.removeItem(at: url)
-        }
-    }
-
-    func contentsEqual(_ firstURL: URL, _ secondURL: URL) -> Bool {
-        FileManager.default.contentsEqual(
-            atPath: firstURL.standardizedFileURL.path,
-            andPath: secondURL.standardizedFileURL.path
-        )
-    }
-
     private func owns(_ url: URL) -> Bool {
         guard let directory = try? directory() else { return false }
         let directoryPath = directory.standardizedFileURL.path

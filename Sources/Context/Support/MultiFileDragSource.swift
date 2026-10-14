@@ -33,14 +33,16 @@ final class ShelfFileDragWriter: NSObject, NSPasteboardWriting {
 
 struct MultiFileDragSource: NSViewRepresentable {
     let fileURLs: [URL]
+    var tint: NSColor = .labelColor
 
     func makeNSView(context: NSViewRepresentableContext<Self>) -> NSView {
-        MultiFileDragSourceView(fileURLs: fileURLs)
+        MultiFileDragSourceView(fileURLs: fileURLs, tint: tint)
     }
 
     func updateNSView(_ nsView: NSView, context: NSViewRepresentableContext<Self>) {
         guard let dragSourceView = nsView as? MultiFileDragSourceView else { return }
         dragSourceView.fileURLs = fileURLs
+        dragSourceView.contentTintColor = tint
     }
 }
 
@@ -54,19 +56,20 @@ private final class MultiFileDragSourceView: NSImageView, NSDraggingSource {
     private var mouseDownEvent: NSEvent?
     private var isDraggingFiles = false
 
-    init(fileURLs: [URL]) {
+    init(fileURLs: [URL], tint: NSColor) {
         self.fileURLs = fileURLs
         super.init(frame: .zero)
 
         let symbol = NSImage(
-            systemSymbolName: "hand.draw",
+            systemSymbolName: "square.stack",
             accessibilityDescription: "Drag All Files"
         )
         image = symbol?.withSymbolConfiguration(
-            NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+            NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
         )
         imageScaling = .scaleProportionallyDown
-        contentTintColor = .labelColor
+        imageAlignment = .alignLeft
+        contentTintColor = tint
         updateState()
     }
 

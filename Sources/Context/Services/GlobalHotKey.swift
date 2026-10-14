@@ -7,23 +7,18 @@ private let shortcutLogger = Logger(
     category: "Shortcuts"
 )
 
-enum ShelfShortcut {
+enum ShelfShortcut: CaseIterable, Hashable {
     case addFinderSelection
     case toggleShelf
 
     private static let signature: OSType = 0x53484450
 
     var keyCode: UInt32 {
-        UInt32(kVK_Tab)
+        ShortcutConfiguration.defaults.binding(for: self).keyCode
     }
 
     var modifiers: UInt32 {
-        switch self {
-        case .addFinderSelection:
-            UInt32(optionKey)
-        case .toggleShelf:
-            UInt32(optionKey | shiftKey)
-        }
+        ShortcutConfiguration.defaults.binding(for: self).modifiers
     }
 
     var identifier: EventHotKeyID {
@@ -50,14 +45,16 @@ enum ShelfShortcut {
     }
 }
 
-final class GlobalHotKey {
+final class GlobalHotKey: ShortcutRegistration {
     private var hotKeyReference: EventHotKeyRef?
     private var eventHandlerReference: EventHandlerRef?
     private let shortcut: ShelfShortcut
+    private let binding: ShortcutBinding
     private let action: () -> Void
 
-    init?(shortcut: ShelfShortcut, action: @escaping () -> Void) {
+    init?(shortcut: ShelfShortcut, binding: ShortcutBinding? = nil, action: @escaping () -> Void) {
         self.shortcut = shortcut
+        self.binding = binding ?? ShortcutConfiguration.defaults.binding(for: shortcut)
         self.action = action
 
         var eventType = EventTypeSpec(
@@ -99,11 +96,11 @@ final class GlobalHotKey {
         guard handlerStatus == noErr else { return nil }
 
         let registrationStatus = RegisterEventHotKey(
-            shortcut.keyCode,
-            shortcut.modifiers,
+            self.binding.keyCode,
+            self.binding.modifiers,
             shortcut.identifier,
             GetApplicationEventTarget(),
-            0,
+            OptionBits(kEventHotKeyExclusive),
             &hotKeyReference
         )
 
@@ -117,18 +114,46 @@ final class GlobalHotKey {
     }
 
     deinit {
+        invalidate()
+    }
+
+    func invalidate() {
         if let hotKeyReference {
             UnregisterEventHotKey(hotKeyReference)
+            self.hotKeyReference = nil
         }
         if let eventHandlerReference {
             RemoveEventHandler(eventHandlerReference)
+            self.eventHandlerReference = nil
         }
     }
 
     private func performAction() {
-        shortcutLogger.info("\(self.shortcut.logName, privacy: .public) received")
+        shortcutLogger.info("\(self.binding.displayString, privacy: .public) received")
         DispatchQueue.main.async {
             self.action()
+        }
+    }
+}
+
+struct SystemShortcutRegistrar: ShortcutRegistering {
+    func register(
+        _ action: ShelfShortcut,
+        binding: ShortcutBinding,
+        handler: @escaping () -> Void
+    ) -> (any ShortcutRegistration)? {
+        GlobalHotKey(shortcut: action, binding: binding, action: handler)
+    }
+
+    func isReserved(_ binding: ShortcutBinding) -> Bool {
+        var hotKeys: Unmanaged<CFArray>?
+        guard CopySymbolicHotKeys(&hotKeys) == noErr,
+              let dictionaries = hotKeys?.takeRetainedValue() as? [[String: Any]] else { return false }
+        return dictionaries.contains { value in
+            (value[kHISymbolicHotKeyEnabled as String] as? NSNumber)?.boolValue == true
+                && (value[kHISymbolicHotKeyCode as String] as? NSNumber)?.uint32Value == binding.keyCode
+                && (((value[kHISymbolicHotKeyModifiers as String] as? NSNumber)?.uint32Value ?? 0)
+                    & ShortcutBinding.supportedModifiers) == binding.modifiers
         }
     }
 }

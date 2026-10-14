@@ -1,7 +1,7 @@
 # Third-Party Notices
 
-Context's optional Notch Island interaction and landing-page presentation were
-informed by [CodexIsland](https://github.com/ericjypark/codex-island). Context
+The optional Notch Island interaction and landing-page presentation in cc: were
+informed by [CodexIsland](https://github.com/ericjypark/codex-island). cc:
 and CodexIsland are independent projects; this acknowledgement does not imply
 affiliation or endorsement.
 

@@ -53,6 +53,9 @@ struct ShelfItem: Identifiable, Equatable, Sendable {
     var detail: String
     var url: URL?
     var text: String?
+    var source: String
+    var note: String?
+    var createdAt: Date
     var isManagedFile: Bool
 
     init(
@@ -62,6 +65,9 @@ struct ShelfItem: Identifiable, Equatable, Sendable {
         detail: String,
         url: URL? = nil,
         text: String? = nil,
+        source: String = "human",
+        note: String? = nil,
+        createdAt: Date = Date(),
         isManagedFile: Bool = false
     ) {
         self.id = id
@@ -70,6 +76,9 @@ struct ShelfItem: Identifiable, Equatable, Sendable {
         self.detail = detail
         self.url = url
         self.text = text
+        self.source = source
+        self.note = note
+        self.createdAt = createdAt
         self.isManagedFile = isManagedFile
     }
 

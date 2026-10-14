@@ -2,49 +2,29 @@ import Foundation
 import Testing
 @testable import Context
 
+@MainActor
 struct ShelfPresentationPreferenceTests {
-    @Test func defaultsToMenuBarShelf() {
-        let (defaults, suiteName) = isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+    @Test func startsInTheMenuBarAndIgnoresLegacyOrUnknownModes() throws {
+        let suite = "ContextTests.presentation.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
 
-        let preference = ShelfPresentationPreference(defaults: defaults)
-
-        #expect(preference.mode == .menuBar)
+        #expect(ShelfPresentationPreferences(defaults: defaults).mode == .menuBar)
+        for rawValue in ["floating", "unknown"] {
+            defaults.set(rawValue, forKey: "shelfPresentationMode")
+            #expect(ShelfPresentationPreferences(defaults: defaults).mode == .menuBar)
+        }
     }
 
-    @Test func persistsTheSelectedShelfPresentation() {
-        let (defaults, suiteName) = isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
+    @Test func keepsTheSelectedModeAcrossRelaunches() throws {
+        let suite = "ContextTests.presentation.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
 
-        let preference = ShelfPresentationPreference(defaults: defaults)
-        preference.mode = .menuBar
-
-        let restoredPreference = ShelfPresentationPreference(defaults: defaults)
-        #expect(restoredPreference.mode == .menuBar)
-    }
-
-    @Test func persistsNotchIslandAsAnOptionalPresentation() {
-        let (defaults, suiteName) = isolatedDefaults()
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let preference = ShelfPresentationPreference(defaults: defaults)
-        preference.mode = .notch
-
-        let restoredPreference = ShelfPresentationPreference(defaults: defaults)
-        #expect(restoredPreference.mode == .notch)
-    }
-
-    @Test func notchIslandFallsBackToMenuBarWhenUnavailable() {
-        #expect(ShelfPresentationMode.notch.resolved(hasNotch: true) == .notch)
-        #expect(ShelfPresentationMode.notch.resolved(hasNotch: false) == .menuBar)
-        #expect(ShelfPresentationMode.menuBar.resolved(hasNotch: false) == .menuBar)
-        #expect(ShelfPresentationMode.floating.resolved(hasNotch: false) == .floating)
-    }
-
-    private func isolatedDefaults() -> (UserDefaults, String) {
-        let suiteName = "ShelfPresentationPreferenceTests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
-        return (defaults, suiteName)
+        let preferences = ShelfPresentationPreferences(defaults: defaults)
+        preferences.mode = .notch
+        #expect(ShelfPresentationPreferences(defaults: defaults).mode == .notch)
+        preferences.mode = .menuBar
+        #expect(ShelfPresentationPreferences(defaults: defaults).mode == .menuBar)
     }
 }

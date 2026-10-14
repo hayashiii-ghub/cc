@@ -1,30 +1,35 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
 final class MenuBarShelfController: NSObject, NSWindowDelegate {
-    private static let shelfSize = NSSize(width: 230, height: 230)
     private static let menuBarGap: CGFloat = 4
     private static let screenEdgeInset: CGFloat = 8
 
     private let store: ShelfStore
-    private let onKeepOnScreen: () -> Void
-    private let onShowMenu: () -> Void
-    private let presentation = ShelfPresentationState()
+    private let onShowMenu: (NSView) -> Void
     private var panel: NSPanel?
     private var anchorFrame = NSRect.zero
+    private var presentedScreenID: UInt32?
     private var localEventMonitor: Any?
     private var globalEventMonitor: Any?
+    private var itemCountObserver: AnyCancellable?
 
     init(
         store: ShelfStore,
-        onKeepOnScreen: @escaping () -> Void,
-        onShowMenu: @escaping () -> Void
+        onShowMenu: @escaping (NSView) -> Void
     ) {
         self.store = store
-        self.onKeepOnScreen = onKeepOnScreen
         self.onShowMenu = onShowMenu
         super.init()
+        itemCountObserver = store.$items
+            .map { $0.count }
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] count in
+                self?.resizeVisiblePanel(itemCount: count)
+            }
     }
 
     var isShelfVisible: Bool {
@@ -36,18 +41,16 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         clickLocation: NSPoint? = nil,
         clickScreen: NSScreen? = nil
     ) {
+        store.refresh()
         let panel = shelfPanel()
 
-        if presentation.isCollapsed {
-            presentation.isCollapsed = false
-        }
-
-        positionPanel(
+        guard positionPanel(
             panel,
             relativeTo: button,
             clickLocation: clickLocation,
             clickScreen: clickScreen
-        )
+        ) else { return }
+        store.markSeen()
         startEventMonitors()
         panel.orderFrontRegardless()
         panel.makeKey()
@@ -58,7 +61,10 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         clickLocation: NSPoint? = nil,
         clickScreen: NSScreen? = nil
     ) {
-        if isShelfVisible {
+        let targetScreen = clickScreen ?? clickLocation.flatMap { location in
+            NSScreen.screens.first { $0.frame.contains(location) }
+        } ?? button.window?.screen
+        if isShelfVisible, targetScreen?.contextShelfDisplayID == presentedScreenID {
             hideShelf()
         } else {
             showShelf(
@@ -74,12 +80,41 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         stopEventMonitors()
     }
 
+    func handleScreenChanges() {
+        guard isShelfVisible, let panel, let presentedScreenID else { return }
+        guard let screen = NSScreen.screens.first(where: {
+            $0.contextShelfDisplayID == presentedScreenID
+        }) else {
+            hideShelf()
+            return
+        }
+
+        var frame = panel.frame
+        frame.origin.x = min(
+            max(frame.minX, screen.frame.minX + Self.screenEdgeInset),
+            screen.frame.maxX - frame.width - Self.screenEdgeInset
+        )
+        frame.origin.y = screen.visibleFrame.maxY - frame.height - Self.menuBarGap
+        panel.setFrame(frame, display: true)
+        anchorFrame.origin.y = screen.visibleFrame.maxY
+    }
+
+    func beginMenuTracking() {
+        stopEventMonitors()
+    }
+
+    func endMenuTracking() {
+        if isShelfVisible {
+            startEventMonitors()
+        }
+    }
+
     private func shelfPanel() -> NSPanel {
         if let panel {
             return panel
         }
 
-        let size = Self.shelfSize
+        let size = ShelfLayout.size(itemCount: store.items.count)
         let panel = MenuBarShelfPanel(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -88,23 +123,28 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         )
 
         panel.identifier = NSUserInterfaceItemIdentifier("ContextMenuBarShelfPanel")
-        panel.contentViewController = NSHostingController(
+        let hostingController = NSHostingController(
             rootView: ContentView(
                 store: store,
-                presentation: presentation,
-                mode: .menuBar,
-                onCollapseChange: { _ in },
                 onDismiss: { [weak self] in
                     self?.hideShelf()
                 },
-                onPresentationModeChange: onKeepOnScreen,
                 onShowMenu: onShowMenu
             )
-            .frame(width: size.width, height: size.height)
         )
+        // The item-count layout owns the panel height, including its empty drop area.
+        hostingController.sizingOptions = []
+        hostingController.view.autoresizingMask = [.width, .height]
+        hostingController.view.autoresizesSubviews = true
+        hostingController.view.frame = NSRect(origin: .zero, size: size)
+        if let hostingView = hostingController.view as? NSHostingView<ContentView> {
+            hostingView.sizingOptions = []
+        }
+        panel.contentViewController = hostingController
+        panel.contentView?.autoresizesSubviews = true
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = false
+        panel.hasShadow = true
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.isReleasedWhenClosed = false
@@ -121,21 +161,19 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         relativeTo button: NSStatusBarButton,
         clickLocation: NSPoint?,
         clickScreen: NSScreen?
-    ) {
-        guard let anchorWindow = button.window else { return }
+    ) -> Bool {
+        guard let anchorWindow = button.window else { return false }
 
-        // A click provides a screen-space position. When the shelf is sent
-        // back from its floating panel there is no status-item click, so use
-        // the status item's screen-positioned host window instead of the
-        // button's local 0...width coordinate space.
+        // Status-item clicks use screen coordinates; opening without a click
+        // uses the host window instead of the button's local coordinate space.
         let anchorCenterX = clickLocation?.x ?? anchorWindow.frame.midX
         let screen = clickScreen ?? clickLocation.flatMap { location in
             NSScreen.screens.first { $0.frame.contains(location) }
         } ?? anchorWindow.screen
-        guard let screen else { return }
+        guard let screen else { return false }
 
         let availableFrame = screen.frame
-        let size = Self.shelfSize
+        let size = ShelfLayout.size(itemCount: store.items.count)
 
         var origin = NSPoint(
             x: anchorCenterX - size.width / 2,
@@ -153,6 +191,17 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
             height: max(screen.frame.maxY - screen.visibleFrame.maxY, button.bounds.height)
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        presentedScreenID = screen.contextShelfDisplayID
+        return true
+    }
+
+    private func resizeVisiblePanel(itemCount: Int) {
+        guard let panel, panel.isVisible else { return }
+        let frame = ShelfLayout.resizedFrame(panel.frame, itemCount: itemCount)
+        guard frame != panel.frame else { return }
+        panel.setFrame(frame, display: true)
+        panel.contentView?.layoutSubtreeIfNeeded()
+        panel.invalidateShadow()
     }
 
     private func startEventMonitors() {

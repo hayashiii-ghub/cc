@@ -3,9 +3,14 @@ import Foundation
 import UniformTypeIdentifiers
 
 enum ShelfImportResult {
-    case file(url: URL, isManaged: Bool, detail: String?)
+    case file(url: URL, isManaged: Bool)
     case link(URL)
     case text(String)
+    case failure(Error)
+}
+
+private struct ShelfImportError: LocalizedError {
+    var errorDescription: String? { "Could not read the dropped item. Try adding the file from Finder." }
 }
 
 struct ShelfItemImporter {
@@ -51,16 +56,22 @@ struct ShelfItemImporter {
         completion: @escaping (ShelfImportResult) -> Void
     ) {
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                guard let url = Self.url(from: item) else { return }
-                completion(.file(url: url, isManaged: false, detail: nil))
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
+                guard let url = Self.url(from: item) else {
+                    completion(.failure(error ?? ShelfImportError()))
+                    return
+                }
+                completion(.file(url: url, isManaged: false))
             }
             return
         }
 
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
-                guard let url = Self.url(from: item) else { return }
+            provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, error in
+                guard let url = Self.url(from: item) else {
+                    completion(.failure(error ?? ShelfImportError()))
+                    return
+                }
                 completion(.link(url))
             }
             return
@@ -109,14 +120,20 @@ struct ShelfItemImporter {
         if let typeIdentifier = Self.textTypeIdentifiers.first(where: {
             provider.hasItemConformingToTypeIdentifier($0)
         }) {
-            provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, _ in
-                guard let text = Self.text(from: item) else { return }
+            provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, error in
+                guard let text = Self.text(from: item) else {
+                    completion(.failure(error ?? ShelfImportError()))
+                    return
+                }
                 completion(.text(text))
             }
             return
         }
 
-        guard let typeIdentifier = fileTypeIdentifiers.first else { return }
+        guard let typeIdentifier = fileTypeIdentifiers.first else {
+            completion(.failure(ShelfImportError()))
+            return
+        }
         importFileRepresentation(
             from: provider,
             typeIdentifiers: fileTypeIdentifiers,
@@ -131,7 +148,10 @@ struct ShelfItemImporter {
         requestedName: String,
         completion: @escaping (ShelfImportResult) -> Void
     ) {
-        guard let typeIdentifier = typeIdentifiers.first else { return }
+        guard let typeIdentifier = typeIdentifiers.first else {
+            completion(.failure(ShelfImportError()))
+            return
+        }
 
         provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { url, _ in
             guard let url else {
@@ -146,13 +166,7 @@ struct ShelfItemImporter {
 
             do {
                 let destinationURL = try inbox.copyItem(at: url, named: requestedName)
-                let detail = destinationURL.isDirectory
-                    ? "Imported folder"
-                    : Self.importedFileDetail(
-                        typeIdentifier: typeIdentifier,
-                        fileName: requestedName
-                    )
-                completion(.file(url: destinationURL, isManaged: true, detail: detail))
+                completion(.file(url: destinationURL, isManaged: true))
             } catch {
                 importFileRepresentation(
                     from: provider,
@@ -170,14 +184,6 @@ struct ShelfItemImporter {
                 && typeIdentifier != UTType.fileURL.identifier
                 && typeIdentifier != UTType.url.identifier
         }[...]
-    }
-
-    private static func importedFileDetail(typeIdentifier: String, fileName: String) -> String {
-        let declaredType = UTType(typeIdentifier)
-        let fileType = UTType(filenameExtension: URL(fileURLWithPath: fileName).pathExtension)
-        return declaredType?.conforms(to: .image) == true || fileType?.conforms(to: .image) == true
-            ? "Imported image"
-            : "Imported file"
     }
 
     private static func documentFileExtension(for typeIdentifier: String) -> String {

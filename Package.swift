@@ -9,7 +9,8 @@ let package = Package(
     ],
     products: [
         .executable(name: "Context", targets: ["Context"]),
-        .executable(name: "ContextDemo", targets: ["ContextDemo"])
+        .executable(name: "ContextDemo", targets: ["ContextDemo"]),
+        .executable(name: "ContextCLI", targets: ["ContextCLI"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0")
@@ -18,6 +19,7 @@ let package = Package(
         .executableTarget(
             name: "Context",
             dependencies: [
+                "ContextCore",
                 .product(name: "Sparkle", package: "Sparkle")
             ],
             path: "Sources/Context"
@@ -26,9 +28,20 @@ let package = Package(
             name: "ContextDemo",
             path: "Tools/ContextDemo"
         ),
+        .target(name: "ContextCore", path: "Sources/ContextCore"),
+        .executableTarget(
+            name: "ContextCLI",
+            dependencies: ["ContextCore"],
+            path: "Sources/ContextCLI"
+        ),
+        .testTarget(
+            name: "ContextCoreTests",
+            dependencies: ["ContextCore"],
+            path: "Tests/ContextCoreTests"
+        ),
         .testTarget(
             name: "ContextTests",
-            dependencies: ["Context"],
+            dependencies: ["Context", "ContextCore"],
             path: "Tests/ContextTests"
         )
     ]

@@ -6,17 +6,18 @@ import UniformTypeIdentifiers
 
 @MainActor
 struct ShelfDragTests {
+    private let shelfFixture = ShelfStoreTestFixture()
+
     @Test func droppingShelfItemBackOntoShelfIsRejectedWithoutChangingItems() {
-        let first = ShelfItem(kind: .file, title: "first.txt", detail: "")
-        let second = ShelfItem(kind: .file, title: "second.txt", detail: "")
-        let third = ShelfItem(kind: .file, title: "third.txt", detail: "")
-        let store = ShelfStore()
-        store.items = [first, second, third]
+        let store = shelfFixture.makeStore()
+        ["First", "Second", "Third"].forEach { _ = store.addClipboardText($0) }
+        let ids = store.items.map(\.id)
+        let first = store.items[0]
 
         let accepted = store.handleDrop(providers: [first.dragProvider()])
 
         #expect(!accepted)
-        #expect(store.items.map(\.id) == [first.id, second.id, third.id])
+        #expect(store.items.map(\.id) == ids)
         #expect(store.items.count == 3)
     }
 
@@ -39,12 +40,12 @@ struct ShelfDragTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try Data("# Notes".utf8).write(to: fileURL)
 
-        let item = ShelfItem(kind: .file, title: "notes.md", detail: root.path, url: fileURL)
-        let store = ShelfStore()
-        store.items = [item]
+        let store = shelfFixture.makeStore()
+        await store.addFileURLs([fileURL]).value
+        let item = try #require(store.items.first)
 
         store.importItems(from: [item.dragProvider()])
-        try await Task.sleep(nanoseconds: 200_000_000)
+        try await waitForImports(in: store)
 
         #expect(store.items.map(\.id) == [item.id])
     }
@@ -58,15 +59,16 @@ struct ShelfDragTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try Data("# Notes".utf8).write(to: fileURL)
 
-        let store = ShelfStore()
-        store.addFileURLs([fileURL])
+        let store = shelfFixture.makeStore()
+        await store.addFileURLs([fileURL]).value
         let providerWithoutMarker = NSItemProvider(object: fileURL as NSURL)
 
         store.handleDrop(providers: [providerWithoutMarker])
-        try await Task.sleep(nanoseconds: 200_000_000)
+        try await waitForImports(in: store)
 
         #expect(store.items.count == 1)
-        #expect(store.items.first?.url == fileURL)
+        #expect(store.items.first?.url != fileURL)
+        #expect(store.items.first?.isManagedFile == true)
     }
 
     @MainActor
@@ -75,7 +77,7 @@ struct ShelfDragTests {
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
         let fileURL = root.appendingPathComponent("logo.png")
         let imageData = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         defer {
             for item in store.items where item.url != fileURL {
                 if let url = item.url { try? FileManager.default.removeItem(at: url) }
@@ -85,7 +87,7 @@ struct ShelfDragTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try imageData.write(to: fileURL)
 
-        store.addFileURLs([fileURL])
+        await store.addFileURLs([fileURL]).value
 
         let imageProvider = NSItemProvider()
         imageProvider.suggestedName = fileURL.lastPathComponent
@@ -98,21 +100,22 @@ struct ShelfDragTests {
         }
 
         store.handleDrop(providers: [imageProvider])
-        try await Task.sleep(nanoseconds: 200_000_000)
+        try await waitForImports(in: store)
 
         #expect(store.items.count == 1)
         #expect(store.items.first?.kind == .image)
         #expect(store.items.first?.title == fileURL.lastPathComponent)
-        #expect(store.items.first?.url == fileURL)
+        #expect(store.items.first?.url != fileURL)
+        #expect(store.items.first?.isManagedFile == true)
     }
 
     @MainActor
-    @Test func imageDataDropThenOptionTabUsesOriginalFileWithoutDuplicating() async throws {
+    @Test func imageDataDropThenOptionTabKeepsCopiedFileWithoutDuplicating() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
         let fileURL = root.appendingPathComponent("logo.png")
         let imageData = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         defer {
             for item in store.items where item.url != fileURL {
                 if let url = item.url { try? FileManager.default.removeItem(at: url) }
@@ -133,13 +136,14 @@ struct ShelfDragTests {
         }
 
         store.handleDrop(providers: [imageProvider])
-        try await Task.sleep(nanoseconds: 200_000_000)
-        store.addFileURLs([fileURL])
+        try await waitForImports(in: store)
+        await store.addFileURLs([fileURL]).value
 
         #expect(store.items.count == 1)
         #expect(store.items.first?.kind == .image)
         #expect(store.items.first?.title == fileURL.lastPathComponent)
-        #expect(store.items.first?.url == fileURL)
+        #expect(store.items.first?.url != fileURL)
+        #expect(store.items.first?.isManagedFile == true)
     }
 
     @Test func batchDragUsesOnlyFileBackedItemsInShelfOrder() {
@@ -168,4 +172,14 @@ struct ShelfDragTests {
         #expect(types.contains(ShelfDragPayload.pasteboardType))
         #expect(writer.pasteboardPropertyList(forType: .fileURL) as? String == fileURL.absoluteString)
     }
+
+    private func waitForImports(in store: ShelfStore) async throws {
+        for _ in 0..<100 {
+            if !store.isImporting { return }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        throw ShelfDragImportTimeout()
+    }
 }
+
+private struct ShelfDragImportTimeout: Error {}

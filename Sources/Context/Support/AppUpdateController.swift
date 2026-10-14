@@ -15,10 +15,13 @@ final class AppUpdateController: NSObject, @preconcurrency SPUStandardUserDriver
     }
 
     func start() {
-        controller.startUpdater()
 #if DEBUG
-        controller.updater.automaticallyChecksForUpdates = false
+        // Keep development checks off by default without replacing an explicit preference.
+        if UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil {
+            controller.updater.automaticallyChecksForUpdates = false
+        }
 #endif
+        controller.startUpdater()
     }
 
     func standardUserDriverWillHandleShowingUpdate(

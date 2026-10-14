@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" shape-rendering="geometricPrecision">
-  <title>Context menu bar template icon</title>
-  <g transform="translate(512 512) scale(1.49) translate(-512 -512)" fill="#000">
-    <rect x="302" y="335" width="420" height="130" rx="65" transform="rotate(30 512 400)"/>
-    <rect x="302" y="535" width="420" height="130" rx="65" transform="rotate(30 512 600)"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 24" shape-rendering="geometricPrecision">
+  <title>cc: menu bar mark</title>
+  <path d="M 9.396 8.5 C 8.716 7.5 7.764 7 6.676 7 C 4.296 7 2.8 9.05 2.8 12 C 2.8 14.95 4.296 17 6.676 17 C 7.764 17 8.716 16.5 9.396 15.5" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 19.896 8.5 C 19.216 7.5 18.264 7 17.176 7 C 14.796 7 13.3 9.05 13.3 12 C 13.3 14.95 14.796 17 17.176 17 C 18.264 17 19.216 16.5 19.896 15.5" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="25" cy="8" r="1.4" fill="#000"/>
+  <circle cx="25" cy="16" r="1.4" fill="#000"/>
 </svg>

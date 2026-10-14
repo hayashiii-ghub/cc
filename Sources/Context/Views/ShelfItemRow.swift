@@ -6,70 +6,73 @@ struct ShelfItemRow: View {
     let onReveal: () -> Void
     let onCopy: () -> Void
     let onRemove: () -> Void
+    var surface: ShelfSurface = .regular
+    @State private var isHovered = false
+
+    private var appearance: ShelfItemAppearance {
+        ShelfItemAppearance(item: item)
+    }
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: item.kind.systemImage)
-                .font(.system(size: 15, weight: .regular))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(.secondary)
-                .frame(width: 24, height: 24)
+            HStack(spacing: 10) {
+                ShelfItemPreview(item: item, size: 28)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.displayTitle)
-                    .font(.system(size: 13, weight: .regular, design: .default))
-                    .tracking(-0.05)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appearance.title)
+                        .font(.system(size: 13, weight: .regular))
+                        .lineLimit(2)
+                        .truncationMode(item.kind == .text ? .tail : .middle)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(item.detail)
-                    .font(.system(size: 11, weight: .regular, design: .default))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-
-            Spacer(minLength: 6)
-
-            Button(action: onOpen) {
-                Image(systemName: "arrow.up.right.square")
-            }
-            .buttonStyle(.borderless)
-            .help("Open")
-
-            Button {
-                if item.secondaryAction == .copy {
-                    onCopy()
-                } else {
-                    onReveal()
+                    Text(appearance.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(surface.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
-            } label: {
-                Image(systemName: item.secondaryAction.systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.borderless)
-            .help(item.secondaryAction.help)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2, perform: onOpen)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(appearance.title)
+            .accessibilityValue(appearance.subtitle)
+            .accessibilityHint(item.kind == .text ? "Copies this text" : "Opens this item")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { onOpen() }
+            .help(appearance.help)
 
-            Button(role: .destructive, action: onRemove) {
-                Image(systemName: "xmark.circle")
+            Menu {
+                itemActions
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(surface.secondary.opacity(isHovered ? 1 : 0.75))
+                    .frame(width: 22, height: 28)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
-            .help("Remove")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .accessibilityLabel("Actions for \(appearance.title)")
+            .help("Item Actions")
         }
         .contentShape(Rectangle())
-        .font(.system(size: 12, weight: .regular))
-        .symbolRenderingMode(.monochrome)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 8)
-        .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .foregroundStyle(surface.foreground)
+        .padding(10)
+        .background(
+            isHovered ? surface.itemBackground : .clear,
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .onHover { isHovered = $0 }
         .contextMenu {
-            Button("Open", action: onOpen)
-            Button("Copy", action: onCopy)
-            if item.secondaryAction == .reveal {
-                Button("Reveal", action: onReveal)
-            }
-            Divider()
-            Button("Remove", role: .destructive, action: onRemove)
+            itemActions
         }
     }
 
+    private var itemActions: some View {
+        ShelfItemActions(item: item, onOpen: onOpen, onCopy: onCopy, onReveal: onReveal, onRemove: onRemove)
+    }
 }

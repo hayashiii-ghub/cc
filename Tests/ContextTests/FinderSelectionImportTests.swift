@@ -6,7 +6,9 @@ import Testing
 
 @MainActor
 struct FinderSelectionImportTests {
-    @Test func addsSelectedFilesAndFoldersToShelf() throws {
+    private let shelfFixture = ShelfStoreTestFixture()
+
+    @Test func addsSelectedFilesAndFoldersToShelf() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
         let fileURL = root.appendingPathComponent("notes.md", isDirectory: false)
@@ -16,15 +18,16 @@ struct FinderSelectionImportTests {
         try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
         try Data("notes".utf8).write(to: fileURL)
 
-        let store = ShelfStore()
-        store.addFileURLs([fileURL, folderURL])
+        let store = shelfFixture.makeStore()
+        await store.addFileURLs([fileURL, folderURL]).value
 
         #expect(store.items.map(\.title) == ["notes.md", "Archive"])
         #expect(store.items.map(\.kind) == [.file, .folder])
-        #expect(store.items.map(\.url) == [fileURL, folderURL])
+        #expect(store.items.allSatisfy { $0.isManagedFile })
+        #expect(store.items.map { $0.url?.lastPathComponent } == ["notes.md", "Archive"])
     }
 
-    @Test func addsFilesWithoutFilteringByExtension() throws {
+    @Test func addsFilesWithoutFilteringByExtension() async throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("ContextTests-\(UUID().uuidString)", isDirectory: true)
         let fileNames = [
@@ -46,11 +49,12 @@ struct FinderSelectionImportTests {
             return url
         }
 
-        let store = ShelfStore()
-        store.addFileURLs(fileURLs)
+        let store = shelfFixture.makeStore()
+        await store.addFileURLs(fileURLs).value
 
         #expect(store.items.map(\.title) == fileNames)
-        #expect(store.items.map(\.url) == fileURLs)
+        #expect(store.items.allSatisfy { $0.isManagedFile })
+        #expect(store.items.map { $0.url?.lastPathComponent } == fileNames)
         #expect(store.items.count == fileNames.count)
     }
 

@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 
 @MainActor
 struct ShelfStoreDocumentImportTests {
+    private let shelfFixture = ShelfStoreTestFixture()
+
     @Test func importsMarkdownDataAsFile() async throws {
         try await assertDocumentImport(
             typeIdentifier: "net.daringfireball.markdown",
@@ -64,7 +66,7 @@ struct ShelfStoreDocumentImportTests {
     }
 
     @Test func importsUnnamedGenericDataWithATypeBasedFallbackName() async throws {
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         let provider = NSItemProvider()
         provider.registerDataRepresentation(
             forTypeIdentifier: UTType.pdf.identifier,
@@ -91,7 +93,7 @@ struct ShelfStoreDocumentImportTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try Data("file-backed".utf8).write(to: sourceURL)
 
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         let provider = NSItemProvider()
         provider.suggestedName = "original.customext"
         provider.registerFileRepresentation(
@@ -114,7 +116,7 @@ struct ShelfStoreDocumentImportTests {
     }
 
     @Test func fallsBackToTheNextAvailableFileRepresentation() async throws {
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         let provider = NSItemProvider()
         let fileName = "fallback-table-\(UUID().uuidString).csv"
         provider.suggestedName = fileName
@@ -151,7 +153,7 @@ struct ShelfStoreDocumentImportTests {
         try FileManager.default.createDirectory(at: sourceURL, withIntermediateDirectories: true)
         try Data("nested".utf8).write(to: sourceURL.appendingPathComponent("nested.txt"))
 
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         let provider = NSItemProvider()
         provider.suggestedName = "Original Folder"
         provider.registerFileRepresentation(
@@ -173,6 +175,23 @@ struct ShelfStoreDocumentImportTests {
         #expect(FileManager.default.fileExists(
             atPath: importedURL.appendingPathComponent("nested.txt").path
         ))
+    }
+
+    @Test func reportsFailedDropWithoutAddingAnEmptyItem() async throws {
+        var errors: [Error] = []
+        let store = shelfFixture.makeStore(errorPresenter: { errors.append($0) })
+        let provider = NSItemProvider()
+        provider.registerFileRepresentation(forTypeIdentifier: UTType.pdf.identifier, fileOptions: [], visibility: .all) { completion in
+            completion(nil, false, ImportTimeout())
+            return nil
+        }
+        store.importItems(from: [provider])
+        for _ in 0..<100 where errors.isEmpty {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        #expect(errors.count == 1)
+        #expect(!store.isImporting)
+        #expect(store.items.isEmpty)
     }
 
     private func assertDocumentImport(
@@ -203,7 +222,7 @@ struct ShelfStoreDocumentImportTests {
         suggestedName: String,
         contents: String
     ) async throws -> ShelfItem {
-        let store = ShelfStore()
+        let store = shelfFixture.makeStore()
         let provider = NSItemProvider()
         provider.suggestedName = suggestedName
         provider.registerDataRepresentation(
@@ -220,7 +239,7 @@ struct ShelfStoreDocumentImportTests {
 
     private func waitForImportedItem(in store: ShelfStore) async throws -> ShelfItem {
         for _ in 0..<100 {
-            if let item = store.items.first {
+            if !store.isImporting, let item = store.items.first {
                 return item
             }
             try await Task.sleep(nanoseconds: 20_000_000)
