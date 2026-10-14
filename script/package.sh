@@ -6,14 +6,13 @@ source "$ROOT_DIR/script/app_bundle.sh"
 source "$ROOT_DIR/script/sparkle.sh"
 source "$ROOT_DIR/script/version.sh"
 
-APP_NAME="$CONTEXT_APP_NAME"
-APP_BUNDLE_NAME="$CONTEXT_APP_BUNDLE_NAME"
-APP_EXECUTABLE_NAME="$CONTEXT_EXECUTABLE_NAME"
-APP_VERSION="$(resolve_context_version "$ROOT_DIR")"
-ARTIFACT_BASENAME="context-macos"
+APP_BUNDLE_NAME="$CC_APP_BUNDLE_NAME"
+APP_EXECUTABLE_NAME="$CC_EXECUTABLE_NAME"
+APP_VERSION="$(resolve_cc_version "$ROOT_DIR")"
+ARTIFACT_BASENAME="cc-macos"
 DIST_DIR="$ROOT_DIR/dist"
 DIST_PACKAGE_DIR="$DIST_DIR/package"
-STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/context-package.XXXXXX")"
+STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cc-package.XXXXXX")"
 PACKAGE_DIR="$STAGING_DIR/package"
 DMG_STAGING_DIR="$STAGING_DIR/dmg"
 DMG_MOUNT_DIR="$STAGING_DIR/dmg-mount"
@@ -31,12 +30,12 @@ DMG_PATH="$DIST_DIR/$ARTIFACT_BASENAME.dmg"
 SWIFTPM_CACHE_DIR="$ROOT_DIR/.build/cache"
 VALIDATION_DIR="$STAGING_DIR/validation"
 NOTARY_APP_ZIP_PATH="$STAGING_DIR/$APP_BUNDLE_NAME-notary.zip"
-CONTEXT_CODESIGN_IDENTITY="${CONTEXT_CODESIGN_IDENTITY:--}"
-CONTEXT_NOTARIZE="${CONTEXT_NOTARIZE:-0}"
-CONTEXT_NOTARY_KEYCHAIN_PROFILE="${CONTEXT_NOTARY_KEYCHAIN_PROFILE:-}"
-CONTEXT_NOTARY_KEY_PATH="${CONTEXT_NOTARY_KEY_PATH:-}"
-CONTEXT_NOTARY_KEY_ID="${CONTEXT_NOTARY_KEY_ID:-}"
-CONTEXT_NOTARY_ISSUER_ID="${CONTEXT_NOTARY_ISSUER_ID:-}"
+CC_CODESIGN_IDENTITY="${CC_CODESIGN_IDENTITY:--}"
+CC_NOTARIZE="${CC_NOTARIZE:-0}"
+CC_NOTARY_KEYCHAIN_PROFILE="${CC_NOTARY_KEYCHAIN_PROFILE:-}"
+CC_NOTARY_KEY_PATH="${CC_NOTARY_KEY_PATH:-}"
+CC_NOTARY_KEY_ID="${CC_NOTARY_KEY_ID:-}"
+CC_NOTARY_ISSUER_ID="${CC_NOTARY_ISSUER_ID:-}"
 
 cleanup() {
   hdiutil detach "$DMG_MOUNT_DIR" >/dev/null 2>&1 || true
@@ -51,18 +50,18 @@ cd "$ROOT_DIR"
 sign_app() {
   local app="$1"
   xattr -cr "$app" 2>/dev/null || true
-  context_sign_sparkle "$app"
-  context_sign_cli_and_app "$app"
+  cc_sign_sparkle "$app"
+  cc_sign_cli_and_app "$app"
 }
 
 sign_disk_image() {
   local dmg="$1"
 
-  if [[ "$CONTEXT_CODESIGN_IDENTITY" == "-" ]]; then
+  if [[ "$CC_CODESIGN_IDENTITY" == "-" ]]; then
     return
   fi
 
-  codesign --force --sign "$CONTEXT_CODESIGN_IDENTITY" --timestamp "$dmg"
+  codesign --force --sign "$CC_CODESIGN_IDENTITY" --timestamp "$dmg"
   codesign --verify --verbose "$dmg"
 }
 
@@ -70,19 +69,19 @@ notary_submit() {
   local artifact="$1"
   local -a args=()
 
-  if [[ -n "$CONTEXT_NOTARY_KEYCHAIN_PROFILE" ]]; then
-    args=(--keychain-profile "$CONTEXT_NOTARY_KEYCHAIN_PROFILE")
-  elif [[ -n "$CONTEXT_NOTARY_KEY_PATH" \
-      && -n "$CONTEXT_NOTARY_KEY_ID" \
-      && -n "$CONTEXT_NOTARY_ISSUER_ID" ]]; then
+  if [[ -n "$CC_NOTARY_KEYCHAIN_PROFILE" ]]; then
+    args=(--keychain-profile "$CC_NOTARY_KEYCHAIN_PROFILE")
+  elif [[ -n "$CC_NOTARY_KEY_PATH" \
+      && -n "$CC_NOTARY_KEY_ID" \
+      && -n "$CC_NOTARY_ISSUER_ID" ]]; then
     args=(
-      --key "$CONTEXT_NOTARY_KEY_PATH"
-      --key-id "$CONTEXT_NOTARY_KEY_ID"
-      --issuer "$CONTEXT_NOTARY_ISSUER_ID"
+      --key "$CC_NOTARY_KEY_PATH"
+      --key-id "$CC_NOTARY_KEY_ID"
+      --issuer "$CC_NOTARY_ISSUER_ID"
     )
   else
     echo "Missing notarization credentials" >&2
-    echo "Set CONTEXT_NOTARY_KEY_PATH, CONTEXT_NOTARY_KEY_ID, and CONTEXT_NOTARY_ISSUER_ID." >&2
+    echo "Set CC_NOTARY_KEY_PATH, CC_NOTARY_KEY_ID, and CC_NOTARY_ISSUER_ID." >&2
     return 2
   fi
 
@@ -92,8 +91,8 @@ notary_submit() {
 notarize_app_bundle() {
   local app="$1"
 
-  if [[ "$CONTEXT_CODESIGN_IDENTITY" == "-" ]]; then
-    echo "CONTEXT_NOTARIZE=1 requires a Developer ID signing identity." >&2
+  if [[ "$CC_CODESIGN_IDENTITY" == "-" ]]; then
+    echo "CC_NOTARIZE=1 requires a Developer ID signing identity." >&2
     return 2
   fi
 
@@ -114,7 +113,7 @@ notarize_disk_image() {
 DEVELOPER_DIR_PATH="$(xcode-select -p 2>/dev/null || true)"
 XCBUILD_PATH="$(dirname "$DEVELOPER_DIR_PATH")/SharedFrameworks/XCBuild.framework/Versions/A/Support/xcbuild"
 SWBUILD_PATH="$(dirname "$DEVELOPER_DIR_PATH")/SharedFrameworks/SwiftBuild.framework/Versions/A/Support/swbuild"
-UNIVERSAL_MODE="${CONTEXT_UNIVERSAL:-auto}"
+UNIVERSAL_MODE="${CC_UNIVERSAL:-auto}"
 
 if [[ "$UNIVERSAL_MODE" == "1" || "$UNIVERSAL_MODE" == "true" ]]; then
   SWIFT_BUILD_FLAGS=(-c release --arch arm64 --arch x86_64 --cache-path "$SWIFTPM_CACHE_DIR")
@@ -135,12 +134,12 @@ BUILD_BINARY="$BUILD_BIN_DIR/$APP_EXECUTABLE_NAME"
 rm -rf "$DIST_PACKAGE_DIR" "$ZIP_PATH" "$DMG_PATH"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
-context_copy_bundle_resources "$ROOT_DIR" "$APP_RESOURCES"
+cc_copy_bundle_resources "$ROOT_DIR" "$APP_RESOURCES"
 chmod +x "$APP_BINARY"
-context_embed_sparkle "$ROOT_DIR" "$APP_BUNDLE" "$APP_BINARY"
-context_embed_cli "$APP_BUNDLE" "$BUILD_BIN_DIR/$CONTEXT_CLI_PRODUCT_NAME"
+cc_embed_sparkle "$ROOT_DIR" "$APP_BUNDLE" "$APP_BINARY"
+cc_embed_cli "$APP_BUNDLE" "$BUILD_BIN_DIR/$CC_CLI_PRODUCT_NAME"
 
-context_write_info_plist "$INFO_PLIST" "$APP_VERSION"
+cc_write_info_plist "$INFO_PLIST" "$APP_VERSION"
 
 # Strip Finder/resource metadata before signing so strict validation and
 # distribution zips do not contain AppleDouble files or disallowed xattrs.
@@ -151,7 +150,7 @@ COPYFILE_DISABLE=1 ditto --norsrc --noextattr --noqtn --noacl \
   "$APP_BUNDLE" "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 sign_app "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 
-if [[ "$CONTEXT_NOTARIZE" == "1" || "$CONTEXT_NOTARIZE" == "true" ]]; then
+if [[ "$CC_NOTARIZE" == "1" || "$CC_NOTARIZE" == "true" ]]; then
   notarize_app_bundle "$DIST_PACKAGE_DIR/$APP_BUNDLE_NAME.app"
 fi
 
@@ -244,7 +243,7 @@ hdiutil convert "$DMG_RW_PATH" \
   -imagekey zlib-level=9 \
   -o "$DMG_PATH"
 sign_disk_image "$DMG_PATH"
-if [[ "$CONTEXT_NOTARIZE" == "1" || "$CONTEXT_NOTARIZE" == "true" ]]; then
+if [[ "$CC_NOTARIZE" == "1" || "$CC_NOTARIZE" == "true" ]]; then
   notarize_disk_image "$DMG_PATH"
 fi
 hdiutil verify "$DMG_PATH"
@@ -253,16 +252,16 @@ hdiutil attach -nobrowse -readonly -mountpoint "$DMG_MOUNT_DIR" "$DMG_PATH" >/de
 test -d "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 test -L "$DMG_MOUNT_DIR/Applications"
 codesign --verify --deep --strict "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
-if [[ "$CONTEXT_NOTARIZE" == "1" || "$CONTEXT_NOTARIZE" == "true" ]]; then
+if [[ "$CC_NOTARIZE" == "1" || "$CC_NOTARIZE" == "true" ]]; then
   xcrun stapler validate "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 fi
 hdiutil detach "$DMG_MOUNT_DIR" >/dev/null
 
 if [[ "$APP_VERSION" != "0.0.0" ]]; then
-  context_write_appcast \
+  cc_write_appcast \
     "$ROOT_DIR" \
     "$ZIP_PATH" \
-    "${CONTEXT_DOWNLOAD_URL_PREFIX:-https://github.com/hayashiii-ghub/context/releases/download/v${APP_VERSION}/}"
+    "${CC_DOWNLOAD_URL_PREFIX:-https://github.com/hayashiii-ghub/cc/releases/download/v${APP_VERSION}/}"
 fi
 
 echo "$ZIP_PATH"

@@ -46,7 +46,7 @@ jobs:
             exit 0
           fi
 
-          KEYCHAIN_PATH="$RUNNER_TEMP/context-signing.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/cc-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(uuidgen)"
           CERTIFICATE_PATH="$RUNNER_TEMP/developer-id-application.p12"
           NOTARY_KEY_PATH="$RUNNER_TEMP/AuthKey_${NOTARY_KEY_ID}.p8"
@@ -74,20 +74,20 @@ jobs:
             exit 1
           fi
 
-          echo "CONTEXT_CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "CC_CODESIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
 
           printf '%s' "$NOTARY_KEY_BASE64" | base64 -D > "$NOTARY_KEY_PATH"
           chmod 600 "$NOTARY_KEY_PATH"
 
-          echo "CONTEXT_NOTARIZE=1" >> "$GITHUB_ENV"
-          echo "CONTEXT_NOTARY_KEY_PATH=$NOTARY_KEY_PATH" >> "$GITHUB_ENV"
-          echo "CONTEXT_NOTARY_KEY_ID=$NOTARY_KEY_ID" >> "$GITHUB_ENV"
-          echo "CONTEXT_NOTARY_ISSUER_ID=$NOTARY_ISSUER_ID" >> "$GITHUB_ENV"
+          echo "CC_NOTARIZE=1" >> "$GITHUB_ENV"
+          echo "CC_NOTARY_KEY_PATH=$NOTARY_KEY_PATH" >> "$GITHUB_ENV"
+          echo "CC_NOTARY_KEY_ID=$NOTARY_KEY_ID" >> "$GITHUB_ENV"
+          echo "CC_NOTARY_ISSUER_ID=$NOTARY_ISSUER_ID" >> "$GITHUB_ENV"
 
       - name: Build distributable packages
         env:
-          CONTEXT_UNIVERSAL: "1"
-          CONTEXT_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0' }}
+          CC_UNIVERSAL: "1"
+          CC_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0' }}
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: ./script/package.sh
 
@@ -102,10 +102,10 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: context-macos
+          name: cc-macos
           path: |
-            dist/context-macos.dmg
-            dist/context-macos.zip
+            dist/cc-macos.dmg
+            dist/cc-macos.zip
             script/install_latest.sh
 
       - name: Upload GitHub release assets
@@ -116,7 +116,7 @@ jobs:
         run: |
           gh release view "$TAG_NAME" >/dev/null 2>&1 || \
             gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "cc: for macOS."
-          assets=(dist/context-macos.dmg dist/context-macos.zip script/install_latest.sh)
+          assets=(dist/cc-macos.dmg dist/cc-macos.zip script/install_latest.sh)
           if [[ -f dist/appcast.xml ]]; then
             assets+=(dist/appcast.xml)
           else

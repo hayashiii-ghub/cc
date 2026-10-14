@@ -3,46 +3,46 @@
 import PackageDescription
 
 let package = Package(
-    name: "Context",
+    name: "cc",
     platforms: [
         .macOS("26.0")
     ],
     products: [
-        .executable(name: "Context", targets: ["Context"]),
-        .executable(name: "ContextDemo", targets: ["ContextDemo"]),
-        .executable(name: "ContextCLI", targets: ["ContextCLI"])
+        .executable(name: "cc", targets: ["CC"]),
+        .executable(name: "cc-demo", targets: ["CCDemo"]),
+        .executable(name: "cc-cli", targets: ["CCCLI"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0")
     ],
     targets: [
         .executableTarget(
-            name: "Context",
+            name: "CC",
             dependencies: [
-                "ContextCore",
+                "CCCore",
                 .product(name: "Sparkle", package: "Sparkle")
             ],
-            path: "Sources/Context"
+            path: "Sources/CC"
         ),
         .executableTarget(
-            name: "ContextDemo",
-            path: "Tools/ContextDemo"
+            name: "CCDemo",
+            path: "Tools/CCDemo"
         ),
-        .target(name: "ContextCore", path: "Sources/ContextCore"),
+        .target(name: "CCCore", path: "Sources/CCCore"),
         .executableTarget(
-            name: "ContextCLI",
-            dependencies: ["ContextCore"],
-            path: "Sources/ContextCLI"
+            name: "CCCLI",
+            dependencies: ["CCCore"],
+            path: "Sources/CCCLI"
         ),
         .testTarget(
-            name: "ContextCoreTests",
-            dependencies: ["ContextCore"],
-            path: "Tests/ContextCoreTests"
+            name: "CCCoreTests",
+            dependencies: ["CCCore"],
+            path: "Tests/CCCoreTests"
         ),
         .testTarget(
-            name: "ContextTests",
-            dependencies: ["Context", "ContextCore"],
-            path: "Tests/ContextTests"
+            name: "CCTests",
+            dependencies: ["CC", "CCCore"],
+            path: "Tests/CCTests"
         )
     ]
 )

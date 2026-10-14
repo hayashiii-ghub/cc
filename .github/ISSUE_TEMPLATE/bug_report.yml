@@ -9,7 +9,7 @@ body:
       value: |
         報告ありがとうございます。個人情報、アクセストークン、機密ファイルを含めないでください。
   - type: input
-    id: context-version
+    id: cc-version
     attributes:
       label: cc:のバージョン
       placeholder: "例: 0.2.4"

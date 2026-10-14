@@ -7,12 +7,12 @@ const description =
   "Files, links, and notes. Ready for your next app or agent.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://context.hayashiii-gpt.chatgpt.site"),
+  metadataBase: new URL("https://cc.hayashiii-gpt.chatgpt.site"),
   title,
   description,
   icons: {
-    icon: [{ url: "/context/context-favicon.svg", type: "image/svg+xml" }],
-    shortcut: ["/context/context-favicon.svg"],
+    icon: [{ url: "/cc/cc-favicon.svg", type: "image/svg+xml" }],
+    shortcut: ["/cc/cc-favicon.svg"],
   },
   openGraph: {
     title,
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/context/context-og.png",
+        url: "/cc/cc-og.png",
         width: 1200,
         height: 630,
         alt: title,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/context/context-og.png",
+        url: "/cc/cc-og.png",
         alt: title,
       },
     ],

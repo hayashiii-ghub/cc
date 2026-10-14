@@ -3,21 +3,25 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/script/app_bundle.sh"
-TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/context-install-test.XXXXXX")"
+TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/cc-install-test.XXXXXX")"
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
 make_app() {
   local app="$1"
   local version="$2"
-  local bundle_id="${3:-work.hayashigoto.Context}"
+  local bundle_id="${3:-work.hayashigoto.cc}"
+  local helper="${4:-cc:}"
   mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Resources"
-  context_write_info_plist "$app/Contents/Info.plist" "$version"
+  cc_write_info_plist "$app/Contents/Info.plist" "$version"
   plutil -replace CFBundleIdentifier -string "$bundle_id" "$app/Contents/Info.plist"
-  printf '#!/bin/sh\nexit 0\n' >"$app/Contents/MacOS/Context"
-  printf '#!/bin/sh\nexit 0\n' >"$app/Contents/Helpers/context"
+  printf '#!/bin/sh\nexit 0\n' >"$app/Contents/MacOS/cc"
   printf '%s\n' "$version" >"$app/Contents/Resources/existing-marker"
-  chmod +x "$app/Contents/MacOS/Context" "$app/Contents/Helpers/context"
-  codesign --force --sign - "$app/Contents/Helpers/context"
+  chmod +x "$app/Contents/MacOS/cc"
+  if [[ "$helper" != none ]]; then
+    printf '#!/bin/sh\nexit 0\n' >"$app/Contents/Helpers/$helper"
+    chmod +x "$app/Contents/Helpers/$helper"
+    codesign --force --sign - "$app/Contents/Helpers/$helper"
+  fi
   codesign --force --sign - "$app"
 }
 
@@ -26,8 +30,8 @@ run_installer() {
   local install_home="$2"
   local archive="$3"
   shift 3
-  CONTEXT_INSTALL_DIR="$install_dir" CONTEXT_INSTALL_HOME="$install_home" \
-    CONTEXT_ZIP_PATH="$archive" CONTEXT_SKIP_STOP=1 CONTEXT_SKIP_OPEN=1 \
+  CC_INSTALL_DIR="$install_dir" CC_INSTALL_HOME="$install_home" \
+    CC_ZIP_PATH="$archive" CC_SKIP_STOP="${CC_TEST_SKIP_STOP:-1}" CC_SKIP_OPEN=1 \
     "$@" >"$TEST_ROOT/install.log" 2>"$TEST_ROOT/install-error.log"
 }
 
@@ -40,116 +44,146 @@ expect_rejection() {
 
 INSTALL_DIR="$TEST_ROOT/Applications"
 INSTALL_HOME="$TEST_ROOT/home"
-mkdir -p "$INSTALL_HOME/.local/bin"
-make_app "$INSTALL_DIR/Context.app" 1.0.0
-LEGACY_CLI="$INSTALL_DIR/Context.app/Contents/Helpers/context"
-ln -s "$LEGACY_CLI" "$INSTALL_HOME/.local/bin/context"
-mkdir -p "$INSTALL_HOME/.codex/skills/context-handoff"
-printf 'my edited skill\n' >"$INSTALL_HOME/.codex/skills/context-handoff/SKILL.md"
+mkdir -p "$INSTALL_HOME/.local/bin" "$INSTALL_HOME/.codex/skills/cc-handoff"
+make_app "$INSTALL_DIR/cc.app" 1.0.0
+CLI_TARGET="$INSTALL_DIR/cc.app/Contents/Helpers/cc:"
+ln -s "$CLI_TARGET" "$INSTALL_HOME/.local/bin/cc:"
+CLI_INODE="$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")"
+printf 'my edited skill\n' >"$INSTALL_HOME/.codex/skills/cc-handoff/SKILL.md"
 
 INVALID_APP="$TEST_ROOT/invalid/cc.app"
 mkdir -p "$INVALID_APP/Contents"
 printf 'invalid\n' >"$INVALID_APP/Contents/payload"
 ditto -c -k --keepParent "$INVALID_APP" "$TEST_ROOT/invalid.zip"
 expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/invalid.zip"
-test "$(cat "$INSTALL_DIR/Context.app/Contents/Resources/existing-marker")" = 1.0.0
-test "$(readlink "$INSTALL_HOME/.local/bin/context")" = "$LEGACY_CLI"
-test ! -e "$INSTALL_DIR/cc.app"
+test "$(cat "$INSTALL_DIR/cc.app/Contents/Resources/existing-marker")" = 1.0.0
 
 VALID_APP="$TEST_ROOT/valid/cc.app"
 make_app "$VALID_APP" 9.9.9
 ditto -c -k --keepParent "$VALID_APP" "$TEST_ROOT/valid.zip"
 
-# Reject staged validation, installed validation, and rename failures without
-# losing either the old app or its existing CLI link.
 FAKE_BIN="$TEST_ROOT/fakebin"
 mkdir "$FAKE_BIN"
 cat >"$FAKE_BIN/codesign" <<'CODESIGN'
 #!/bin/bash
 app="${@: -1}"
-if [[ "${CONTEXT_TEST_FAIL_STAGE:-0}" == 1 && "$app" == */.cc.app.new.* ]]; then
+if [[ "${CC_TEST_FAIL_STAGE:-0}" == 1 && "$app" == */.cc.app.new.* ]]; then
   exit 1
 fi
-if [[ -n "${CONTEXT_TEST_FAIL_VALIDATION:-}" && "$app" == "$CONTEXT_TEST_FAIL_VALIDATION" ]]; then
+if [[ -n "${CC_TEST_FAIL_VALIDATION:-}" && "$app" == "$CC_TEST_FAIL_VALIDATION" ]]; then
   exit 1
 fi
 exec /usr/bin/codesign "$@"
 CODESIGN
 cat >"$FAKE_BIN/mv" <<'MV'
 #!/bin/bash
-if [[ "$#" == 2 && "$2" == "$CONTEXT_TEST_FAIL_DEST" && ! -e "$CONTEXT_TEST_FAIL_ONCE" ]]; then
-  : >"$CONTEXT_TEST_FAIL_ONCE"
+if [[ "$#" == 2 && "$2" == "${CC_TEST_FAIL_DEST:-}" && ! -e "$CC_TEST_FAIL_ONCE" ]]; then
+  if [[ "${CC_TEST_FAIL_AFTER_MOVE:-0}" == 1 ]]; then
+    /bin/mv "$@" || exit "$?"
+  fi
+  : >"$CC_TEST_FAIL_ONCE"
   exit 1
 fi
 exec /bin/mv "$@"
 MV
 chmod +x "$FAKE_BIN"/*
 ORIGINAL_TEST_PATH="$PATH"
-export CONTEXT_TEST_FAIL_STAGE=1
-export CONTEXT_TEST_FAIL_DEST="$INSTALL_DIR/cc.app"
-export CONTEXT_TEST_FAIL_ONCE="$TEST_ROOT/failed-once"
-PATH="$FAKE_BIN:$PATH"
-expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
-export CONTEXT_TEST_FAIL_STAGE=0
-expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
-export CONTEXT_TEST_FAIL_VALIDATION="$INSTALL_DIR/cc.app"
-expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
-unset CONTEXT_TEST_FAIL_VALIDATION
-export CONTEXT_TEST_FAIL_DEST="$INSTALL_HOME/.local/bin/context"
-rm "$CONTEXT_TEST_FAIL_ONCE"
-expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
-PATH="$ORIGINAL_TEST_PATH"
-test "$(cat "$INSTALL_DIR/Context.app/Contents/Resources/existing-marker")" = 1.0.0
-test "$(readlink "$INSTALL_HOME/.local/bin/context")" = "$LEGACY_CLI"
-test ! -e "$INSTALL_DIR/cc.app"
-test -z "$(find "$INSTALL_DIR" -maxdepth 1 -name '.*.app.*' -print -quit)"
-test -z "$(find "$INSTALL_HOME/.local/bin" -maxdepth 1 -name '.context-link.*' -print -quit)"
+export CC_TEST_FAIL_ONCE="$TEST_ROOT/failed-once"
+
+# Every failure leaves the previous app, CLI inode, and edited skill intact.
+for phase in staged installed move-before move-after; do
+  export CC_TEST_FAIL_STAGE=0 CC_TEST_FAIL_VALIDATION="" CC_TEST_FAIL_DEST="" CC_TEST_FAIL_AFTER_MOVE=0
+  case "$phase" in
+    staged) export CC_TEST_FAIL_STAGE=1 ;;
+    installed) export CC_TEST_FAIL_VALIDATION="$INSTALL_DIR/cc.app" ;;
+    move-before) export CC_TEST_FAIL_DEST="$INSTALL_DIR/cc.app" ;;
+    move-after) export CC_TEST_FAIL_DEST="$INSTALL_DIR/cc.app" CC_TEST_FAIL_AFTER_MOVE=1 ;;
+  esac
+  rm -f "$CC_TEST_FAIL_ONCE"
+  PATH="$FAKE_BIN:$ORIGINAL_TEST_PATH"
+  expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
+  PATH="$ORIGINAL_TEST_PATH"
+  test "$(cat "$INSTALL_DIR/cc.app/Contents/Resources/existing-marker")" = 1.0.0
+  test "$(readlink "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_TARGET"
+  test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+  test "$(cat "$INSTALL_HOME/.codex/skills/cc-handoff/SKILL.md")" = 'my edited skill'
+  test -z "$(find "$INSTALL_DIR" -maxdepth 1 -name '.cc.app.*' -print -quit)"
+  if [[ "$phase" == move-* ]]; then test -e "$CC_TEST_FAIL_ONCE"; fi
+done
+unset CC_TEST_FAIL_STAGE CC_TEST_FAIL_VALIDATION CC_TEST_FAIL_DEST CC_TEST_FAIL_AFTER_MOVE
 
 run_installer "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
-INSTALLED_APP="$INSTALL_DIR/cc.app"
-test "$(plutil -extract CFBundleShortVersionString raw "$INSTALLED_APP/Contents/Info.plist")" = 9.9.9
-test "$(plutil -extract CFBundleDisplayName raw "$INSTALLED_APP/Contents/Info.plist")" = cc:
-test "$(readlink "$INSTALL_HOME/.local/bin/context")" = "$INSTALLED_APP/Contents/Helpers/context"
-test ! -e "$INSTALL_DIR/Context.app"
-LEGACY_BACKUP="$(find "$INSTALL_DIR" -maxdepth 1 -name '.Context.app.backup.*' -print)"
-test -n "$LEGACY_BACKUP"
-test "$(cat "$LEGACY_BACKUP/Contents/Resources/existing-marker")" = 1.0.0
-test "$(cat "$INSTALL_HOME/.codex/skills/context-handoff/SKILL.md")" = 'my edited skill'
-codesign --verify --deep --strict "$INSTALLED_APP"
-CLI_INODE="$(stat -f '%i' "$INSTALL_HOME/.local/bin/context")"
+test "$(plutil -extract CFBundleShortVersionString raw "$INSTALL_DIR/cc.app/Contents/Info.plist")" = 9.9.9
+test "$(plutil -extract CFBundleExecutable raw "$INSTALL_DIR/cc.app/Contents/Info.plist")" = cc
+test "$(readlink "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_TARGET"
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+codesign --verify --deep --strict "$INSTALL_DIR/cc.app"
 run_installer "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
-test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/context")" = "$CLI_INODE"
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
 test -z "$(find "$INSTALL_DIR" -maxdepth 1 -name '.cc.app.*' -print -quit)"
 
-# Legacy archives remain accepted by the standalone/piped installer.
-LEGACY_ARCHIVE_APP="$TEST_ROOT/legacy-archive/Context.app"
-make_app "$LEGACY_ARCHIVE_APP" 8.8.8
-ditto -c -k --keepParent "$LEGACY_ARCHIVE_APP" "$TEST_ROOT/legacy.zip"
+# Stop only the selected app, including an installation path containing spaces.
+PROCESS_DIR="$TEST_ROOT/Process Applications"
+PROCESS_HOME="$TEST_ROOT/process-home"
+mkdir "$PROCESS_HOME"
+make_app "$PROCESS_DIR/cc.app" 1.0.0
+export CC_TEST_PS_LIST="$TEST_ROOT/process-list"
+export CC_TEST_KILL_LOG="$TEST_ROOT/killed-pids"
+cat >"$FAKE_BIN/ps" <<'PS'
+#!/bin/bash
+[[ "$*" == '-axww -o pid=,comm=' ]] || exit 1
+cat "$CC_TEST_PS_LIST"
+PS
+cat >"$TEST_ROOT/process-test-env.sh" <<'ENV'
+kill() { printf '%s\n' "$*" >>"$CC_TEST_KILL_LOG"; }
+pkill() { printf 'unscoped pkill\n' >>"$CC_TEST_KILL_LOG"; return 1; }
+ENV
+chmod +x "$FAKE_BIN/ps"
+printf ' 101 %s\n 102 /usr/bin/cc\n 103 %s-worker\n 104 %s\n invalid %s\n' \
+  "$PROCESS_DIR/cc.app/Contents/MacOS/cc" \
+  "$PROCESS_DIR/cc.app/Contents/MacOS/cc" \
+  "$TEST_ROOT/Other.app/Contents/MacOS/cc" \
+  "$PROCESS_DIR/cc.app/Contents/MacOS/cc" >"$CC_TEST_PS_LIST"
+: >"$CC_TEST_KILL_LOG"
+PATH="$FAKE_BIN:$ORIGINAL_TEST_PATH" BASH_ENV="$TEST_ROOT/process-test-env.sh" CC_TEST_SKIP_STOP=0 \
+  run_installer "$PROCESS_DIR" "$PROCESS_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
+test "$(cat "$CC_TEST_KILL_LOG")" = 101
+test "$(cat "$PROCESS_DIR/cc.app/Contents/Resources/existing-marker")" = 9.9.9
+
+# Standalone/piped installation does not opt a user into CLI or skill setup.
 PIPED_DIR="$TEST_ROOT/PipedApplications"
 PIPED_HOME="$TEST_ROOT/piped-home"
 mkdir "$PIPED_HOME"
-run_installer "$PIPED_DIR" "$PIPED_HOME" "$TEST_ROOT/legacy.zip" bash <"$ROOT_DIR/script/install_latest.sh"
-test -x "$PIPED_DIR/cc.app/Contents/MacOS/Context"
-test "$(plutil -extract CFBundleShortVersionString raw "$PIPED_DIR/cc.app/Contents/Info.plist")" = 8.8.8
+run_installer "$PIPED_DIR" "$PIPED_HOME" "$TEST_ROOT/valid.zip" bash <"$ROOT_DIR/script/install_latest.sh"
 codesign --verify --deep --strict "$PIPED_DIR/cc.app"
+test ! -e "$PIPED_HOME/.local"
+test ! -e "$PIPED_HOME/.codex"
 
-# Unknown links and regular commands must survive app migration unchanged.
-for kind in link file; do
-  protected_dir="$TEST_ROOT/protected-$kind-apps"
-  protected_home="$TEST_ROOT/protected-$kind-home"
-  mkdir -p "$protected_home/.local/bin"
-  make_app "$protected_dir/Context.app" 1.0.0
+MISSING_HELPER_APP="$TEST_ROOT/missing-helper/cc.app"
+make_app "$MISSING_HELPER_APP" 9.9.9 work.hayashigoto.cc none
+ditto -c -k --keepParent "$MISSING_HELPER_APP" "$TEST_ROOT/missing-helper.zip"
+expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/missing-helper.zip"
+test "$(cat "$INSTALL_DIR/cc.app/Contents/Resources/existing-marker")" = 9.9.9
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+
+# App-only updates preserve unrelated commands, even dangling links.
+for kind in file link; do
+  custom_dir="$TEST_ROOT/custom-$kind-apps"
+  custom_home="$TEST_ROOT/custom-$kind-home"
+  mkdir -p "$custom_home/.local/bin"
+  make_app "$custom_dir/cc.app" 1.0.0
   if [[ "$kind" == link ]]; then
-    ln -s /usr/bin/true "$protected_home/.local/bin/context"
+    ln -s "$TEST_ROOT/missing-custom-command" "$custom_home/.local/bin/cc:"
   else
-    printf 'my command\n' >"$protected_home/.local/bin/context"
+    printf 'my command\n' >"$custom_home/.local/bin/cc:"
   fi
-  run_installer "$protected_dir" "$protected_home" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
+  run_installer "$custom_dir" "$custom_home" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
   if [[ "$kind" == link ]]; then
-    test "$(readlink "$protected_home/.local/bin/context")" = /usr/bin/true
+    test "$(readlink "$custom_home/.local/bin/cc:")" = "$TEST_ROOT/missing-custom-command"
   else
-    test "$(cat "$protected_home/.local/bin/context")" = 'my command'
+    test "$(cat "$custom_home/.local/bin/cc:")" = 'my command'
   fi
+  test "$(cat "$custom_dir/cc.app/Contents/Resources/existing-marker")" = 9.9.9
 done
 
 FOREIGN_DIR="$TEST_ROOT/foreign-apps"
@@ -158,4 +192,9 @@ mkdir "$FOREIGN_HOME"
 make_app "$FOREIGN_DIR/cc.app" 1.0.0 example.unrelated.app
 expect_rejection "$FOREIGN_DIR" "$FOREIGN_HOME" "$TEST_ROOT/valid.zip"
 test "$(plutil -extract CFBundleIdentifier raw "$FOREIGN_DIR/cc.app/Contents/Info.plist")" = example.unrelated.app
-printf 'App installer migration and rollback checks passed.\n'
+printf ' 105 %s\n' "$FOREIGN_DIR/cc.app/Contents/MacOS/cc" >"$CC_TEST_PS_LIST"
+: >"$CC_TEST_KILL_LOG"
+PATH="$FAKE_BIN:$ORIGINAL_TEST_PATH" BASH_ENV="$TEST_ROOT/process-test-env.sh" CC_TEST_SKIP_STOP=0 \
+  expect_rejection "$FOREIGN_DIR" "$FOREIGN_HOME" "$TEST_ROOT/valid.zip"
+test ! -s "$CC_TEST_KILL_LOG"
+printf 'App installer update and rollback checks passed.\n'

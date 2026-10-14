@@ -3,15 +3,15 @@
 import Image from "next/image";
 import { useEffect, useSyncExternalStore } from "react";
 
-import styles from "./context.module.css";
+import styles from "./cc.module.css";
 import ShelfPreview from "./ShelfPreview";
 import { siteCopy, siteLanguageStorageKey, type SiteLanguage } from "./copy";
 
-const repositoryUrl = "https://github.com/hayashiii-ghub/context";
+const repositoryUrl = "https://github.com/hayashiii-ghub/cc";
 const releasesUrl = `${repositoryUrl}/releases`;
-const downloadUrl = `${repositoryUrl}/releases/latest/download/context-macos.dmg`;
+const downloadUrl = `${repositoryUrl}/releases/latest/download/cc-macos.dmg`;
 
-const languageEvent = "context-language-change";
+const languageEvent = "cc-language-change";
 // Keep the choice for this tab when browser storage is unavailable.
 let temporaryLanguage: SiteLanguage | undefined;
 
@@ -52,7 +52,7 @@ function chooseLanguage(language: SiteLanguage) {
   window.dispatchEvent(new Event(languageEvent));
 }
 
-export default function ContextPage() {
+export default function CCPage() {
   const language = useSyncExternalStore(subscribeLanguage, currentLanguage, () => "en" as SiteLanguage);
   const copy = siteCopy[language];
 
@@ -79,7 +79,7 @@ export default function ContextPage() {
 
       <nav className={styles.navPill} aria-label={copy.primary}>
         <a className={styles.brand} href="#top">
-          <Image src="/context/context-mark.svg" width={30} height={24} alt={copy.home} unoptimized />
+          <Image src="/cc/cc-mark.svg" width={30} height={24} alt={copy.home} unoptimized />
         </a>
         <a className={styles.navHow} href="#how">{copy.navHow}</a>
         <a href="#install">{copy.navInstall}</a>
@@ -91,12 +91,12 @@ export default function ContextPage() {
       </nav>
 
       <main id="content">
-        <section className={styles.hero} id="top" aria-labelledby="context-title">
+        <section className={styles.hero} id="top" aria-labelledby="cc-title">
           <a className={styles.releaseChip} href={repositoryUrl}>
             <span>{copy.openSource}</span>
             <span>{copy.builtForMac}</span>
           </a>
-          <h1 id="context-title">{copy.heroTitle[0]}<br /><span>{copy.heroTitle[1]}</span></h1>
+          <h1 id="cc-title">{copy.heroTitle[0]}<br /><span>{copy.heroTitle[1]}</span></h1>
           <p className={styles.heroSubtitle}>
             {copy.heroSubtitle[0]}<br className={styles.desktopBreak} /> {copy.heroSubtitle[1]}
           </p>
@@ -148,7 +148,7 @@ export default function ContextPage() {
             <p className={styles.centerCopy}>{copy.installBody}</p>
             <div className={styles.installBar}>
               <div className={styles.installName}>
-                <Image src="/context/context-mark.svg" width={40} height={40} alt={copy.markAlt} unoptimized />
+                <Image src="/cc/cc-mark.svg" width={40} height={40} alt={copy.markAlt} unoptimized />
                 <span>{copy.installName}</span>
               </div>
               <a className={`${styles.button} ${styles.buttonPrimary}`} href={downloadUrl}>{copy.downloadDmg}</a>
@@ -186,7 +186,7 @@ export default function ContextPage() {
 
       <footer className={styles.footer}>
         <div className={styles.footerMeta}>
-          <Image src="/context/context-mark.svg" width={30} height={24} alt="cc:" unoptimized />
+          <Image src="/cc/cc-mark.svg" width={30} height={24} alt="cc:" unoptimized />
           <span className={styles.dot} /><span>{copy.openSource}</span>
         </div>
         <div className={styles.footerLinks}>

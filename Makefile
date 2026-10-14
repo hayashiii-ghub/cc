@@ -20,7 +20,7 @@ run:
 	./script/build_and_run.sh
 
 package:
-	CONTEXT_VERSION="$(VERSION)" ./script/package.sh
+	CC_VERSION="$(VERSION)" ./script/package.sh
 
 install-latest:
 	./script/install_latest.sh
@@ -33,7 +33,7 @@ release:
 		echo "usage: make release VERSION=v0.1.0" >&2; \
 		exit 2; \
 	fi
-	@CONTEXT_VERSION="$(VERSION)" bash script/version.sh >/dev/null
+	@CC_VERSION="$(VERSION)" bash script/version.sh >/dev/null
 	git tag "$(VERSION)"
 	git push origin main
 	git push origin "$(VERSION)"

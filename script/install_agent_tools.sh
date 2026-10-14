@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_HOME="${CONTEXT_INSTALL_HOME:-$HOME}"
-INSTALL_APP="${CONTEXT_INSTALL_APP:-}"
+INSTALL_HOME="${CC_INSTALL_HOME:-$HOME}"
+INSTALL_APP="${CC_INSTALL_APP:-}"
 if [[ -z "$INSTALL_APP" ]]; then
-  for candidate in /Applications/cc.app "$INSTALL_HOME/Applications/cc.app" \
-      /Applications/Context.app "$INSTALL_HOME/Applications/Context.app"; do
+  for candidate in /Applications/cc.app "$INSTALL_HOME/Applications/cc.app"; do
     if [[ -d "$candidate" ]]; then
       INSTALL_APP="$candidate"
       break
@@ -15,14 +14,13 @@ if [[ -z "$INSTALL_APP" ]]; then
 fi
 INSTALL_HOME="${INSTALL_HOME%/}"
 INSTALL_APP="${INSTALL_APP%/}"
-CLI_BINARY="$INSTALL_APP/Contents/Helpers/context"
-LEGACY_CLI_BINARY="$(dirname "$INSTALL_APP")/Context.app/Contents/Helpers/context"
-SKILL_SOURCE="$INSTALL_APP/Contents/Resources/skills/context-handoff/SKILL.md"
-CLI_DESTINATION="$INSTALL_HOME/.local/bin/context"
-CODEX_DESTINATION="$INSTALL_HOME/.codex/skills/context-handoff"
-CLAUDE_DESTINATION="$INSTALL_HOME/.claude/skills/context-handoff"
-MANIFEST_NAME=".context-install-manifest"
-OWNER_MARKER="Context context-handoff installer v1"
+CLI_BINARY="$INSTALL_APP/Contents/Helpers/cc:"
+SKILL_SOURCE="$INSTALL_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
+CLI_DESTINATION="$INSTALL_HOME/.local/bin/cc:"
+CODEX_DESTINATION="$INSTALL_HOME/.codex/skills/cc-handoff"
+CLAUDE_DESTINATION="$INSTALL_HOME/.claude/skills/cc-handoff"
+MANIFEST_NAME=".cc-install-manifest"
+OWNER_MARKER="cc: cc-handoff installer v1"
 PRINT_PLAN=0
 
 if [[ "$#" == 1 && "$1" == --print-plan ]]; then
@@ -42,10 +40,10 @@ file_hash() {
 }
 
 [[ "$INSTALL_HOME" == /* && -d "$INSTALL_HOME" && ! -L "$INSTALL_HOME" ]] \
-  || fail "CONTEXT_INSTALL_HOME must be an existing absolute directory."
+  || fail "CC_INSTALL_HOME must be an existing absolute directory."
 [[ "$INSTALL_APP" == /* && -d "$INSTALL_APP" && ! -L "$INSTALL_APP" ]] \
   || fail "cc: app not found at $INSTALL_APP."
-[[ "$(plutil -extract CFBundleIdentifier raw "$INSTALL_APP/Contents/Info.plist")" == work.hayashigoto.Context ]] \
+[[ "$(plutil -extract CFBundleIdentifier raw "$INSTALL_APP/Contents/Info.plist")" == work.hayashigoto.cc ]] \
   || fail "The selected app is not cc:."
 [[ -x "$CLI_BINARY" && ! -L "$CLI_BINARY" ]] \
   || fail "The selected cc: app does not contain its CLI."
@@ -64,14 +62,11 @@ for parent in "${PARENTS[@]}"; do
 done
 
 preflight_cli() {
-  local target
   if [[ -L "$CLI_DESTINATION" ]]; then
-    target="$(readlink "$CLI_DESTINATION")"
-    [[ "$target" == "$CLI_BINARY" \
-        || ( "$(basename "$INSTALL_APP")" == cc.app && "$target" == "$LEGACY_CLI_BINARY" ) ]] \
-      || fail "Preserving an unrelated CLI symlink: $CLI_DESTINATION"
+    [[ "$(readlink "$CLI_DESTINATION")" == "$CLI_BINARY" ]] \
+      || fail "Preserving an unrelated CLI symlink; review before installing: $CLI_DESTINATION"
   elif [[ -e "$CLI_DESTINATION" ]]; then
-    fail "Preserving an existing CLI file: $CLI_DESTINATION"
+    fail "Preserving an existing CLI file; review before installing: $CLI_DESTINATION"
   fi
 }
 
@@ -108,7 +103,7 @@ if [[ "$PRINT_PLAN" == 1 ]]; then
   exit 0
 fi
 
-STAGING_DIR="$(mktemp -d "$INSTALL_HOME/.context-agent-tools.XXXXXX")"
+STAGING_DIR="$(mktemp -d "$INSTALL_HOME/.cc-agent-tools.XXXXXX")"
 SUCCESS=0
 CLI_INSTALLED=0
 CODEX_INSTALLED=0
@@ -134,12 +129,9 @@ cleanup() {
   local index
   if [[ "$SUCCESS" != 1 ]]; then
     if [[ "$CLI_INSTALLED" == 1 ]]; then
-      rm -f "$CLI_DESTINATION" || rollback_failed=1
-    fi
-    if [[ -L "$STAGING_DIR/cli.previous" ]]; then
-      if [[ ! -e "$CLI_DESTINATION" && ! -L "$CLI_DESTINATION" ]]; then
-        mv "$STAGING_DIR/cli.previous" "$CLI_DESTINATION" || rollback_failed=1
-      else
+      if [[ -L "$CLI_DESTINATION" && "$(readlink "$CLI_DESTINATION")" == "$CLI_BINARY" ]]; then
+        rm -f "$CLI_DESTINATION" || rollback_failed=1
+      elif [[ -e "$CLI_DESTINATION" || -L "$CLI_DESTINATION" ]]; then
         rollback_failed=1
       fi
     fi
@@ -196,11 +188,8 @@ stage_skill "$STAGING_DIR/claude.new"
 commit_skill "$CODEX_DESTINATION" "$STAGING_DIR/codex.new" "$STAGING_DIR/codex.previous" CODEX_INSTALLED
 commit_skill "$CLAUDE_DESTINATION" "$STAGING_DIR/claude.new" "$STAGING_DIR/claude.previous" CLAUDE_INSTALLED
 preflight_cli
-if [[ ! -L "$CLI_DESTINATION" || "$(readlink "$CLI_DESTINATION")" != "$CLI_BINARY" ]]; then
+if [[ ! -L "$CLI_DESTINATION" ]]; then
   ln -s "$CLI_BINARY" "$STAGING_DIR/cli.new"
-  if [[ -L "$CLI_DESTINATION" ]]; then
-    mv "$CLI_DESTINATION" "$STAGING_DIR/cli.previous"
-  fi
   CLI_INSTALLED=1
   mv "$STAGING_DIR/cli.new" "$CLI_DESTINATION"
 fi

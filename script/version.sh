@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-resolve_context_version() {
+resolve_cc_version() {
   local root_dir="$1"
-  local raw_version="${CONTEXT_VERSION:-}"
+  local raw_version="${CC_VERSION:-}"
 
   if [[ -z "$raw_version" ]]; then
     raw_version="$(git -C "$root_dir" describe --tags --exact-match 2>/dev/null || true)"
@@ -23,5 +23,5 @@ resolve_context_version() {
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  resolve_context_version "$ROOT_DIR"
+  resolve_cc_version "$ROOT_DIR"
 fi

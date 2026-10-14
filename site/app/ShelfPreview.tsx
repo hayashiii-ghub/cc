@@ -43,7 +43,7 @@ function ShelfWindow({
     <div className={`${styles.shelf} ${mode === "notch" ? styles.notchShelf : ""}`} data-shelf-mode={mode} data-shelf-state={empty ? "empty" : "items"} lang={language}>
       {mode === "notch" ? <div className={styles.notchCutout} aria-hidden="true" /> : null}
       <div className={styles.shelfHeader}>
-        <Image src="/context/context-mark.svg" width={30} height={26} alt="cc:" unoptimized className={styles.mark} />
+        <Image src="/cc/cc-mark.svg" width={30} height={26} alt="cc:" unoptimized className={styles.mark} />
         <span className={styles.itemCount} aria-live="polite">{empty ? copy.emptyCount : copy.count}</span>
         <span className={styles.windowMenu} aria-hidden="true">···</span>
         <span className={styles.windowClose} aria-hidden="true">×</span>
