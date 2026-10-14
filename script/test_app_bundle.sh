@@ -196,10 +196,17 @@ export CC_TEST_PS_AFTER_OPEN="$TMP_ROOT/process-list-after-open"
 export CC_TEST_KILL_LOG="$TMP_ROOT/killed-pids"
 cat >"$FAKE_BIN/swift" <<'SWIFT'
 #!/bin/bash
-[[ "$1" == build ]] || exit 1
-if [[ "${2:-}" == --show-bin-path ]]; then
-  printf '%s\n' "$CC_TEST_BUILD_BIN"
+if [[ "$1" == - ]]; then
+  cat >/dev/null
+  printf 'test background\n' >"$2"
+  exit 0
 fi
+[[ "$1" == build ]] || exit 1
+for argument in "$@"; do
+  if [[ "$argument" == --show-bin-path ]]; then
+    printf '%s\n' "$CC_TEST_BUILD_BIN"
+  fi
+done
 SWIFT
 cat >"$FAKE_BIN/ps" <<'PS'
 #!/bin/bash
@@ -250,4 +257,104 @@ write_running_processes
 printf ' 301 %s\n' "$BUILD_APP_EXECUTABLE" >"$CC_TEST_PS_AFTER_OPEN"
 run_build_verify || { cat "$TMP_ROOT/build-run.log" >&2; exit 1; }
 test "$(cat "$CC_TEST_KILL_LOG")" = 201
+
+# The same isolated project exercises detach retries without mounting a volume.
+cp "$ROOT_DIR/script/package.sh" "$FAKE_ROOT/script/package.sh"
+cat >"$FAKE_BIN/mktemp" <<'MKTEMP'
+#!/bin/bash
+if [[ "$*" == *cc-package.XXXXXX* ]]; then
+  exec /usr/bin/mktemp -d "$CC_TEST_DMG_STATE/cc-package.XXXXXX"
+fi
+exec /usr/bin/mktemp "$@"
+MKTEMP
+cat >"$FAKE_BIN/hdiutil" <<'HDIUTIL'
+#!/bin/bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$CC_TEST_DMG_STATE/commands"
+case "$1" in
+  create)
+    image="${@: -1}"
+    printf '%s\n' "$(dirname "$image")" >"$CC_TEST_DMG_STATE/staging-dir"
+    while [[ "$#" -gt 0 ]]; do
+      if [[ "$1" == -srcfolder ]]; then
+        printf '%s\n' "$2" >"$CC_TEST_DMG_STATE/image-source"
+        break
+      fi
+      shift
+    done
+    : >"$image"
+    ;;
+  attach)
+    while [[ "$#" -gt 0 && "$1" != -mountpoint ]]; do shift; done
+    mount="$2"
+    ditto "$(cat "$CC_TEST_DMG_STATE/image-source")" "$mount"
+    printf '%s\n' "$mount" >"$CC_TEST_DMG_STATE/mount-dir"
+    printf '1\n' >"$CC_TEST_DMG_STATE/mounted"
+    printf '0\n' >"$CC_TEST_DMG_STATE/attempts"
+    ;;
+  detach)
+    [[ "$#" == 2 && "$2" == "$(cat "$CC_TEST_DMG_STATE/mount-dir")" ]]
+    attempt=$(( $(cat "$CC_TEST_DMG_STATE/attempts") + 1 ))
+    printf '%s\n' "$attempt" >"$CC_TEST_DMG_STATE/attempts"
+    if [[ "$CC_TEST_DMG_MODE" == persistent ]] || (( attempt < 3 )); then
+      printf 'hdiutil: Resource busy\n' >&2
+      exit 1
+    fi
+    printf '0\n' >"$CC_TEST_DMG_STATE/mounted"
+    ;;
+  convert)
+    while [[ "$#" -gt 0 && "$1" != -o ]]; do shift; done
+    : >"$2"
+    ;;
+  verify) ;;
+  *) exit 1 ;;
+esac
+HDIUTIL
+cat >"$FAKE_BIN/osascript" <<'OSASCRIPT'
+#!/bin/bash
+cat >/dev/null
+if [[ "$CC_TEST_DMG_MODE" == cleanup ]]; then exit 73; fi
+OSASCRIPT
+cat >"$FAKE_BIN/sleep" <<'SLEEP'
+#!/bin/bash
+printf '%s\n' "$*" >>"$CC_TEST_DMG_STATE/sleeps"
+SLEEP
+printf '#!/bin/bash\nexit 0\n' >"$FAKE_BIN/sync"
+chmod +x "$FAKE_BIN/mktemp" "$FAKE_BIN/hdiutil" "$FAKE_BIN/osascript" "$FAKE_BIN/sleep" "$FAKE_BIN/sync"
+
+for mode in transient persistent cleanup; do
+  export CC_TEST_DMG_STATE="$TMP_ROOT/dmg-$mode" CC_TEST_DMG_MODE="$mode"
+  mkdir "$CC_TEST_DMG_STATE"
+  package_status=0
+  CC_VERSION=0.0.0 CC_CODESIGN_IDENTITY=- CC_NOTARIZE=0 \
+    bash "$FAKE_ROOT/script/package.sh" >"$CC_TEST_DMG_STATE/package.log" 2>&1 || package_status=$?
+  staging="$(cat "$CC_TEST_DMG_STATE/staging-dir")"
+  mount="$(cat "$CC_TEST_DMG_STATE/mount-dir")"
+  case "$mode" in
+    transient)
+      test "$package_status" -eq 0
+      test "$(grep -c '^detach ' "$CC_TEST_DMG_STATE/commands")" -eq 6
+      test "$(wc -l <"$CC_TEST_DMG_STATE/sleeps")" -eq 4
+      test "$(cat "$CC_TEST_DMG_STATE/mounted")" = 0
+      test ! -e "$staging"
+      ;;
+    persistent)
+      test "$package_status" -eq 1
+      test "$(grep -c '^detach ' "$CC_TEST_DMG_STATE/commands")" -eq 5
+      test "$(wc -l <"$CC_TEST_DMG_STATE/sleeps")" -eq 4
+      test "$(cat "$CC_TEST_DMG_STATE/mounted")" = 1
+      test -d "$staging"
+      test -d "$mount/cc.app"
+      grep -Fq "Preserved staging directory: $staging" "$CC_TEST_DMG_STATE/package.log"
+      ;;
+    cleanup)
+      test "$package_status" -eq 73
+      test "$(grep -c '^detach ' "$CC_TEST_DMG_STATE/commands")" -eq 3
+      test "$(wc -l <"$CC_TEST_DMG_STATE/sleeps")" -eq 2
+      test "$(cat "$CC_TEST_DMG_STATE/mounted")" = 0
+      test ! -e "$staging"
+      ;;
+  esac
+  test -z "$(grep -v '^2$' "$CC_TEST_DMG_STATE/sleeps")"
+done
 printf 'App bundle resources, signing order, and appcast regression checks passed.\n'

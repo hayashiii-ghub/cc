@@ -36,9 +36,36 @@ CC_NOTARY_KEYCHAIN_PROFILE="${CC_NOTARY_KEYCHAIN_PROFILE:-}"
 CC_NOTARY_KEY_PATH="${CC_NOTARY_KEY_PATH:-}"
 CC_NOTARY_KEY_ID="${CC_NOTARY_KEY_ID:-}"
 CC_NOTARY_ISSUER_ID="${CC_NOTARY_ISSUER_ID:-}"
+DMG_MOUNTED=0
+DMG_DETACH_FAILED=0
+
+detach_dmg() {
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    if hdiutil detach "$DMG_MOUNT_DIR" >/dev/null; then
+      DMG_MOUNTED=0
+      DMG_DETACH_FAILED=0
+      return 0
+    fi
+    if (( attempt < 5 )); then
+      sleep 2
+    fi
+  done
+  DMG_DETACH_FAILED=1
+  return 1
+}
 
 cleanup() {
-  hdiutil detach "$DMG_MOUNT_DIR" >/dev/null 2>&1 || true
+  local exit_status=$?
+  if (( DMG_MOUNTED )); then
+    if (( DMG_DETACH_FAILED )) || ! detach_dmg; then
+      printf 'Disk image is still mounted. Preserved staging directory: %s\n' "$STAGING_DIR" >&2
+      if (( exit_status == 0 )); then
+        exit_status=1
+      fi
+      exit "$exit_status"
+    fi
+  fi
   rm -rf "$STAGING_DIR"
 }
 trap cleanup EXIT
@@ -212,6 +239,8 @@ hdiutil create \
   "$DMG_RW_PATH"
 
 mkdir -p "$DMG_MOUNT_DIR"
+# An attach can fail after mounting; cleanup must detach before deleting staging.
+DMG_MOUNTED=1
 hdiutil attach -readwrite -noverify -noautoopen -mountpoint "$DMG_MOUNT_DIR" "$DMG_RW_PATH" >/dev/null
 
 osascript <<APPLESCRIPT
@@ -236,7 +265,7 @@ end tell
 APPLESCRIPT
 
 sync
-hdiutil detach "$DMG_MOUNT_DIR" >/dev/null
+detach_dmg
 
 hdiutil convert "$DMG_RW_PATH" \
   -format UDZO \
@@ -248,6 +277,7 @@ if [[ "$CC_NOTARIZE" == "1" || "$CC_NOTARIZE" == "true" ]]; then
 fi
 hdiutil verify "$DMG_PATH"
 
+DMG_MOUNTED=1
 hdiutil attach -nobrowse -readonly -mountpoint "$DMG_MOUNT_DIR" "$DMG_PATH" >/dev/null
 test -d "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 test -L "$DMG_MOUNT_DIR/Applications"
@@ -255,7 +285,7 @@ codesign --verify --deep --strict "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 if [[ "$CC_NOTARIZE" == "1" || "$CC_NOTARIZE" == "true" ]]; then
   xcrun stapler validate "$DMG_MOUNT_DIR/$APP_BUNDLE_NAME.app"
 fi
-hdiutil detach "$DMG_MOUNT_DIR" >/dev/null
+detach_dmg
 
 if [[ "$APP_VERSION" != "0.0.0" ]]; then
   cc_write_appcast \
