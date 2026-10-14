@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/") {
@@ -22,7 +21,7 @@ function withoutBreakHints(html) {
     .replace(/<\/?span\b[^>]*>/g, "");
 }
 
-test("renders the standalone Context site at the root", async () => {
+test("renders the standalone cc: site at the root", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -31,59 +30,45 @@ test("renders the standalone Context site at the root", async () => {
   const text = withoutBreakHints(html);
 
   assert.match(html, /<html lang="en">/);
-  assert.match(html, /<title>Context — Keep it close before you need it<\/title>/);
-  assert.match(text, /Keep it close/);
-  assert.match(text, /From Finder to Context in one shortcut/);
-  assert.match(text, /Keep the stack above your work/);
-  assert.match(text, /Turn the notch into a drop target/);
+  assert.match(html, /<title>cc: — A copy for what’s next.<\/title>/);
+  assert.match(text, /A copy for/);
+  assert.match(text, /Ready for your next app or agent/);
+  assert.match(text, /From Finder to your next step/);
+  assert.match(text, /A little shared space for the work/);
+  assert.match(text, /Right where you reach for it/);
   assert.match(text, /Menu Bar stays the default/);
-  assert.match(text, /optional Notch Island/);
-  assert.match(text, /Local-first, because in-between work is still your work/);
-  assert.match(text, /A few things worth knowing/);
+  assert.match(text, /optional Notch shelf/);
+  assert.match(text, /Your shelf. On your Mac/);
+  assert.match(text, /A few things to know/);
   assert.doesNotMatch(text, /Questions, answered honestly/);
   assert.doesNotMatch(html, /context-workflow\.webp/);
-  assert.match(html, /context-capture-poster\.webp/);
-  assert.match(html, /context-hold-poster\.webp/);
-  assert.match(html, /context-place-poster\.webp/);
-  assert.match(html, /context-hero\.webm/);
-  assert.match(html, /context-hero\.mp4/);
-  assert.match(html, /context-hero-poster\.webp/);
-  assert.match(text, /A Finder item is captured into Context/);
+  assert.doesNotMatch(html, /context-(?:hero|capture|hold|place)\.webp/);
+  assert.match(html, /Light preview/);
+  assert.match(text, /Can I change the shortcuts/);
+  assert.match(text, /Option \+ Shift \+ Tab/);
+  assert.doesNotMatch(html, /<video\b|context-(?:hero|capture|hold|place)\.(?:webm|mp4)|-poster\.webp/);
+  assert.doesNotMatch(html, /aria-label="(?:Pause|Play) /);
   assert.match(html, /context-mark\.svg/);
   assert.match(html, /property="og:type" content="website"/);
-  assert.match(html, /property="og:url" content="https:\/\/context\.haygsiiii\.chatgpt\.site\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/context\.haygsiiii\.chatgpt\.site\/context\/context-og\.png"/);
+  assert.match(html, /property="og:url" content="https:\/\/context\.hayashiii-gpt\.chatgpt\.site\/"/);
+  assert.match(html, /property="og:image" content="https:\/\/context\.hayashiii-gpt\.chatgpt\.site\/context\/context-og\.png"/);
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
-  assert.match(html, /name="twitter:image" content="https:\/\/context\.haygsiiii\.chatgpt\.site\/context\/context-og\.png"/);
-  assert.match(html, /name="twitter:image:alt" content="Context — Keep it close before you need it"/);
-  assert.match(html, /rel="icon" href="https:\/\/context\.haygsiiii\.chatgpt\.site\/context\/context-mark\.svg" type="image\/svg\+xml"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/context\.hayashiii-gpt\.chatgpt\.site\/context\/context-og\.png"/);
+  assert.match(html, /name="twitter:image:alt" content="cc: — A copy for what’s next."/);
+  assert.match(html, /rel="icon" href="https:\/\/context\.hayashiii-gpt\.chatgpt\.site\/context\/context-favicon\.svg" type="image\/svg\+xml"/);
   assert.doesNotMatch(html, /context-current-icon\.png/);
   assert.match(html, /github\.com\/hayashiii-ghub\/context/);
   assert.match(html, /github\.com\/hayashiii-ghub\/context\/releases/);
   assert.match(html, /releases\/latest\/download\/context-macos\.dmg/);
   assert.match(text, /Open source/);
   assert.match(text, /v0\.2\.3 · macOS 26\+ · Apple Silicon &amp; Intel/);
-  assert.match(text, /Context is not yet notarized by Apple/);
+  assert.match(text, /cc: is not yet notarized by Apple/);
   assert.match(text, /Privacy &amp; Security/);
   assert.doesNotMatch(html, /v1\.1\.4|Now becoming Context|Chrome Web Store|CodexIsland/);
-});
-
-test("feature demos keep their lightweight formats and lazy playback behavior", async () => {
-  const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const demoSource = await readFile(new URL("../app/FeatureDemo.tsx", import.meta.url), "utf8");
-
-  for (const name of ["capture", "hold", "place"]) {
-    assert.match(pageSource, new RegExp(`context-${name}\\.webm`));
-    assert.match(pageSource, new RegExp(`context-${name}\\.mp4`));
-    assert.match(pageSource, new RegExp(`context-${name}-poster\\.webp`));
-  }
-
-  assert.match(demoSource, /IntersectionObserver/);
-  assert.match(demoSource, /preload="none"/);
-  assert.match(demoSource, /prefers-reduced-motion: reduce/);
-  assert.match(demoSource, /isInView && !prefersReducedMotion && !isUserPaused/);
-  assert.match(demoSource, /setIsUserPaused\(true\)/);
-  assert.match(demoSource, /setIsUserPaused\(false\)/);
-  assert.match(demoSource, /video\.pause\(\)/);
+  assert.match(text, /managed copies of files and folders in its local storage/);
+  assert.match(text, /kept until you remove them/);
+  assert.match(text, /local shelf can be shared with Codex or Claude/);
+  assert.doesNotMatch(text, /On Screen|remain references|in memory|temporary copies are cleared/);
+  assert.doesNotMatch(text, /\bContext\b/);
 });

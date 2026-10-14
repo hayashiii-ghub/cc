@@ -1,0 +1,182 @@
+.preview,
+.featureScene {
+  --shelf-bg: #252729;
+  --shelf-fg: #f1f1ef;
+  --shelf-muted: #b4b6b7;
+  --shelf-line: rgba(255, 255, 255, 0.1);
+  --shelf-icon: #d8dadb;
+  --shelf-mark-filter: none;
+  width: 100%;
+  color: #f2f0eb;
+  box-sizing: border-box;
+}
+
+.preview * ,
+.featureScene * { box-sizing: border-box; }
+
+.previewTop,
+.previewBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 28px;
+}
+.previewTop { border-bottom: 1px solid rgba(242, 240, 235, 0.065); }
+.previewBottom { border-top: 1px solid rgba(242, 240, 235, 0.065); background: rgba(0, 0, 0, 0.13); }
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(242, 240, 235, 0.11);
+  border-radius: 999px;
+}
+.segmented button,
+.quietButton {
+  min-height: 36px;
+  padding: 8px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #a3a29e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  transition: color 160ms ease, background 160ms ease;
+}
+.segmented button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.065); color: #f2f0eb; }
+.quietButton { border: 1px solid rgba(242, 240, 235, 0.11); }
+.quietButton[aria-pressed="true"] { color: #f2f0eb; background: rgba(255, 255, 255, 0.065); }
+.segmented button:hover,
+.quietButton:hover { color: #f2f0eb; background: rgba(255, 255, 255, 0.075); }
+.segmented button:focus-visible,
+.quietButton:focus-visible { outline: 2px solid #f2f0eb; outline-offset: 3px; }
+.demoNote { margin: 0; color: #73736f; font-size: 12px; line-height: 1.6; }
+
+.stage {
+  min-height: 424px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  background: radial-gradient(ellipse at center, rgba(54, 61, 66, 0.13), transparent 75%);
+}
+.light {
+  --shelf-bg: #eceeef;
+  --shelf-fg: #242628;
+  --shelf-muted: #656a6f;
+  --shelf-line: rgba(0, 0, 0, 0.1);
+  --shelf-icon: #61686e;
+  --shelf-mark-filter: brightness(0.18);
+}
+.shelf {
+  width: 410px;
+  max-width: 100%;
+  overflow: hidden;
+  flex: 0 1 auto;
+  border: 1px solid var(--shelf-line);
+  border-radius: 16px;
+  background: var(--shelf-bg);
+  color: var(--shelf-fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+.shelfHeader {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--shelf-line);
+}
+.mark { flex: 0 0 auto; filter: var(--shelf-mark-filter); object-fit: contain; }
+.itemCount { color: var(--shelf-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.windowMenu { margin-left: auto; font-size: 23px; line-height: 1; letter-spacing: 1px; }
+.windowClose { margin-left: 13px; color: var(--shelf-muted); font-size: 23px; font-weight: 300; line-height: 1; }
+.itemList { min-height: 244px; list-style: none; padding: 8px 12px; margin: 0; }
+.itemRow { min-height: 76px; display: flex; align-items: center; gap: 12px; padding: 10px; }
+.itemIcon { width: 28px; height: 28px; flex: 0 0 auto; color: var(--shelf-icon); stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.itemCopy { min-width: 0; flex: 1; }
+.itemTitle { margin: 0; font-size: 15px; line-height: 1.3; font-weight: 400; overflow-wrap: anywhere; }
+.itemDetail { margin: 5px 0 0; color: var(--shelf-muted); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.sourceEmphasis { color: var(--shelf-fg); }
+.detailSeparator { opacity: 0.6; }
+.itemMenu { align-self: flex-start; margin-top: 6px; color: var(--shelf-muted); font-size: 20px; line-height: 1; letter-spacing: 0.5px; }
+.shelfFooter { min-height: 52px; display: flex; align-items: center; gap: 20px; padding: 12px 18px; border-top: 1px solid var(--shelf-line); font-size: 13px; line-height: 1.4; color: var(--shelf-fg); }
+.shelfFooter:lang(ja) { flex-wrap: wrap; gap: 10px 16px; }
+.dragLabel { margin-left: auto; display: flex; align-items: center; gap: 5px; color: var(--shelf-muted); white-space: nowrap; }
+.dragLabel svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+.emptyShelf { min-height: 244px; display: grid; place-items: center; padding: 28px; color: var(--shelf-muted); }
+.emptyShelf p { max-width: 24ch; margin: 0; text-align: center; font-size: 13px; line-height: 1.6; }
+.notchShelf { position: relative; padding-top: 32px; background: #08090a; border-radius: 0 0 26px 26px; }
+.light .notchShelf { background: var(--shelf-bg); }
+.notchCutout { position: absolute; top: 0; left: 50%; width: 150px; height: 23px; transform: translateX(-50%); border-radius: 0 0 10px 10px; background: #000; }
+
+.featureScene {
+  min-height: 400px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px 24px;
+  background: radial-gradient(ellipse at center, rgba(54, 61, 66, 0.1), transparent 80%);
+}
+.featureScene .shelf { width: 360px; border-radius: 14px; }
+.featureScene .shelfHeader { height: 44px; }
+.featureScene .itemRow { min-height: 68px; gap: 10px; padding: 8px; }
+.featureScene .itemList { min-height: 220px; }
+.featureScene .itemTitle { font-size: 13px; }
+.featureScene .itemDetail { font-size: 11px; }
+.featureScene .shelfFooter { font-size: 12px; min-height: 48px; gap: 18px; padding-inline: 16px; }
+.sceneLabel,
+.sceneNote { margin: 0; color: #a3a29e; font-size: 12px; line-height: 1.6; }
+.sceneLabel { margin-bottom: 12px; color: #73736f; }
+.sceneNote { color: #73736f; text-align: center; }
+.finderSelection { width: 360px; max-width: 100%; padding: 16px 18px; border: 1px solid rgba(242, 240, 235, 0.11); border-radius: 12px; background: rgba(242, 240, 235, 0.025); }
+.selectedFiles { display: flex; justify-content: space-between; gap: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.selectedFiles > span { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; line-height: 1.4; }
+.selectedFiles .itemIcon { width: 24px; height: 24px; }
+.flowCue { display: flex; align-items: center; gap: 12px; color: #a3a29e; }
+.flowCue > span { font-size: 18px; }
+.flowCue kbd { padding: 4px 9px; border: 1px solid rgba(242, 240, 235, 0.15); border-radius: 6px; font-family: inherit; font-size: 12px; line-height: 1.4; }
+.sources { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.sources span { padding: 6px 12px; border: 1px solid rgba(242, 240, 235, 0.11); border-radius: 999px; color: #a3a29e; font-size: 12px; line-height: 1.4; }
+.notchScene { padding-top: 0; justify-content: flex-start; }
+.notchScene .shelf { border-top: 0; }
+.notchScene .sceneNote { margin-top: 10px; }
+
+@media (max-width: 640px) {
+  .previewTop,
+  .previewBottom { padding: 16px; gap: 12px; }
+  .segmented button,
+  .quietButton { min-height: 40px; padding-inline: 12px; font-size: 12px; }
+  .previewBottom { justify-content: center; }
+  .demoNote { width: 100%; text-align: center; font-size: 11px; }
+  .stage { min-height: 394px; padding: 28px 16px; }
+  .shelfHeader { padding-inline: 14px; }
+  .itemList { padding-inline: 5px; }
+  .itemRow { gap: 10px; padding-inline: 8px; }
+  .itemTitle { font-size: 13px; }
+  .itemDetail { font-size: 11px; }
+  .shelfFooter { gap: 16px; padding-inline: 14px; font-size: 12px; }
+  .dragLabel { gap: 4px; }
+  .featureScene { padding: 24px 14px; gap: 16px; }
+  .featureScene .shelfFooter { gap: 14px; padding-inline: 13px; font-size: 11px; }
+  .featureScene .itemList { padding-inline: 5px; }
+  .featureScene .itemRow { padding-inline: 8px; }
+  .shelfFooter:lang(ja) { display: grid; grid-template-columns: auto 1fr; }
+  .shelfFooter:lang(ja) .dragLabel { grid-column: 1 / -1; justify-self: end; margin-left: 0; }
+  .selectedFiles { flex-wrap: wrap; justify-content: flex-start; gap: 12px 20px; }
+  .notchScene { padding-top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented button,
+  .quietButton { transition: none; }
+}

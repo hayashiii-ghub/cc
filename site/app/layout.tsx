@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 
-const title = "Context — Keep it close before you need it";
+const title = "cc: — A copy for what’s next.";
 const description =
-  "A small Mac shelf for files, folders, links, images, and text — ready for whatever comes next.";
+  "Files, links, and notes. Ready for your next app or agent.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://context.haygsiiii.chatgpt.site"),
+  metadataBase: new URL("https://context.hayashiii-gpt.chatgpt.site"),
   title,
   description,
   icons: {
-    icon: [{ url: "/context/context-mark.svg", type: "image/svg+xml" }],
-    shortcut: ["/context/context-mark.svg"],
+    icon: [{ url: "/context/context-favicon.svg", type: "image/svg+xml" }],
+    shortcut: ["/context/context-favicon.svg"],
   },
   openGraph: {
     title,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
         url: "/context/context-og.png",
         width: 1200,
         height: 630,
-        alt: "Context — Keep it close before you need it",
+        alt: title,
       },
     ],
   },
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/context/context-og.png",
-        alt: "Context — Keep it close before you need it",
+        alt: title,
       },
     ],
   },
