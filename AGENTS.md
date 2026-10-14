@@ -26,8 +26,10 @@ and installed copies in `~/.codex/skills/cc-handoff` and
 edited skills, and failed installation rollback. Legacy namespace support
 has been removed as requested; do not restore aliases or migration branches.
 
-The published v0.3.0 app predates this full namespace cleanup. Verify the
-actual public release before describing these source changes as released.
+v0.4.0 is the first release using this full namespace. Earlier versions
+require a manual installation and separate data/settings transfer because
+the bundle identity changed. Keep pre-v0.4.0 updates informational in the
+Sparkle feed. Verify actual publication status before reporting a release.
 
 ## Validation
 

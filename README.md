@@ -4,8 +4,7 @@ cc: is a local shelf for macOS. Keep files, folders, links, images, and text
 close while moving between apps, or hand an artifact from Codex or Claude to the
 same shelf.
 
-This checkout uses `cc.app`, the `cc:` CLI, and the `cc-handoff` skill.
-The full namespace cleanup is prepared for v0.4.0 and is not yet published.
+cc: v0.4.0 uses `cc.app`, the `cc:` CLI, and the `cc-handoff` skill.
 
 cc: is free, open source, local-first, and built for macOS 26 or later.
 Click the `cc:` icon in the menu bar to open or close the shelf. Right-click the
@@ -42,12 +41,9 @@ stays in place. Copies exported from cc: remain where you saved them.
 
 ## Agent tools
 
-This checkout uses the `cc:` CLI and `cc-handoff` skill for
-Codex and Claude integrations. The `cc` command is reserved for the system C
-compiler. The instructions below require a current source build; the published
-v0.3.0 app predates this CLI and skill setup.
-After building and installing the current cc: app into `/Applications`, review
-and run:
+Use the `cc:` CLI and `cc-handoff` skill for Codex and Claude integrations.
+The `cc` command is reserved for the system C compiler. After installing cc:
+v0.4.0 or later into `/Applications`, review and run:
 
 ```sh
 "/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --print-plan
@@ -140,7 +136,12 @@ npm test
 
 ## Install
 
-Build the current app with `make package`. It creates `dist/cc-macos.dmg` and
+Download [cc: v0.4.0](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.0)
+as a [DMG](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.dmg)
+or [ZIP](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.zip).
+The product site is [cc.hayashiii-gpt.chatgpt.site](https://cc.hayashiii-gpt.chatgpt.site).
+
+Build from source with `make package`. It creates `dist/cc-macos.dmg` and
 `dist/cc-macos.zip`, each containing `cc.app`, its `cc:` CLI, the optional
 `cc-handoff` skill, and Sparkle. Open the DMG and drag `cc.app` to Applications.
 The application supports Apple Silicon and Intel when built with full Xcode.
