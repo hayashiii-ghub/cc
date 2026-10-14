@@ -4,7 +4,8 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var store: ShelfStore
     let onDismiss: () -> Void
-    let onShowMenu: (NSView) -> Void
+    let onShowSettings: () -> Void
+    let onClearAll: () -> Void
     @State private var isDropTargeted = false
 
     private var panelShape: RoundedRectangle {
@@ -12,7 +13,12 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ShelfContentView(store: store, onDismiss: onDismiss, onShowMenu: onShowMenu)
+        ShelfContentView(
+            store: store,
+            onDismiss: onDismiss,
+            onShowSettings: onShowSettings,
+            onClearAll: onClearAll
+        )
             .background(.thickMaterial, in: panelShape)
             .overlay {
                 panelShape.strokeBorder(

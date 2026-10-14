@@ -4,17 +4,20 @@ struct ActionBar: View {
     @ObservedObject var store: ShelfStore
     let surface: ShelfSurface
     let onAddFiles: (() -> Void)?
+    let onClearAll: () -> Void
     @State private var clipboardText: String?
     @State private var isDragHovered = false
 
     init(
         store: ShelfStore,
         surface: ShelfSurface = .regular,
-        onAddFiles: (() -> Void)? = nil
+        onAddFiles: (() -> Void)? = nil,
+        onClearAll: @escaping () -> Void
     ) {
         self.store = store
         self.surface = surface
         self.onAddFiles = onAddFiles
+        self.onClearAll = onClearAll
         _clipboardText = State(initialValue: NSPasteboard.general.string(forType: .string))
     }
 
@@ -42,7 +45,7 @@ struct ActionBar: View {
             .help("Add Clipboard Text")
             .disabled(!store.canAddClipboardText(clipboardText) || store.isExporting)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 4)
 
             if canDragAll && !isBusy {
                 MultiFileDragSource(
@@ -77,6 +80,13 @@ struct ActionBar: View {
                 .foregroundStyle(surface.secondary)
                 .accessibilityLabel("Copying Items")
             }
+
+            Button(action: onClearAll) {
+                actionLabel("Clear All…")
+            }
+            .accessibilityLabel("Clear All…")
+            .help("Clear All…")
+            .disabled(store.items.isEmpty || isBusy)
         }
         .font(.callout)
         .foregroundStyle(surface.foreground)
@@ -106,8 +116,9 @@ struct ActionBar: View {
                 ProgressView().controlSize(.mini)
             }
             Text(title)
+                .lineLimit(1)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 6)
         .frame(height: 28)
         .contentShape(RoundedRectangle(cornerRadius: 5))
     }

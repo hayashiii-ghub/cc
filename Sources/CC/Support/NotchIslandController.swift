@@ -19,7 +19,8 @@ final class NotchIslandController: NSObject {
     private let store: ShelfStore
     private let onWillShow: () -> Void
     private let onAddFinderSelection: () -> Void
-    private let onShowMenu: (NSView) -> Void
+    private let onShowSettings: () -> Void
+    private let onClearAll: () -> Void
     private let presentation = NotchIslandPresentationState()
     private var phaseBeforeDrop: NotchIslandPhase = .compact
     private var geometry: NotchScreenGeometry?
@@ -36,13 +37,15 @@ final class NotchIslandController: NSObject {
     init(
         store: ShelfStore,
         onAddFinderSelection: @escaping () -> Void,
-        onShowMenu: @escaping (NSView) -> Void,
+        onShowSettings: @escaping () -> Void,
+        onClearAll: @escaping () -> Void,
         onWillShow: @escaping () -> Void = {}
     ) {
         self.store = store
         self.onWillShow = onWillShow
         self.onAddFinderSelection = onAddFinderSelection
-        self.onShowMenu = onShowMenu
+        self.onShowSettings = onShowSettings
+        self.onClearAll = onClearAll
         super.init()
         itemCountObserver = store.$items
             .map { $0.count }
@@ -149,8 +152,11 @@ final class NotchIslandController: NSObject {
             onAddFinderSelection: { [weak self] in
                 self?.onAddFinderSelection()
             },
-            onShowMenu: { [weak self] view in
-                self?.onShowMenu(view)
+            onShowSettings: { [weak self] in
+                self?.onShowSettings()
+            },
+            onClearAll: { [weak self] in
+                self?.onClearAll()
             }
         )
         panel.contentView = NotchIslandDropReceiverView(

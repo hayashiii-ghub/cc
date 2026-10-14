@@ -5,7 +5,8 @@ struct ShelfContentView: View {
     @ObservedObject var store: ShelfStore
     var surface: ShelfSurface = .regular
     let onDismiss: () -> Void
-    let onShowMenu: (NSView) -> Void
+    let onShowSettings: () -> Void
+    let onClearAll: () -> Void
     var onAddFiles: (() -> Void)? = nil
 
     var body: some View {
@@ -15,7 +16,7 @@ struct ShelfContentView: View {
                 surface: surface,
                 hasUnreadItems: !store.unreadItemIDs.isEmpty,
                 onDismiss: onDismiss,
-                onShowMenu: onShowMenu
+                onShowSettings: onShowSettings
             )
 
             Divider()
@@ -33,7 +34,12 @@ struct ShelfContentView: View {
 
             Divider()
 
-            ActionBar(store: store, surface: surface, onAddFiles: onAddFiles)
+            ActionBar(
+                store: store,
+                surface: surface,
+                onAddFiles: onAddFiles,
+                onClearAll: onClearAll
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -66,33 +72,37 @@ private struct ShelfHeader: View {
     let surface: ShelfSurface
     let hasUnreadItems: Bool
     let onDismiss: () -> Void
-    let onShowMenu: (NSView) -> Void
+    let onShowSettings: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            titleLabel
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                titleLabel
 
-            Text(count > 99 ? "99+ items" : "\(count) \(count == 1 ? "item" : "items")")
-                .font(.system(size: 11))
-                .foregroundStyle(surface.secondary)
-                .monospacedDigit()
-                .accessibilityLabel("\(count) \(count == 1 ? "item" : "items") in cc:")
+                Text(count > 99 ? "99+ items" : "\(count) \(count == 1 ? "item" : "items")")
+                    .foregroundStyle(surface.secondary)
+                    .monospacedDigit()
+                    .accessibilityLabel("\(count) \(count == 1 ? "item" : "items") in cc:")
+            }
+            .font(.system(size: 12, weight: .medium))
 
             Spacer(minLength: 12)
 
-            ShelfMenuButton(onShowMenu: onShowMenu, tint: surface.tint, systemImage: "ellipsis")
-                .frame(width: 26, height: 28)
+            ShelfHeaderButton(
+                systemImage: "gearshape",
+                title: "Settings…",
+                tint: NSColor(surface.foreground),
+                action: onShowSettings
+            )
+            .frame(width: 26, height: 28)
 
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(surface.secondary)
-                    .frame(width: 26, height: 28)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel("Hide Shelf")
-            .help("Hide Shelf")
+            ShelfHeaderButton(
+                systemImage: "xmark",
+                title: "Hide Shelf",
+                tint: NSColor(surface.foreground),
+                action: onDismiss
+            )
+            .frame(width: 26, height: 28)
         }
         .padding(.leading, 18)
         .padding(.trailing, 10)
@@ -102,7 +112,6 @@ private struct ShelfHeader: View {
     private var titleLabel: some View {
         HStack(spacing: 6) {
             Text("cc:")
-                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(surface.foreground)
             if hasUnreadItems {
                 Circle().fill(.blue).frame(width: 5, height: 5)

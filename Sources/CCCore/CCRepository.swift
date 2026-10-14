@@ -184,10 +184,15 @@ public struct CCRepository: Sendable {
         }
     }
 
-    public func clear() throws {
+    @discardableResult
+    public func clear(expectedIDs: Set<UUID>? = nil) throws -> Bool {
         try transaction {
             let database = try readDatabase()
+            if let expectedIDs, Set(database.records.map(\.id)) != expectedIDs {
+                return false
+            }
             try deleting(records: database.records) { try writeDatabase(Database(records: [])) }
+            return true
         }
     }
 

@@ -44,6 +44,53 @@ struct CCRepositoryTests {
         #expect(try String(contentsOf: source, encoding: .utf8) == "keep")
     }
 
+    @Test func confirmedClearRequiresTheExactRecordIDs() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let source = fixture.root.appendingPathComponent("original.txt")
+        try Data("keep original".utf8).write(to: source)
+        let repository = CCRepository(rootURL: fixture.data)
+        let file = try repository.addFile(source)
+        let note = try repository.addText("Confirmed note")
+        let managed = try #require(try repository.contentURL(for: file))
+        let database = fixture.data.appendingPathComponent("records.json")
+        let before = try Data(contentsOf: database)
+
+        #expect(try !repository.clear(expectedIDs: [file.id, UUID()]))
+        #expect(try Data(contentsOf: database) == before)
+        #expect(try String(contentsOf: managed, encoding: .utf8) == "keep original")
+
+        #expect(try repository.clear(expectedIDs: [file.id, note.id]))
+        #expect(try repository.list().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: managed.path))
+        #expect(try String(contentsOf: source, encoding: .utf8) == "keep original")
+    }
+
+    @Test func confirmedClearPreservesAgentCopiesAddedAfterThePrompt() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let source = fixture.root.appendingPathComponent("confirmed.txt")
+        let agentSource = fixture.root.appendingPathComponent("agent.txt")
+        try Data("confirmed copy".utf8).write(to: source)
+        try Data("new agent copy".utf8).write(to: agentSource)
+        let confirmed = try repository.addFile(source)
+        let expectedIDs: Set<UUID> = [confirmed.id]
+        let agent = try CCRepository(rootURL: fixture.data).addFile(agentSource, source: "codex")
+        let managed = try #require(try repository.contentURL(for: confirmed))
+        let agentManaged = try #require(try repository.contentURL(for: agent))
+        let database = fixture.data.appendingPathComponent("records.json")
+        let before = try Data(contentsOf: database)
+
+        #expect(try !repository.clear(expectedIDs: expectedIDs))
+        #expect(try Set(repository.list().map(\.id)) == [confirmed.id, agent.id])
+        #expect(try Data(contentsOf: database) == before)
+        #expect(try String(contentsOf: managed, encoding: .utf8) == "confirmed copy")
+        #expect(try String(contentsOf: agentManaged, encoding: .utf8) == "new agent copy")
+        #expect(try String(contentsOf: source, encoding: .utf8) == "confirmed copy")
+        #expect(try String(contentsOf: agentSource, encoding: .utf8) == "new agent copy")
+    }
+
     @Test func cleanupFailureDoesNotRestoreAlreadyDeletedMetadata() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }

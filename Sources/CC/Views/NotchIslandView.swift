@@ -30,7 +30,8 @@ struct NotchIslandView: View {
     let onToggleExpanded: () -> Void
     let onDismiss: () -> Void
     let onAddFinderSelection: () -> Void
-    let onShowMenu: (NSView) -> Void
+    let onShowSettings: () -> Void
+    let onClearAll: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -143,7 +144,8 @@ struct NotchIslandView: View {
                 store: store,
                 surface: .island,
                 onDismiss: onDismiss,
-                onShowMenu: onShowMenu,
+                onShowSettings: onShowSettings,
+                onClearAll: onClearAll,
                 onAddFiles: onAddFinderSelection
             )
             .preferredColorScheme(.dark)

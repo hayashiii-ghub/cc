@@ -60,6 +60,61 @@ struct ShelfStoreLifecycleTests {
         #expect(!FileManager.default.fileExists(atPath: managedURL.path))
     }
 
+    @Test func confirmedClearRefreshesAgentAdditionsWithoutClearingThem() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let repository = CCRepository(rootURL: fixture.rootURL.appendingPathComponent("Shelf"))
+        let source = fixture.rootURL.appendingPathComponent("confirmed.txt")
+        let agentSource = fixture.rootURL.appendingPathComponent("agent.txt")
+        try Data("confirmed copy".utf8).write(to: source)
+        try Data("agent copy".utf8).write(to: agentSource)
+        let confirmed = try repository.addFile(source)
+        var errors: [Error] = []
+        let store = ShelfStore(repository: repository, errorPresenter: { errors.append($0) })
+        store.markSeen()
+        let expectedIDs = Set(store.items.map(\.id))
+        let agent = try CCRepository(rootURL: repository.rootURL).addFile(agentSource, source: "codex")
+        let managed = try #require(try repository.contentURL(for: confirmed))
+        let agentManaged = try #require(try repository.contentURL(for: agent))
+
+        #expect(!store.clear(expectedIDs: expectedIDs))
+        #expect(Set(store.items.map(\.id)) == [confirmed.id, agent.id])
+        #expect(store.unreadItemIDs == [agent.id])
+        #expect(store.storageError == nil)
+        #expect(errors.isEmpty)
+        #expect(try String(contentsOf: managed, encoding: .utf8) == "confirmed copy")
+        #expect(try String(contentsOf: agentManaged, encoding: .utf8) == "agent copy")
+
+        #expect(store.clear(expectedIDs: Set(store.items.map(\.id))))
+        #expect(store.items.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: managed.path))
+        #expect(!FileManager.default.fileExists(atPath: agentManaged.path))
+        #expect(try String(contentsOf: source, encoding: .utf8) == "confirmed copy")
+        #expect(try String(contentsOf: agentSource, encoding: .utf8) == "agent copy")
+    }
+
+    @Test func confirmedClearRetainsCleanupErrorsAfterRefreshing() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let repository = CCRepository(rootURL: fixture.rootURL.appendingPathComponent("Shelf"))
+        let source = fixture.rootURL.appendingPathComponent("original.txt")
+        try Data("original".utf8).write(to: source)
+        let record = try repository.addFile(source)
+        let managed = try #require(try repository.contentURL(for: record))
+        try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: managed.path)
+        defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: managed.path) }
+        var errors: [Error] = []
+        let store = ShelfStore(repository: repository, errorPresenter: { errors.append($0) })
+
+        #expect(!store.clear(expectedIDs: [record.id]))
+        #expect(store.items.isEmpty)
+        #expect(store.storageError != nil)
+        #expect(errors.count == 1)
+        #expect((errors.first as? CCRepositoryError)?.code == "cleanup_failed")
+        #expect(FileManager.default.fileExists(atPath: managed.path))
+        #expect(try String(contentsOf: source, encoding: .utf8) == "original")
+    }
+
     @Test func addingTheOriginalFileKeepsAnEquivalentManagedCopy() async throws {
         let fixture = try Fixture()
         defer { fixture.cleanup() }

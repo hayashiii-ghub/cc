@@ -56,8 +56,11 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     )
     private lazy var menuBarShelfController = MenuBarShelfController(
         store: store,
-        onShowMenu: { [weak self] view in
-            self?.showShelfMenu(relativeTo: view)
+        onShowSettings: { [weak self] in
+            self?.showSettings()
+        },
+        onClearAll: { [weak self] in
+            self?.clearShelf()
         }
     )
     private lazy var notchShelfController: NotchIslandController = NotchIslandController(
@@ -66,8 +69,11 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.notchShelfController.hideShelf()
             self?.addFiles()
         },
-        onShowMenu: { [weak self] view in
-            self?.showShelfMenu(relativeTo: view)
+        onShowSettings: { [weak self] in
+            self?.showSettings()
+        },
+        onClearAll: { [weak self] in
+            self?.clearShelf()
         },
         onWillShow: { [weak self] in
             self?.menuBarShelfController.hideShelf()
@@ -81,6 +87,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var addClipboardMenuItem: NSMenuItem?
     private var clearMenuItem: NSMenuItem?
     private var menuTrackingDepth = 0
+    private var isShowingClearConfirmation = false
 
 #if DEBUG
     private static let demoNotificationPrefix = "work.hayashigoto.cc.demo."
@@ -232,7 +239,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let copyItem = NSMenuItem(title: "Copy All to Folder…", action: #selector(copyItems), keyEquivalent: "")
         copyMenuItem = copyItem
         menu.addItem(copyItem)
-        let clearItem = NSMenuItem(title: "Clear Shelf", action: #selector(clearShelf), keyEquivalent: "")
+        let clearItem = NSMenuItem(title: "Clear All…", action: #selector(clearShelf), keyEquivalent: "")
         clearItem.toolTip = "Remove items from cc:. Original files stay where they are."
         clearMenuItem = clearItem
         menu.addItem(clearItem)
@@ -427,7 +434,43 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func clearShelf() {
-        store.clear()
+        DispatchQueue.main.async { [weak self] in
+            self?.confirmClearShelf()
+        }
+    }
+
+    private func confirmClearShelf() {
+        store.refresh()
+        guard !isShowingClearConfirmation, !store.items.isEmpty,
+              !store.isImporting, !store.isExporting else { return }
+
+        isShowingClearConfirmation = true
+        menuTrackingDidBegin()
+        defer {
+            isShowingClearConfirmation = false
+            menuTrackingDidEnd()
+        }
+
+        let itemIDs = Set(store.items.map(\.id))
+        let count = itemIDs.count
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Clear \(count) \(count == 1 ? "item" : "items")?"
+        alert.informativeText = "This clears your shelf and removes its saved copies. "
+            + "Original files stay where they are. This can't be undone."
+        alert.addButton(withTitle: "Cancel")
+        let clearButton = alert.addButton(withTitle: "Clear All")
+        clearButton.hasDestructiveAction = true
+        clearButton.keyEquivalent = ""
+        // Keep the confirmation above the shelf's floating panel.
+        alert.window.level = .popUpMenu
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+
+        if !store.clear(expectedIDs: itemIDs), store.storageError == nil {
+            // An agent may add items while the confirmation is open.
+            clearShelf()
+        }
     }
 
     @objc private func openReleasePage() {
@@ -546,12 +589,6 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = statusMenu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
-    }
-
-    private func showShelfMenu(relativeTo view: NSView) {
-        guard let statusMenu else { return }
-        let y = view.isFlipped ? view.bounds.maxY + 4 : view.bounds.minY - 4
-        statusMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: y), in: view)
     }
 
     @objc private func menuTrackingDidBegin() {

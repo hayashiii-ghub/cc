@@ -186,9 +186,20 @@ final class ShelfStore: ObservableObject {
         mutate { try repository.remove(item.id) }
     }
 
-    func clear() {
-        guard !isImporting, !isExporting else { return }
-        mutate { try repository.clear() }
+    @discardableResult
+    func clear(expectedIDs: Set<UUID>? = nil) -> Bool {
+        guard !isImporting, !isExporting else { return false }
+        do {
+            let didClear = try repository.clear(expectedIDs: expectedIDs)
+            refresh()
+            rememberSeen([])
+            return didClear
+        } catch {
+            refresh()
+            present(error)
+            storageError = error.localizedDescription
+            return false
+        }
     }
 
     func open(_ item: ShelfItem) {

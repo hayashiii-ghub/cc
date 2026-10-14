@@ -8,7 +8,8 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
     private static let screenEdgeInset: CGFloat = 8
 
     private let store: ShelfStore
-    private let onShowMenu: (NSView) -> Void
+    private let onShowSettings: () -> Void
+    private let onClearAll: () -> Void
     private var panel: NSPanel?
     private var anchorFrame = NSRect.zero
     private var presentedScreenID: UInt32?
@@ -18,10 +19,12 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
 
     init(
         store: ShelfStore,
-        onShowMenu: @escaping (NSView) -> Void
+        onShowSettings: @escaping () -> Void,
+        onClearAll: @escaping () -> Void
     ) {
         self.store = store
-        self.onShowMenu = onShowMenu
+        self.onShowSettings = onShowSettings
+        self.onClearAll = onClearAll
         super.init()
         itemCountObserver = store.$items
             .map { $0.count }
@@ -129,7 +132,8 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
                 onDismiss: { [weak self] in
                     self?.hideShelf()
                 },
-                onShowMenu: onShowMenu
+                onShowSettings: onShowSettings,
+                onClearAll: onClearAll
             )
         )
         // The item-count layout owns the panel height, including its empty drop area.
