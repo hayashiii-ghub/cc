@@ -90,18 +90,23 @@
         background: #08090a;
       }
       .shelf { width: 360px; background: #252525; color: #f3f3f3; border: 1px solid #444; border-radius: 14px; box-shadow: 0 20px 50px #0009; overflow: hidden; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; }
-      .shelf header { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid #ffffff12; }
-      .shelf header strong { font-weight: 500; }
+      .shelf header { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 18px; border-bottom: 1px solid #ffffff12; }
+      .shelf header strong, .shelf header small { font-size: 12px; font-weight: 500; }
       .shelf header small { color: #aaa; }
-      .shelf header span { margin-left: auto; color: #aaa; letter-spacing: 8px; }
+      .header-actions { margin-left: auto; display: flex; gap: 8px; }
+      .header-action { display: grid; place-items: center; width: 26px; height: 28px; }
+      .header-action svg { width: 12px; height: 12px; }
       .shelf ul { list-style: none; margin: 0; padding: 8px; }
       .shelf li { height: 68px; display: flex; align-items: center; gap: 12px; padding: 8px; }
       .file { display: grid; place-items: center; width: 28px; height: 34px; flex: 0 0 auto; border: 1px solid #8b8b8b; border-radius: 4px; color: #bbb; font-size: 8px; }
       .shelf li b { display: block; font-size: 13px; font-weight: 400; }
       .shelf li small { display: block; margin-top: 4px; color: #aaa; font-size: 11px; }
       .shelf li em { margin-left: auto; font-style: normal; color: #999; }
-      .shelf footer { height: 48px; padding: 0 16px; display: flex; align-items: center; gap: 20px; border-top: 1px solid #ffffff12; color: #ddd; font-size: 12px; }
-      .shelf footer span:last-child { margin-left: auto; color: #aaa; }
+      .shelf footer { height: 48px; padding: 0 10px; display: flex; align-items: center; gap: 4px; border-top: 1px solid #ffffff12; color: #f3f3f3; font-size: 12px; white-space: nowrap; }
+      .shelf footer .action { padding: 0 6px; }
+      .footer-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+      .drag { display: flex; align-items: center; gap: 4px; padding: 0 6px; color: #aaa; }
+      .drag svg { width: 14px; height: 14px; }
       .preview-note { position: absolute; bottom: 36px; margin: 0; color: #73736f; font-size: 11px; }
       .badge {
         position: absolute;
@@ -125,13 +130,13 @@
       <p class="meta">FREE · OPEN SOURCE · LOCAL-FIRST</p>
       <figure class="product">
         <div class="shelf" aria-label="cc: shelf with sample items">
-          <header><strong>cc:</strong><small>3 items</small><span>··· ×</span></header>
+          <header><strong>cc:</strong><small>3 items</small><div class="header-actions" aria-hidden="true"><span class="header-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4l1 3 2 1 3-1 2 3-2 2v4l2 2-2 3-3-1-2 1-1 3h-4l-1-3-2-1-3 1-2-3 2-2v-4L2 8l2-3 3 1 2-1 1-3Z"/><circle cx="12" cy="12" r="3.5"/></svg></span><span class="header-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l16 16M20 4 4 20"/></svg></span></div></header>
           <ul>
             <li><span class="file">PDF</span><div><b>Project brief.pdf</b><small>PDF document · You</small></div><em>···</em></li>
             <li><span class="file">MD</span><div><b>Review notes.md</b><small>Markdown · Codex</small></div><em>···</em></li>
             <li><span class="file">Aa</span><div><b>A few things for the next step.</b><small>Text · Claude Code</small></div><em>···</em></li>
           </ul>
-          <footer><span>Add files…</span><span>Paste</span><span>Drag files</span></footer>
+          <footer><span class="action">Add Files…</span><span class="action">Paste</span><div class="footer-actions"><span class="drag"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="5" width="12" height="10" rx="2"/><path d="M6 2.5h6M5 3.5h8"/></svg>Drag files</span><span class="action">Clear All…</span></div></footer>
         </div>
         <p class="preview-note">SAMPLE ITEMS · LOCAL TO YOUR MAC</p>
       </figure>

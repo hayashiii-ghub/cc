@@ -95,8 +95,9 @@
 }
 .mark { flex: 0 0 auto; filter: var(--shelf-mark-filter); object-fit: contain; }
 .itemCount { color: var(--shelf-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.windowMenu { margin-left: auto; font-size: 23px; line-height: 1; letter-spacing: 1px; }
-.windowClose { margin-left: 13px; color: var(--shelf-muted); font-size: 23px; font-weight: 300; line-height: 1; }
+.windowSettings { margin-left: auto; }
+.windowControl { width: 26px; height: 28px; flex: 0 0 26px; display: flex; align-items: center; justify-content: center; color: var(--shelf-fg); }
+.windowControl svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .itemList { min-height: 244px; list-style: none; padding: 8px 12px; margin: 0; }
 .itemRow { min-height: 76px; display: flex; align-items: center; gap: 12px; padding: 10px; }
 .itemIcon { width: 28px; height: 28px; flex: 0 0 auto; color: var(--shelf-icon); stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -106,10 +107,16 @@
 .sourceEmphasis { color: var(--shelf-fg); }
 .detailSeparator { opacity: 0.6; }
 .itemMenu { align-self: flex-start; margin-top: 6px; color: var(--shelf-muted); font-size: 20px; line-height: 1; letter-spacing: 0.5px; }
-.shelfFooter { min-height: 52px; display: flex; align-items: center; gap: 20px; padding: 12px 18px; border-top: 1px solid var(--shelf-line); font-size: 13px; line-height: 1.4; color: var(--shelf-fg); }
-.shelfFooter:lang(ja) { flex-wrap: wrap; gap: 10px 16px; }
-.dragLabel { margin-left: auto; display: flex; align-items: center; gap: 5px; color: var(--shelf-muted); white-space: nowrap; }
-.dragLabel svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+.shelfFooter { min-height: 52px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 10px; border-top: 1px solid var(--shelf-line); font-size: 12px; line-height: 1.4; color: var(--shelf-fg); }
+.shelfFooter:lang(ja) { flex-wrap: wrap; row-gap: 10px; }
+.footerPrimary { display: flex; align-items: center; flex: 0 0 auto; gap: 4px; white-space: nowrap; }
+.footerPrimary > span,
+.clearAllLabel { padding-inline: 6px; }
+.footerActions { margin-left: auto; display: flex; align-items: center; flex: 0 0 auto; gap: 8px; white-space: nowrap; }
+.dragLabel { display: flex; align-items: center; gap: 4px; color: var(--shelf-muted); white-space: nowrap; }
+.dragLabel svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+.clearAllLabel { color: var(--shelf-fg); }
+.clearAllLabel[data-disabled="true"] { opacity: 0.35; }
 .emptyShelf { min-height: 244px; display: grid; place-items: center; padding: 28px; color: var(--shelf-muted); }
 .emptyShelf p { max-width: 24ch; margin: 0; text-align: center; font-size: 13px; line-height: 1.6; }
 .notchShelf { position: relative; padding-top: 32px; background: #08090a; border-radius: 0 0 26px 26px; }
@@ -133,7 +140,7 @@
 .featureScene .itemList { min-height: 220px; }
 .featureScene .itemTitle { font-size: 13px; }
 .featureScene .itemDetail { font-size: 11px; }
-.featureScene .shelfFooter { font-size: 12px; min-height: 48px; gap: 18px; padding-inline: 16px; }
+.featureScene .shelfFooter { font-size: 12px; min-height: 48px; gap: 8px; padding-inline: 10px; }
 .sceneLabel,
 .sceneNote { margin: 0; color: #a3a29e; font-size: 12px; line-height: 1.6; }
 .sceneLabel { margin-bottom: 12px; color: #73736f; }
@@ -164,14 +171,13 @@
   .itemRow { gap: 10px; padding-inline: 8px; }
   .itemTitle { font-size: 13px; }
   .itemDetail { font-size: 11px; }
-  .shelfFooter { gap: 16px; padding-inline: 14px; font-size: 12px; }
-  .dragLabel { gap: 4px; }
+  .shelfFooter { gap: 8px; padding-inline: 10px; font-size: 12px; }
   .featureScene { padding: 24px 14px; gap: 16px; }
-  .featureScene .shelfFooter { gap: 14px; padding-inline: 13px; font-size: 11px; }
+  .featureScene .shelfFooter { gap: 8px; padding-inline: 10px; font-size: 12px; }
   .featureScene .itemList { padding-inline: 5px; }
   .featureScene .itemRow { padding-inline: 8px; }
-  .shelfFooter:lang(ja) { display: grid; grid-template-columns: auto 1fr; }
-  .shelfFooter:lang(ja) .dragLabel { grid-column: 1 / -1; justify-self: end; margin-left: 0; }
+  .shelfFooter:lang(ja) { display: grid; grid-template-columns: 1fr; row-gap: 10px; }
+  .shelfFooter:lang(ja) .footerActions { grid-column: 1 / -1; justify-self: end; margin-left: 0; }
   .selectedFiles { flex-wrap: wrap; justify-content: flex-start; gap: 12px 20px; }
   .notchScene { padding-top: 0; }
 }

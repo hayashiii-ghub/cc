@@ -39,14 +39,22 @@ function ShelfWindow({
   language?: SiteLanguage;
 }) {
   const copy = siteCopy[language].preview;
+  const canDragFiles = !empty && copy.sampleItems.filter((item) => item.kind !== "text").length >= 2;
   return (
     <div className={`${styles.shelf} ${mode === "notch" ? styles.notchShelf : ""}`} data-shelf-mode={mode} data-shelf-state={empty ? "empty" : "items"} lang={language}>
       {mode === "notch" ? <div className={styles.notchCutout} aria-hidden="true" /> : null}
       <div className={styles.shelfHeader}>
         <Image src="/cc/cc-mark.svg" width={30} height={26} alt="cc:" unoptimized className={styles.mark} />
         <span className={styles.itemCount} aria-live="polite">{empty ? copy.emptyCount : copy.count}</span>
-        <span className={styles.windowMenu} aria-hidden="true">···</span>
-        <span className={styles.windowClose} aria-hidden="true">×</span>
+        <span className={`${styles.windowControl} ${styles.windowSettings}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M10 2h4l1 3 2 1 3-1 2 3-2 2v4l2 2-2 3-3-1-2 1-1 3h-4l-1-3-2-1-3 1-2-3 2-2v-4L2 8l2-3 3 1 2-1 1-3Z" />
+            <circle cx="12" cy="12" r="3.5" />
+          </svg>
+        </span>
+        <span className={styles.windowControl} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4 4 20" /></svg>
+        </span>
       </div>
       {empty ? (
         <div className={styles.emptyShelf}><p>{copy.emptyMessage}</p></div>
@@ -68,13 +76,18 @@ function ShelfWindow({
         </ul>
       )}
       <div className={styles.shelfFooter}>
-        <span>{copy.addFiles}</span><span>{copy.paste}</span>
-        {empty ? null : (
-          <span className={styles.dragLabel}>
-            <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="10" rx="2" /><path d="M6 2.5h6M5 3.5h8" /></svg>
-            {copy.dragFiles}
-          </span>
-        )}
+        <span className={styles.footerPrimary}>
+          <span>{copy.addFiles}</span><span>{copy.paste}</span>
+        </span>
+        <span className={styles.footerActions}>
+          {canDragFiles ? (
+            <span className={styles.dragLabel}>
+              <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="10" rx="2" /><path d="M6 2.5h6M5 3.5h8" /></svg>
+              {copy.dragFiles}
+            </span>
+          ) : null}
+          <span className={styles.clearAllLabel} data-disabled={empty ? "true" : "false"}>{copy.clearAll}</span>
+        </span>
       </div>
     </div>
   );

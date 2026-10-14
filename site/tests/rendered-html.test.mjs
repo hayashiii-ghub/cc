@@ -49,10 +49,10 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /cc-mark\.svg/);
   assert.match(html, /property="og:type" content="website"/);
   assert.match(html, /property="og:url" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png"/);
+  assert.match(html, /property="og:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.1"/);
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
-  assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.1"/);
   assert.match(html, /name="twitter:image:alt" content="cc:"/);
   assert.match(html, /rel="icon" href="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
