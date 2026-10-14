@@ -5,9 +5,9 @@ export const siteLanguageStorageKey = "cc-language";
 export const siteCopy = {
   en: {
     meta: {
-      title: "cc: · A copy for what’s next.",
+      title: "cc:",
       description: "Files, links, and notes. Ready for your next app or agent.",
-      imageAlt: "cc: · A copy for what’s next.",
+      imageAlt: "cc:",
     },
     skip: "Skip to content",
     primary: "Primary",
@@ -90,9 +90,9 @@ export const siteCopy = {
   },
   ja: {
     meta: {
-      title: "cc: · 次の一歩に、コピーを。",
+      title: "cc:",
       description: "ファイル、リンク、メモ。次のアプリやエージェントへ渡す準備を。",
-      imageAlt: "cc: · 次の一歩に、コピーを。",
+      imageAlt: "cc:",
     },
     skip: "本文へ移動",
     primary: "メインナビゲーション",

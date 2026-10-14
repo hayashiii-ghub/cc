@@ -30,7 +30,7 @@ test("renders the standalone cc: site at the root", async () => {
   const text = withoutBreakHints(html);
 
   assert.match(html, /<html lang="en">/);
-  assert.match(html, /<title>cc: · A copy for what’s next.<\/title>/);
+  assert.match(html, /<title>cc:<\/title>/);
   assert.match(text, /A copy for/);
   assert.match(text, /Ready for your next app or agent/);
   assert.match(text, /From Finder to your next step/);
@@ -53,7 +53,7 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
   assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png"/);
-  assert.match(html, /name="twitter:image:alt" content="cc: · A copy for what’s next."/);
+  assert.match(html, /name="twitter:image:alt" content="cc:"/);
   assert.match(html, /rel="icon" href="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
