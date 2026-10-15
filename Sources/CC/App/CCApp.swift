@@ -44,9 +44,11 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     )
     private let finderSelectionReader = FinderSelectionReader()
     private let updateController = AppUpdateController()
+    private let agentTools = AgentToolsStatusController()
     private lazy var settingsWindowController = SettingsWindowController(
         preferences: presentationPreferences,
         shortcutController: shortcutController,
+        agentTools: agentTools,
         onCheckForUpdates: { [weak self] in
             self?.updateController.controller.checkForUpdates(nil)
         },
@@ -83,6 +85,8 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusMenu: NSMenu?
     private var unreadItemsObserver: AnyCancellable?
     private var presentationObserver: AnyCancellable?
+    private var agentToolsObserver: AnyCancellable?
+    private var agentToolsMenuItem: NSMenuItem?
     private var copyMenuItem: NSMenuItem?
     private var addClipboardMenuItem: NSMenuItem?
     private var clearMenuItem: NSMenuItem?
@@ -127,6 +131,13 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         store.startObserving()
 
         configureStatusItem()
+        agentToolsObserver = agentTools.$report
+            .receive(on: RunLoop.main)
+            .sink { [weak self] report in
+                self?.agentToolsMenuItem?.title = report?.menuNotice ?? "Agent Tools"
+                self?.agentToolsMenuItem?.isHidden = report?.menuNotice == nil
+            }
+        agentTools.checkAfterVersionChange()
         observeUnreadItems()
         configureApplicationMenu()
         NotificationCenter.default.addObserver(
@@ -186,6 +197,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         shortcutController.stop()
         unreadItemsObserver = nil
         presentationObserver = nil
+        agentToolsObserver = nil
         store.stopObserving()
     }
 
@@ -245,6 +257,14 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(clearItem)
         menu.addItem(.separator())
 
+        let toolsItem = NSMenuItem(
+            title: agentTools.report?.menuNotice ?? "Agent Tools",
+            action: #selector(showSettings),
+            keyEquivalent: ""
+        )
+        toolsItem.isHidden = agentTools.report?.menuNotice == nil
+        agentToolsMenuItem = toolsItem
+        menu.addItem(toolsItem)
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "Quit cc:", action: #selector(quit), keyEquivalent: "q"))
         for entry in menu.items where entry.action != nil {

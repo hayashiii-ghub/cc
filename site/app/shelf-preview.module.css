@@ -111,15 +111,13 @@
 .shelfFooter:lang(ja) { flex-wrap: wrap; row-gap: 10px; }
 .footerPrimary { display: flex; align-items: center; flex: 0 0 auto; gap: 4px; white-space: nowrap; }
 .footerPrimary > span,
+.dragLabel,
 .clearAllLabel { padding-inline: 6px; }
 .footerActions { margin-left: auto; display: flex; align-items: center; flex: 0 0 auto; gap: 8px; white-space: nowrap; }
-.dragLabel { display: flex; align-items: center; gap: 4px; color: var(--shelf-muted); white-space: nowrap; }
-.dragLabel svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
 .clearAllLabel { color: var(--shelf-fg); }
 .emptyShelf { min-height: 244px; display: grid; place-items: center; padding: 28px; color: var(--shelf-muted); }
 .emptyShelf p { max-width: 24ch; margin: 0; text-align: center; font-size: 13px; line-height: 1.6; }
-.notchShelf { position: relative; padding-top: 32px; background: #08090a; border-radius: 0 0 26px 26px; }
-.light .notchShelf { background: var(--shelf-bg); }
+.notchShelf { position: relative; padding-top: 32px; background: #000; border-radius: 0 0 26px 26px; }
 .notchCutout { position: absolute; top: 0; left: 50%; width: 150px; height: 23px; transform: translateX(-50%); border-radius: 0 0 10px 10px; background: #000; }
 
 .featureScene {

@@ -65,6 +65,19 @@ it updates unchanged copies it previously installed. Unrelated files or symlinks
 at the new installation destinations, edited skills, or extra skill files stop
 installation before changes.
 
+The status check and indicators below are available in v0.4.3 and later.
+
+Use `install_agent_tools.sh --check` from the app’s Resources directory to
+inspect their status without changing files. It prints one JSON line with the
+overall status and the CLI, Codex, Claude, and legacy CLI states. A completed
+check exits with 0 even when installation or an update is needed; an unreadable
+or invalid check exits nonzero with an `unknown` status.
+
+Settings shows the same status and checks again whenever opened. After an app
+version changes, cc: also checks once at launch. The menu-bar icon’s right-click
+menu links to Settings when agent tools need installation or an update. These
+checks do not install anything or continuously watch your files.
+
 After installing a build with `cc-shelf`, rerun this installer to switch the
 command and refresh unchanged skill copies. App-only updates do not update the
 skills. The installer removes an old `cc:` link only when it points to that same
@@ -152,7 +165,7 @@ npm test
 
 ## Install
 
-Download [cc: v0.4.2](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.2)
+Download [cc: v0.4.3](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.3)
 as a [DMG](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.dmg)
 or [ZIP](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.zip).
 The product site is [cc.hayashiii-gpt.chatgpt.site](https://cc.hayashiii-gpt.chatgpt.site).

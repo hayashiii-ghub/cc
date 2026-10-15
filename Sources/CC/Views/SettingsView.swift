@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var preferences: ShelfPresentationPreferences
     @ObservedObject var shortcutPreferences: ShortcutPreferences
+    @ObservedObject var agentTools: AgentToolsStatusController
     let shortcutController: ShortcutController
     let onCheckForUpdates: () -> Void
     let onOpenReleasePage: () -> Void
@@ -28,7 +29,7 @@ struct SettingsView: View {
 
             shelfLocation
             shortcuts
-            agentTools
+            agentToolsSection
             updates
         }
         .formStyle(.grouped)
@@ -150,8 +151,13 @@ struct SettingsView: View {
         }
     }
 
-    private var agentTools: some View {
+    private var agentToolsSection: some View {
         Section("Agent Tools") {
+            Text(agentTools.message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             Text("Install the cc-shelf CLI and skill by running this command in Terminal:")
                 .font(.caption)
                 .foregroundStyle(.secondary)

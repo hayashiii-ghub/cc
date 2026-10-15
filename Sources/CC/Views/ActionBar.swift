@@ -56,20 +56,12 @@ struct ActionBar: View {
             }
 
             if !store.items.isEmpty {
-                ShelfItemsDragSource(
-                    items: store.items,
-                    isEnabled: !isBusy,
-                    tint: surface.tint.withAlphaComponent(isBusy ? 0.24 : 0.6)
-                )
-                .padding(.leading, 8)
-                .frame(width: 64, height: 28)
-                .overlay(alignment: .leading) {
-                    Text("Drag")
-                        .padding(.leading, 27)
-                        .foregroundStyle(surface.secondary)
-                        .opacity(isBusy ? 0.4 : 1)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
+                actionLabel("Drag")
+                .foregroundStyle(surface.foreground)
+                .opacity(isBusy ? 0.4 : 1)
+                .overlay {
+                    ShelfItemsDragSource(items: store.items, isEnabled: !isBusy)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .background(
                     isDragHovered && !isBusy ? surface.controlBackground : .clear,

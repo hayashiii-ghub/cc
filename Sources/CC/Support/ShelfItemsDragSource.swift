@@ -58,17 +58,15 @@ final class ShelfItemDragWriter: NSObject, NSPasteboardWriting {
 struct ShelfItemsDragSource: NSViewRepresentable {
     let items: [ShelfItem]
     var isEnabled = true
-    var tint: NSColor = .labelColor
 
     func makeNSView(context: NSViewRepresentableContext<Self>) -> NSView {
-        ShelfItemsDragSourceView(items: items, isEnabled: isEnabled, tint: tint)
+        ShelfItemsDragSourceView(items: items, isEnabled: isEnabled)
     }
 
     func updateNSView(_ nsView: NSView, context: NSViewRepresentableContext<Self>) {
         guard let dragSourceView = nsView as? ShelfItemsDragSourceView else { return }
         dragSourceView.items = items
         dragSourceView.allowsDragging = isEnabled
-        dragSourceView.contentTintColor = tint
     }
 }
 
@@ -83,21 +81,11 @@ private final class ShelfItemsDragSourceView: NSImageView, NSDraggingSource {
     private var mouseDownEvent: NSEvent?
     private var isDraggingItems = false
 
-    init(items: [ShelfItem], isEnabled: Bool, tint: NSColor) {
+    init(items: [ShelfItem], isEnabled: Bool) {
         self.items = items
         allowsDragging = isEnabled
         super.init(frame: .zero)
 
-        let symbol = NSImage(
-            systemSymbolName: "square.stack",
-            accessibilityDescription: "Drag All Items"
-        )
-        image = symbol?.withSymbolConfiguration(
-            NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
-        )
-        imageScaling = .scaleProportionallyDown
-        imageAlignment = .alignLeft
-        contentTintColor = tint
         updateState()
     }
 

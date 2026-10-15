@@ -78,10 +78,7 @@ function ShelfWindow({
         </span>
         {hasItems ? (
           <span className={styles.footerActions}>
-            <span className={styles.dragLabel}>
-              <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="10" rx="2" /><path d="M6 2.5h6M5 3.5h8" /></svg>
-              {copy.dragFiles}
-            </span>
+            <span className={styles.dragLabel}>{copy.dragFiles}</span>
             <span className={styles.clearAllLabel}>{copy.clearAll}</span>
           </span>
         ) : null}
@@ -131,9 +128,11 @@ export default function ShelfPreview({ variant = "interactive", language = "en" 
           <button type="button" aria-pressed={mode === "menuBar"} onClick={() => setMode("menuBar")}>{copy.menuBar}</button>
           <button type="button" aria-pressed={mode === "notch"} onClick={() => setMode("notch")}>{copy.notch}</button>
         </div>
-        <button className={styles.quietButton} type="button" aria-pressed={light} onClick={() => setLight((value) => !value)}>{light ? copy.dark : copy.light}</button>
+        {mode === "menuBar" ? (
+          <button className={styles.quietButton} type="button" aria-pressed={light} onClick={() => setLight((value) => !value)}>{light ? copy.dark : copy.light}</button>
+        ) : null}
       </div>
-      <div className={`${styles.stage} ${light ? styles.light : ""}`}>
+      <div className={`${styles.stage} ${mode === "menuBar" && light ? styles.light : ""}`}>
         <ShelfWindow mode={mode} empty={empty} language={language} />
       </div>
       <div className={styles.previewBottom}>

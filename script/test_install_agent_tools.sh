@@ -251,4 +251,221 @@ run_installer "$PREVIOUS_ROLLBACK_HOME"
 test ! -L "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc:"
 test "$(readlink "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 
-printf 'Agent tools installer checks passed.\n'
+# --check must classify installed state without touching inspected files.
+CHECK_GUARD_BIN="$TMP_ROOT/check-guard-bin"
+mkdir "$CHECK_GUARD_BIN"
+export CC_TEST_CHECK_MUTATION_LOG="$TMP_ROOT/check-mutations.log"
+for command in mkdir mktemp cp mv ln rm chmod rmdir; do
+  cat >"$CHECK_GUARD_BIN/$command" <<'MUTATION'
+#!/bin/bash
+printf '%s\n' "$0" >>"$CC_TEST_CHECK_MUTATION_LOG"
+printf 'A read-only check invoked a mutating command.\n' >&2
+exit 90
+MUTATION
+done
+cat >"$CHECK_GUARD_BIN/readlink" <<'READLINK'
+#!/bin/bash
+if [[ "$1" == "${CC_TEST_CHECK_FAIL_READLINK:-}" ]]; then exit 1; fi
+exec /usr/bin/readlink "$@"
+READLINK
+cat >"$CHECK_GUARD_BIN/find" <<'FIND'
+#!/bin/bash
+if [[ "$1" == "${CC_TEST_CHECK_FAIL_FIND:-}" ]]; then exit 1; fi
+exec /usr/bin/find "$@"
+FIND
+chmod +x "$CHECK_GUARD_BIN"/*
+
+snapshot_check_home() {
+  python3 - "$1" <<'SNAPSHOT'
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+
+root = Path(sys.argv[1])
+rows = []
+def visit(path):
+    info = path.lstat()
+    row = [str(path.relative_to(root)), info.st_mode, info.st_ino, info.st_mtime_ns]
+    if stat.S_ISLNK(info.st_mode):
+        row.append(os.readlink(path))
+    elif stat.S_ISREG(info.st_mode):
+        try:
+            row.append(hashlib.sha256(path.read_bytes()).hexdigest())
+        except PermissionError:
+            row.append('unreadable')
+    rows.append(row)
+    if stat.S_ISDIR(info.st_mode):
+        try:
+            children = sorted(path.iterdir())
+        except PermissionError:
+            return
+        for child in children:
+            visit(child)
+visit(root)
+print(json.dumps(rows, ensure_ascii=True))
+SNAPSHOT
+}
+
+CHECK_CASE_COUNT=0
+assert_check() {
+  local test_home="$1" expected_status="$2" expected_cli="$3"
+  local expected_codex="$4" expected_claude="$5" expected_legacy="$6"
+  local expected_exit="${7:-0}" actual_exit=0
+  snapshot_check_home "$test_home" >"$TMP_ROOT/check-before.json"
+  : >"$CC_TEST_CHECK_MUTATION_LOG"
+  CC_INSTALL_HOME="$test_home" CC_INSTALL_APP="${CC_TEST_CHECK_APP:-$TEST_APP}" \
+    PATH="$CHECK_GUARD_BIN:$PATH" \
+    "$ROOT_DIR/script/install_agent_tools.sh" --check \
+    >"$TMP_ROOT/check.json" 2>"$TMP_ROOT/check-error.log" || actual_exit=$?
+  snapshot_check_home "$test_home" >"$TMP_ROOT/check-after.json"
+  cmp -s "$TMP_ROOT/check-before.json" "$TMP_ROOT/check-after.json"
+  test ! -s "$CC_TEST_CHECK_MUTATION_LOG"
+  python3 - "$TMP_ROOT/check.json" "$actual_exit" "$expected_exit" \
+    "$expected_status" "$expected_cli" "$expected_codex" "$expected_claude" "$expected_legacy" <<'CHECK'
+import json
+from pathlib import Path
+import sys
+
+raw = Path(sys.argv[1]).read_text()
+assert raw.endswith('\n') and raw.count('\n') == 1, raw
+result = json.loads(raw)
+keys = ['status', 'cli', 'codex', 'claude', 'legacy_cli']
+expected = dict(zip(keys, sys.argv[4:]))
+assert result == expected, (result, expected)
+assert sys.argv[2] == sys.argv[3], ('exit status', sys.argv[2], sys.argv[3])
+CHECK
+  if [[ "$expected_exit" == 0 ]]; then test ! -s "$TMP_ROOT/check-error.log"; fi
+  CHECK_CASE_COUNT=$((CHECK_CASE_COUNT + 1))
+}
+
+CHECK_EMPTY_HOME="$TMP_ROOT/check-empty-home"
+mkdir "$CHECK_EMPTY_HOME"
+assert_check "$CHECK_EMPTY_HOME" not-installed not-installed not-installed not-installed absent
+
+CHECK_READY_HOME="$TMP_ROOT/check-ready-home"
+mkdir "$CHECK_READY_HOME"
+run_installer "$CHECK_READY_HOME"
+assert_check "$CHECK_READY_HOME" up-to-date up-to-date up-to-date up-to-date absent
+
+CHECK_PARTIAL_HOME="$TMP_ROOT/check-partial-home"
+mkdir "$CHECK_PARTIAL_HOME"
+run_installer "$CHECK_PARTIAL_HOME"
+rm -rf "$CHECK_PARTIAL_HOME/.claude/skills/cc-handoff"
+assert_check "$CHECK_PARTIAL_HOME" outdated up-to-date up-to-date not-installed absent
+
+CHECK_STALE_HOME="$TMP_ROOT/check-stale-home"
+mkdir "$CHECK_STALE_HOME"
+run_installer "$CHECK_STALE_HOME"
+stale_skill="$CHECK_STALE_HOME/.codex/skills/cc-handoff"
+printf '\nPreviously bundled instructions.\n' >>"$stale_skill/SKILL.md"
+stale_hash="$(shasum -a 256 "$stale_skill/SKILL.md" | awk '{print $1}')"
+printf 'cc: cc-handoff installer v1\n%s\n' "$stale_hash" >"$stale_skill/.cc-install-manifest"
+assert_check "$CHECK_STALE_HOME" outdated up-to-date outdated up-to-date absent
+# The same shared inspection permits an installer-owned, unedited update.
+run_installer "$CHECK_STALE_HOME"
+assert_check "$CHECK_STALE_HOME" up-to-date up-to-date up-to-date up-to-date absent
+
+CHECK_EDITED_HOME="$TMP_ROOT/check-edited-home"
+mkdir "$CHECK_EDITED_HOME"
+run_installer "$CHECK_EDITED_HOME"
+printf '\nMy edit.\n' >>"$CHECK_EDITED_HOME/.codex/skills/cc-handoff/SKILL.md"
+assert_check "$CHECK_EDITED_HOME" user-modified up-to-date user-modified up-to-date absent
+expect_rejection "$CHECK_EDITED_HOME"
+# Structural conflicts take priority over an edited file in the same skill.
+printf 'keep\n' >"$CHECK_EDITED_HOME/.codex/skills/cc-handoff/extra.txt"
+assert_check "$CHECK_EDITED_HOME" blocked up-to-date blocked up-to-date absent
+
+for kind in file link dangling; do
+  check_home="$TMP_ROOT/check-foreign-cli-$kind"
+  mkdir -p "$check_home/.local/bin"
+  case "$kind" in
+    file) printf 'foreign command\n' >"$check_home/.local/bin/cc-shelf" ;;
+    link) ln -s /usr/bin/true "$check_home/.local/bin/cc-shelf" ;;
+    dangling) ln -s "$TMP_ROOT/missing-foreign-command" "$check_home/.local/bin/cc-shelf" ;;
+  esac
+  assert_check "$check_home" blocked blocked not-installed not-installed absent
+  expect_rejection "$check_home"
+done
+
+for kind in foreign-owner malformed-hash extra-line unmanaged skill-link manifest-link; do
+  check_home="$TMP_ROOT/check-foreign-skill-$kind"
+  mkdir "$check_home"
+  run_installer "$check_home"
+  skill="$check_home/.codex/skills/cc-handoff"
+  case "$kind" in
+    foreign-owner) sed -i '' '1s/.*/Another installer/' "$skill/.cc-install-manifest" ;;
+    malformed-hash) printf 'cc: cc-handoff installer v1\nnot-a-sha256\n' >"$skill/.cc-install-manifest" ;;
+    extra-line) printf 'extra\n' >>"$skill/.cc-install-manifest" ;;
+    unmanaged) rm "$skill/.cc-install-manifest" ;;
+    skill-link) rm "$skill/SKILL.md"; ln -s "$SKILL_HOME/.claude/skills/cc-handoff/SKILL.md" "$skill/SKILL.md" ;;
+    manifest-link)
+      cp "$skill/.cc-install-manifest" "$TMP_ROOT/foreign-skill-manifest"
+      rm "$skill/.cc-install-manifest"
+      ln -s "$TMP_ROOT/foreign-skill-manifest" "$skill/.cc-install-manifest"
+      ;;
+  esac
+  assert_check "$check_home" blocked up-to-date blocked up-to-date absent
+  expect_rejection "$check_home"
+done
+
+# A parent collision is known blocked; the old CLI is safely left uninspected.
+for relative in .local .local/bin .codex .codex/skills .claude .claude/skills; do
+  for kind in link file; do
+    check_home="$TMP_ROOT/check-parent-${relative//\//-}-$kind"
+    check_target="$TMP_ROOT/check-external-${relative//\//-}-$kind"
+    mkdir -p "$check_home/$(dirname "$relative")" "$check_target"
+    if [[ "$kind" == link ]]; then
+      ln -s "$check_target" "$check_home/$relative"
+    else
+      printf 'foreign parent\n' >"$check_home/$relative"
+    fi
+    case "$relative" in
+      .local*) assert_check "$check_home" blocked blocked not-installed not-installed unknown ;;
+      .codex*) assert_check "$check_home" blocked not-installed blocked not-installed absent ;;
+      .claude*) assert_check "$check_home" blocked not-installed not-installed blocked absent ;;
+    esac
+    test -z "$(find "$check_target" -mindepth 1 -print -quit)"
+    expect_rejection "$check_home"
+  done
+done
+
+CHECK_LEGACY_HOME="$TMP_ROOT/check-legacy-home"
+mkdir -p "$CHECK_LEGACY_HOME/.local/bin"
+ln -s "$TEST_APP/Contents/Helpers/cc:" "$CHECK_LEGACY_HOME/.local/bin/cc:"
+test ! -e "$CHECK_LEGACY_HOME/.local/bin/cc:"
+assert_check "$CHECK_LEGACY_HOME" outdated not-installed not-installed not-installed managed
+run_installer "$CHECK_LEGACY_HOME"
+ln -s "$TEST_APP/Contents/Helpers/cc:" "$CHECK_LEGACY_HOME/.local/bin/cc:"
+assert_check "$CHECK_LEGACY_HOME" outdated up-to-date up-to-date up-to-date managed
+export CC_TEST_CHECK_FAIL_READLINK="$CHECK_LEGACY_HOME/.local/bin/cc:"
+assert_check "$CHECK_LEGACY_HOME" unknown up-to-date up-to-date up-to-date unknown 1
+unset CC_TEST_CHECK_FAIL_READLINK
+
+for kind in file link; do
+  check_home="$TMP_ROOT/check-unrelated-legacy-$kind"
+  mkdir "$check_home"
+  run_installer "$check_home"
+  if [[ "$kind" == file ]]; then
+    printf 'foreign old command\n' >"$check_home/.local/bin/cc:"
+  else
+    ln -s "$TMP_ROOT/another-missing-old-command" "$check_home/.local/bin/cc:"
+  fi
+  assert_check "$check_home" up-to-date up-to-date up-to-date up-to-date unrelated
+done
+
+# Actual inspection failures are unknown, never "missing" or "modified".
+export CC_TEST_CHECK_FAIL_FIND="$CHECK_READY_HOME/.codex/skills/cc-handoff"
+assert_check "$CHECK_READY_HOME" unknown up-to-date unknown up-to-date absent 1
+unset CC_TEST_CHECK_FAIL_FIND
+CC_TEST_CHECK_APP="$TMP_ROOT/no-such-app.app" \
+  assert_check "$CHECK_READY_HOME" unknown unknown unknown unknown unknown 1
+if [[ "$(id -u)" != 0 ]]; then
+  chmod 000 "$CHECK_READY_HOME/.claude/skills/cc-handoff/SKILL.md"
+  assert_check "$CHECK_READY_HOME" unknown up-to-date up-to-date unknown absent 1
+  chmod 644 "$CHECK_READY_HOME/.claude/skills/cc-handoff/SKILL.md"
+fi
+
+printf 'Agent tools installer and %s read-only state checks passed.\n' "$CHECK_CASE_COUNT"

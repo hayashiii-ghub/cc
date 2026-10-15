@@ -8,6 +8,7 @@ final class SettingsWindowController {
 
     private let preferences: ShelfPresentationPreferences
     private let shortcutController: ShortcutController
+    private let agentTools: AgentToolsStatusController
     private let onCheckForUpdates: () -> Void
     private let onOpenReleasePage: () -> Void
     private var window: NSWindow?
@@ -16,16 +17,19 @@ final class SettingsWindowController {
     init(
         preferences: ShelfPresentationPreferences,
         shortcutController: ShortcutController,
+        agentTools: AgentToolsStatusController,
         onCheckForUpdates: @escaping () -> Void,
         onOpenReleasePage: @escaping () -> Void
     ) {
         self.preferences = preferences
         self.shortcutController = shortcutController
+        self.agentTools = agentTools
         self.onCheckForUpdates = onCheckForUpdates
         self.onOpenReleasePage = onOpenReleasePage
     }
 
     func show() {
+        agentTools.refresh()
         let window = settingsWindow()
         hostingController?.rootView = settingsView
         fitWindowToScreen(window)
@@ -37,6 +41,7 @@ final class SettingsWindowController {
         SettingsView(
             preferences: preferences,
             shortcutPreferences: shortcutController.preferences,
+            agentTools: agentTools,
             shortcutController: shortcutController,
             onCheckForUpdates: onCheckForUpdates,
             onOpenReleasePage: onOpenReleasePage
