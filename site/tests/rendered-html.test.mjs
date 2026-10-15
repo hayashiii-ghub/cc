@@ -31,14 +31,14 @@ test("renders the standalone cc: site at the root", async () => {
 
   assert.match(html, /<html lang="en">/);
   assert.match(html, /<title>cc:<\/title>/);
-  assert.match(text, /A copy for/);
-  assert.match(text, /Ready for your next app or agent/);
-  assert.match(text, /From Finder to your next step/);
-  assert.match(text, /A little shared space for the work/);
+  assert.match(text, /You and your agent/);
+  assert.match(text, /Gather files, links, and long notes/);
+  assert.match(text, /Give your agent the materials it needs/);
+  assert.match(text, /Receive the work on your shelf/);
   assert.match(text, /Right where you reach for it/);
   assert.match(text, /Menu Bar stays the default/);
   assert.match(text, /optional Notch shelf/);
-  assert.match(text, /Your shelf. On your Mac/);
+  assert.match(text, /Your shelf, stored on this Mac/);
   assert.match(text, /A few things to know/);
   assert.doesNotMatch(text, /Questions, answered honestly/);
   assert.match(html, /Light preview/);
@@ -49,10 +49,10 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /cc-mark\.svg/);
   assert.match(html, /property="og:type" content="website"/);
   assert.match(html, /property="og:url" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.3"/);
+  assert.match(html, /property="og:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.3-handoff"/);
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
-  assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.3"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.3-handoff"/);
   assert.match(html, /name="twitter:image:alt" content="cc:"/);
   assert.match(html, /rel="icon" href="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
@@ -65,6 +65,6 @@ test("renders the standalone cc: site at the root", async () => {
   assert.doesNotMatch(html, /v1\.1\.4|Chrome Web Store|CodexIsland/);
   assert.match(text, /managed copies of files and folders in its local storage/);
   assert.match(text, /kept until you remove them/);
-  assert.match(text, /local shelf can be shared with Codex or Claude/);
+  assert.match(text, /ask Codex or Claude Code to read the items you need/);
   assert.doesNotMatch(text, /On Screen|remain references|in memory|temporary copies are cleared/);
 });

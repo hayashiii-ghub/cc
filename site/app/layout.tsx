@@ -4,7 +4,7 @@ import "./globals.css";
 
 const title = "cc:";
 const description =
-  "Files, links, and notes. Ready for your next app or agent.";
+  "Gather files, links, and long notes for your agent. Ask it to leave its work on the same shelf.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cc.hayashiii-gpt.chatgpt.site"),
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/cc/cc-og.png?v=0.4.3",
+        url: "/cc/cc-og.png?v=0.4.3-handoff",
         width: 1200,
         height: 630,
         alt: title,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/cc/cc-og.png?v=0.4.3",
+        url: "/cc/cc-og.png?v=0.4.3-handoff",
         alt: title,
       },
     ],

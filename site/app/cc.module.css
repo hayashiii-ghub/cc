@@ -166,6 +166,9 @@
   letter-spacing: -0.02em;
 }
 
+.heroLine { display: block; }
+.heroPhrase { display: inline-block; max-width: 100%; }
+
 .heroSubtitle {
   max-width: 650px;
   margin: 28px auto 0;
@@ -173,6 +176,8 @@
   font-size: 18px;
   line-height: 1.6;
 }
+
+.heroSubtitle > span { display: block; }
 
 .heroActions { margin-top: 32px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .button {
@@ -277,6 +282,29 @@
 .centerCopy { max-width: 650px; margin: 25px auto 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
 
 .installSection { padding-top: 112px; padding-bottom: 112px; text-align: center; border-top: 1px solid var(--line-faint); }
+.installStep,
+.agentSetup h3 { margin: 32px 0 0; color: var(--fg); font-size: 18px; line-height: 1.5; font-weight: 500; }
+.installStep + .centerCopy,
+.agentSetup .centerCopy { margin-top: 12px; }
+.agentSetup { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line-faint); }
+.agentSetup h3 { margin-top: 0; }
+.setupPrompt {
+  margin: 24px 0 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: #cbc9c3;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.setupPrompt:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+.setupCopyButton { font-family: inherit; cursor: pointer; }
+.copyStatus { min-height: 1.7em; margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .installBar {
   margin-top: 36px;
   padding: 4px;
@@ -346,7 +374,7 @@
 .page:lang(ja) .privacy h2,
 .page:lang(ja) .installSection h2,
 .page:lang(ja) .faq h2 { font-size: 46px; line-height: 1.45; }
-.page:lang(ja) .finalCta h2 { font-size: clamp(40px, 5vw, 64px); line-height: 1.45; }
+.page:lang(ja) .finalCta h2 { font-size: clamp(40px, 5vw, 60px); line-height: 1.45; }
 .page:lang(ja) .heroSubtitle,
 .page:lang(ja) .featureCopy > p,
 .page:lang(ja) .centerCopy,
@@ -355,12 +383,12 @@
 @media (max-width: 700px) {
   .languageSwitch { margin-left: 2px; padding: 2px; }
   .languageButton { min-height: 38px; min-width: 30px; padding-inline: 6px; }
-  .page:lang(ja) .hero h1 { font-size: clamp(36px, 9.8vw, 48px); line-height: 1.4; }
+  .page:lang(ja) .hero h1 { font-size: clamp(32px, 9.8vw, 48px); line-height: 1.4; }
   .page:lang(ja) .featureCopy h2 { font-size: 30px; line-height: 1.5; }
   .page:lang(ja) .privacy h2,
   .page:lang(ja) .installSection h2,
   .page:lang(ja) .faq h2 { font-size: 32px; line-height: 1.5; }
-  .page:lang(ja) .finalCta h2 { font-size: 36px; line-height: 1.5; }
+  .page:lang(ja) .finalCta h2 { font-size: clamp(32px, 9.6vw, 36px); line-height: 1.5; }
 }
 
 @media (max-width: 950px) {
@@ -376,7 +404,6 @@
   .hero { padding: 118px 20px 48px; }
   .hero h1 { margin-top: 31px; font-size: clamp(53px, 11.9vw, 77px); line-height: 1.04; }
   .heroSubtitle { max-width: 340px; margin-top: 25px; font-size: 16px; line-height: 1.65; }
-  .desktopBreak { display: none; }
   .heroActions { margin-top: 27px; gap: 10px; }
   .button { padding-inline: 18px; }
   .heroMeta { max-width: 310px; margin: 22px auto 0; }

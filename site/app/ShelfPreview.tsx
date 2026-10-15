@@ -9,6 +9,7 @@ import { siteCopy, type SiteLanguage } from "./copy";
 export type ShelfPreviewVariant = "interactive" | "files" | "handoff" | "notch";
 type ShelfMode = "menuBar" | "notch";
 type ItemKind = "text" | "file" | "folder";
+type PreviewItem = { title: string; source: string; note: string; kind: ItemKind };
 
 function ItemIcon({ kind }: { kind: ItemKind }) {
   return (
@@ -32,14 +33,17 @@ function ShelfWindow({
   empty = false,
   emphasizeSource = false,
   language = "en",
+  items,
 }: {
   mode?: ShelfMode;
   empty?: boolean;
   emphasizeSource?: boolean;
   language?: SiteLanguage;
+  items?: readonly PreviewItem[];
 }) {
   const copy = siteCopy[language].preview;
-  const hasItems = !empty && copy.sampleItems.length > 0;
+  const shelfItems = items ?? copy.sampleItems;
+  const hasItems = !empty && shelfItems.length > 0;
   return (
     <div className={`${styles.shelf} ${mode === "notch" ? styles.notchShelf : ""}`} data-shelf-mode={mode} data-shelf-state={empty ? "empty" : "items"} lang={language}>
       {mode === "notch" ? <div className={styles.notchCutout} aria-hidden="true" /> : null}
@@ -57,7 +61,7 @@ function ShelfWindow({
         <div className={styles.emptyShelf}><p>{copy.emptyMessage}</p></div>
       ) : (
         <ul className={styles.itemList} role="list">
-          {copy.sampleItems.map((item) => (
+          {shelfItems.map((item) => (
             <li className={styles.itemRow} key={item.title}>
               <ItemIcon kind={item.kind} />
               <div className={styles.itemCopy}>
@@ -96,8 +100,8 @@ function PreviewScene({ variant, language }: { variant: Exclude<ShelfPreviewVari
           <div className={styles.finderSelection}>
             <p className={styles.sceneLabel}>{copy.finderSelection}</p>
             <div className={styles.selectedFiles}>
-              <span><ItemIcon kind="file" />{copy.sampleItems[2].title}</span>
-              <span><ItemIcon kind="file" />{copy.sampleItems[1].title}</span>
+              <span><ItemIcon kind="file" />{copy.referenceItems[2].title}</span>
+              <span><ItemIcon kind="file" />{copy.referenceItems[1].title}</span>
             </div>
           </div>
           <div className={styles.flowCue}><span aria-hidden="true">↓</span><kbd>⌥ Tab</kbd></div>
@@ -107,7 +111,7 @@ function PreviewScene({ variant, language }: { variant: Exclude<ShelfPreviewVari
           {copy.sources.map((source) => <span key={source}>{source}</span>)}
         </div>
       ) : null}
-      <ShelfWindow mode={variant === "notch" ? "notch" : "menuBar"} emphasizeSource={variant === "handoff"} language={language} />
+      <ShelfWindow mode={variant === "notch" ? "notch" : "menuBar"} emphasizeSource={variant === "handoff"} language={language} items={variant === "files" ? copy.referenceItems : variant === "handoff" ? copy.receivedItems : undefined} />
       <p className={styles.sceneNote}>{variant === "files" ? copy.filesNote : variant === "handoff" ? copy.handoffNote : copy.notchNote}</p>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import styles from "./cc.module.css";
 import ShelfPreview from "./ShelfPreview";
@@ -52,6 +52,42 @@ function chooseLanguage(language: SiteLanguage) {
   window.dispatchEvent(new Event(languageEvent));
 }
 
+function ShelfHeadline({ language }: { language: SiteLanguage }) {
+  return siteCopy[language].heroTitle.map((line, index) => (
+    <span className={styles.heroLine} key={index}>
+      {line.map((phrase) => <span className={styles.heroPhrase} key={phrase}>{phrase}</span>)}
+    </span>
+  ));
+}
+
+function AgentSetup({ language }: { language: SiteLanguage }) {
+  const copy = siteCopy[language];
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(copy.agentSetupPrompt);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+  }
+
+  return (
+    <div className={styles.agentSetup}>
+      <h3>{copy.agentSetupTitle}</h3>
+      <p className={styles.centerCopy}>{copy.agentSetupBody}</p>
+      <pre className={styles.setupPrompt} tabIndex={0}>{copy.agentSetupPrompt}</pre>
+      <button className={`${styles.button} ${styles.buttonSecondary} ${styles.setupCopyButton}`} type="button" onClick={copyPrompt}>
+        {copy.copySetupPrompt}
+      </button>
+      <p className={styles.copyStatus} role="status">
+        {copyStatus === "copied" ? copy.setupPromptCopied : copyStatus === "failed" ? copy.setupPromptCopyFailed : ""}
+      </p>
+    </div>
+  );
+}
+
 export default function CCPage() {
   const language = useSyncExternalStore(subscribeLanguage, currentLanguage, () => "en" as SiteLanguage);
   const copy = siteCopy[language];
@@ -96,9 +132,9 @@ export default function CCPage() {
             <span>{copy.openSource}</span>
             <span>{copy.builtForMac}</span>
           </a>
-          <h1 id="cc-title">{copy.heroTitle[0]}<br /><span>{copy.heroTitle[1]}</span></h1>
+          <h1 id="cc-title"><ShelfHeadline language={language} /></h1>
           <p className={styles.heroSubtitle}>
-            {copy.heroSubtitle[0]}<br className={styles.desktopBreak} /> {copy.heroSubtitle[1]}
+            {copy.heroSubtitle.map((line) => <span key={line}>{line}</span>)}
           </p>
           <div className={styles.heroActions}>
             <a className={`${styles.button} ${styles.buttonPrimary}`} href="#install">{copy.downloadForMac}</a>
@@ -145,6 +181,7 @@ export default function CCPage() {
           <div className={styles.sectionNarrow}>
             <p className={styles.eyebrow}>{copy.installEyebrow}</p>
             <h2 id="install-title">{copy.installTitle}</h2>
+            <h3 className={styles.installStep}>{copy.installAppStep}</h3>
             <p className={styles.centerCopy}>{copy.installBody}</p>
             <div className={styles.installBar}>
               <div className={styles.installName}>
@@ -157,6 +194,7 @@ export default function CCPage() {
             <p className={styles.installNote}>
               {copy.installNote}
             </p>
+            <AgentSetup key={language} language={language} />
           </div>
         </section>
 
@@ -176,7 +214,7 @@ export default function CCPage() {
         </section>
 
         <section className={styles.finalCta} aria-labelledby="final-title">
-          <h2 id="final-title">{copy.finalTitle}</h2>
+          <h2 id="final-title"><ShelfHeadline language={language} /></h2>
           <div className={styles.heroActions}>
             <a className={`${styles.button} ${styles.buttonPrimary}`} href={downloadUrl}>{copy.downloadForMac}</a>
             <a className={`${styles.button} ${styles.buttonSecondary}`} href={repositoryUrl}>{copy.viewOnGitHub}</a>
