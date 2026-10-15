@@ -7,8 +7,8 @@ TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/cc-agent-tools-test.XXXXXX")"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 TEST_APP="$TMP_ROOT/Applications/cc.app"
 mkdir -p "$TEST_APP/Contents/Helpers" "$TEST_APP/Contents/Resources/skills/cc-handoff"
-printf '#!/bin/sh\nexit 0\n' >"$TEST_APP/Contents/Helpers/cc:"
-chmod +x "$TEST_APP/Contents/Helpers/cc:"
+printf '#!/bin/sh\nexit 0\n' >"$TEST_APP/Contents/Helpers/cc-shelf"
+chmod +x "$TEST_APP/Contents/Helpers/cc-shelf"
 cc_write_info_plist "$TEST_APP/Contents/Info.plist" 1.2.3
 cp "$ROOT_DIR/skills/cc-handoff/SKILL.md" "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
 
@@ -29,20 +29,20 @@ expect_rejection() {
 TEST_HOME="$TMP_ROOT/clean home"
 mkdir "$TEST_HOME"
 run_installer "$TEST_HOME" --print-plan
-grep -Fq "CLI link: $TEST_HOME/.local/bin/cc: -> $TEST_APP/Contents/Helpers/cc:" "$TMP_ROOT/install.log"
+grep -Fq "CLI link: $TEST_HOME/.local/bin/cc-shelf -> $TEST_APP/Contents/Helpers/cc-shelf" "$TMP_ROOT/install.log"
 test ! -e "$TEST_HOME/.local"
 test ! -e "$TEST_HOME/.codex"
 test ! -e "$TEST_HOME/.claude"
 run_installer "$TEST_HOME"
-test "$(readlink "$TEST_HOME/.local/bin/cc:")" = "$TEST_APP/Contents/Helpers/cc:"
+test "$(readlink "$TEST_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 for agent in .codex .claude; do
   cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/$agent/skills/cc-handoff/SKILL.md"
   test -f "$TEST_HOME/$agent/skills/cc-handoff/.cc-install-manifest"
 done
-CLI_INODE="$(stat -f '%i' "$TEST_HOME/.local/bin/cc:")"
+CLI_INODE="$(stat -f '%i' "$TEST_HOME/.local/bin/cc-shelf")"
 SKILL_INODE="$(stat -f '%i' "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md")"
 run_installer "$TEST_HOME"
-test "$(stat -f '%i' "$TEST_HOME/.local/bin/cc:")" = "$CLI_INODE"
+test "$(stat -f '%i' "$TEST_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
 test "$(stat -f '%i' "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md")" = "$SKILL_INODE"
 
 printf '\nUpdated bundled handoff instructions.\n' >>"$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
@@ -56,21 +56,21 @@ cp "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md" "$TMP_ROOT/edited-skill.md"
 expect_rejection "$TEST_HOME"
 cmp -s "$TMP_ROOT/edited-skill.md" "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md"
 cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/.claude/skills/cc-handoff/SKILL.md"
-test "$(stat -f '%i' "$TEST_HOME/.local/bin/cc:")" = "$CLI_INODE"
+test "$(stat -f '%i' "$TEST_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
 
 FILE_HOME="$TMP_ROOT/existing-cli-file"
 mkdir -p "$FILE_HOME/.local/bin"
-printf 'my existing command\n' >"$FILE_HOME/.local/bin/cc:"
+printf 'my existing command\n' >"$FILE_HOME/.local/bin/cc-shelf"
 expect_rejection "$FILE_HOME"
-test "$(cat "$FILE_HOME/.local/bin/cc:")" = 'my existing command'
+test "$(cat "$FILE_HOME/.local/bin/cc-shelf")" = 'my existing command'
 test ! -e "$FILE_HOME/.codex"
 test ! -e "$FILE_HOME/.claude"
 
 LINK_HOME="$TMP_ROOT/existing-cli-link"
 mkdir -p "$LINK_HOME/.local/bin"
-ln -s /usr/bin/true "$LINK_HOME/.local/bin/cc:"
+ln -s /usr/bin/true "$LINK_HOME/.local/bin/cc-shelf"
 expect_rejection "$LINK_HOME"
-test "$(readlink "$LINK_HOME/.local/bin/cc:")" = /usr/bin/true
+test "$(readlink "$LINK_HOME/.local/bin/cc-shelf")" = /usr/bin/true
 test ! -e "$LINK_HOME/.codex"
 
 SKILL_HOME="$TMP_ROOT/existing-skill"
@@ -99,7 +99,7 @@ ROLLBACK_HOME="$TMP_ROOT/rollback-home"
 mkdir "$ROLLBACK_HOME" "$TMP_ROOT/fakebin"
 cat >"$TMP_ROOT/fakebin/mv" <<'MV'
 #!/bin/bash
-if [[ "$#" == 2 && "$2" == "$CC_TEST_FAIL_DEST" && ! -e "$CC_TEST_FAIL_ONCE" ]]; then
+if [[ "$#" == 2 && ( "$2" == "$CC_TEST_FAIL_DEST" || "$1" == "${CC_TEST_FAIL_SOURCE:-}" ) && ! -e "$CC_TEST_FAIL_ONCE" ]]; then
   if [[ "${CC_TEST_FAIL_AFTER_MOVE:-0}" == 1 ]]; then
     /bin/mv "$@" || exit "$?"
   fi
@@ -132,20 +132,20 @@ test -e "$CC_TEST_FAIL_ONCE"
 for agent in .codex .claude; do
   cmp -s "$TMP_ROOT/before-upgrade.md" "$ROLLBACK_HOME/$agent/skills/cc-handoff/SKILL.md"
 done
-test "$(readlink "$ROLLBACK_HOME/.local/bin/cc:")" = "$TEST_APP/Contents/Helpers/cc:"
+test "$(readlink "$ROLLBACK_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 test -z "$(find "$ROLLBACK_HOME" -maxdepth 1 -name '.cc-agent-tools.*' -print -quit)"
 
 # A CLI creation failure restores managed skills, before or after the move.
 CLI_ROLLBACK_HOME="$TMP_ROOT/cli-rollback-home"
 mkdir "$CLI_ROLLBACK_HOME"
 run_installer "$CLI_ROLLBACK_HOME"
-rm "$CLI_ROLLBACK_HOME/.local/bin/cc:"
+rm "$CLI_ROLLBACK_HOME/.local/bin/cc-shelf"
 for agent in .codex .claude; do
   cp "$CLI_ROLLBACK_HOME/$agent/skills/cc-handoff/SKILL.md" "$TMP_ROOT/before-$agent.md"
   cp "$CLI_ROLLBACK_HOME/$agent/skills/cc-handoff/.cc-install-manifest" "$TMP_ROOT/before-$agent.manifest"
 done
 printf '\nCLI transaction update.\n' >>"$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
-export CC_TEST_FAIL_DEST="$CLI_ROLLBACK_HOME/.local/bin/cc:"
+export CC_TEST_FAIL_DEST="$CLI_ROLLBACK_HOME/.local/bin/cc-shelf"
 for after_move in 0 1; do
   export CC_TEST_FAIL_AFTER_MOVE="$after_move"
   rm -f "$CC_TEST_FAIL_ONCE"
@@ -153,7 +153,7 @@ for after_move in 0 1; do
   expect_rejection "$CLI_ROLLBACK_HOME"
   PATH="$ORIGINAL_TEST_PATH"
   test -e "$CC_TEST_FAIL_ONCE"
-  test ! -L "$CLI_ROLLBACK_HOME/.local/bin/cc:"
+  test ! -L "$CLI_ROLLBACK_HOME/.local/bin/cc-shelf"
   for agent in .codex .claude; do
     cmp -s "$TMP_ROOT/before-$agent.md" "$CLI_ROLLBACK_HOME/$agent/skills/cc-handoff/SKILL.md"
     cmp -s "$TMP_ROOT/before-$agent.manifest" "$CLI_ROLLBACK_HOME/$agent/skills/cc-handoff/.cc-install-manifest"
@@ -162,7 +162,7 @@ for after_move in 0 1; do
 done
 unset CC_TEST_FAIL_AFTER_MOVE
 run_installer "$CLI_ROLLBACK_HOME"
-test "$(readlink "$CLI_ROLLBACK_HOME/.local/bin/cc:")" = "$TEST_APP/Contents/Helpers/cc:"
+test "$(readlink "$CLI_ROLLBACK_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 
 SKILL_LINK_HOME="$TMP_ROOT/skill-symlink-home"
 mkdir -p "$SKILL_LINK_HOME/.codex/skills" "$TMP_ROOT/foreign-skill"
@@ -183,4 +183,72 @@ printf 'Unrelated skill installer\n%s\n' "$saved_hash" >"$manifest"
 cp "$manifest" "$TMP_ROOT/foreign-manifest.before"
 expect_rejection "$MANIFEST_HOME"
 cmp -s "$TMP_ROOT/foreign-manifest.before" "$manifest"
+# Renaming the managed command also refreshes unedited installed skills.
+PREVIOUS_HOME="$TMP_ROOT/previous-command-home"
+mkdir "$PREVIOUS_HOME"
+run_installer "$PREVIOUS_HOME"
+rm "$PREVIOUS_HOME/.local/bin/cc-shelf"
+ln -s "$TEST_APP/Contents/Helpers/cc:" "$PREVIOUS_HOME/.local/bin/cc:"
+printf '\nInstructions for the renamed command.\n' >>"$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
+run_installer "$PREVIOUS_HOME" --print-plan
+grep -Fq "Previous CLI link to remove: $PREVIOUS_HOME/.local/bin/cc:" "$TMP_ROOT/install.log"
+test -L "$PREVIOUS_HOME/.local/bin/cc:"
+test ! -L "$PREVIOUS_HOME/.local/bin/cc-shelf"
+run_installer "$PREVIOUS_HOME"
+test ! -e "$PREVIOUS_HOME/.local/bin/cc:" && test ! -L "$PREVIOUS_HOME/.local/bin/cc:"
+test "$(readlink "$PREVIOUS_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
+for agent in .codex .claude; do
+  cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$PREVIOUS_HOME/$agent/skills/cc-handoff/SKILL.md"
+done
+
+# The previous name can belong to someone else, including a dangling link.
+for kind in file link; do
+  previous_custom_home="$TMP_ROOT/previous-custom-$kind"
+  mkdir -p "$previous_custom_home/.local/bin"
+  if [[ "$kind" == link ]]; then
+    ln -s "$TMP_ROOT/unrelated-missing-command" "$previous_custom_home/.local/bin/cc:"
+  else
+    printf 'unrelated command\n' >"$previous_custom_home/.local/bin/cc:"
+  fi
+  run_installer "$previous_custom_home"
+  test "$(readlink "$previous_custom_home/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
+  if [[ "$kind" == link ]]; then
+    test "$(readlink "$previous_custom_home/.local/bin/cc:")" = "$TMP_ROOT/unrelated-missing-command"
+  else
+    test "$(cat "$previous_custom_home/.local/bin/cc:")" = 'unrelated command'
+  fi
+done
+
+# Failure while retiring the old link restores it, the skills, and new CLI state.
+PREVIOUS_ROLLBACK_HOME="$TMP_ROOT/previous-rollback-home"
+mkdir "$PREVIOUS_ROLLBACK_HOME"
+run_installer "$PREVIOUS_ROLLBACK_HOME"
+rm "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc-shelf"
+ln -s "$TEST_APP/Contents/Helpers/cc:" "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc:"
+for agent in .codex .claude; do
+  cp "$PREVIOUS_ROLLBACK_HOME/$agent/skills/cc-handoff/SKILL.md" "$TMP_ROOT/previous-$agent.md"
+  cp "$PREVIOUS_ROLLBACK_HOME/$agent/skills/cc-handoff/.cc-install-manifest" "$TMP_ROOT/previous-$agent.manifest"
+done
+printf '\nCommand rename transaction update.\n' >>"$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
+export CC_TEST_FAIL_DEST="" CC_TEST_FAIL_SOURCE="$PREVIOUS_ROLLBACK_HOME/.local/bin/cc:"
+for after_move in 0 1; do
+  export CC_TEST_FAIL_AFTER_MOVE="$after_move"
+  rm -f "$CC_TEST_FAIL_ONCE"
+  PATH="$TMP_ROOT/fakebin:$ORIGINAL_TEST_PATH"
+  expect_rejection "$PREVIOUS_ROLLBACK_HOME"
+  PATH="$ORIGINAL_TEST_PATH"
+  test -e "$CC_TEST_FAIL_ONCE"
+  test "$(readlink "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc:")" = "$TEST_APP/Contents/Helpers/cc:"
+  test ! -L "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc-shelf"
+  for agent in .codex .claude; do
+    cmp -s "$TMP_ROOT/previous-$agent.md" "$PREVIOUS_ROLLBACK_HOME/$agent/skills/cc-handoff/SKILL.md"
+    cmp -s "$TMP_ROOT/previous-$agent.manifest" "$PREVIOUS_ROLLBACK_HOME/$agent/skills/cc-handoff/.cc-install-manifest"
+  done
+  test -z "$(find "$PREVIOUS_ROLLBACK_HOME" -maxdepth 1 -name '.cc-agent-tools.*' -print -quit)"
+done
+unset CC_TEST_FAIL_AFTER_MOVE CC_TEST_FAIL_SOURCE
+run_installer "$PREVIOUS_ROLLBACK_HOME"
+test ! -L "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc:"
+test "$(readlink "$PREVIOUS_ROLLBACK_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
+
 printf 'Agent tools installer checks passed.\n'

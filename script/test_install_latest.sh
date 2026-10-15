@@ -10,7 +10,7 @@ make_app() {
   local app="$1"
   local version="$2"
   local bundle_id="${3:-work.hayashigoto.cc}"
-  local helper="${4:-cc:}"
+  local helper="${4:-cc-shelf}"
   mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Resources"
   cc_write_info_plist "$app/Contents/Info.plist" "$version"
   plutil -replace CFBundleIdentifier -string "$bundle_id" "$app/Contents/Info.plist"
@@ -46,9 +46,9 @@ INSTALL_DIR="$TEST_ROOT/Applications"
 INSTALL_HOME="$TEST_ROOT/home"
 mkdir -p "$INSTALL_HOME/.local/bin" "$INSTALL_HOME/.codex/skills/cc-handoff"
 make_app "$INSTALL_DIR/cc.app" 1.0.0
-CLI_TARGET="$INSTALL_DIR/cc.app/Contents/Helpers/cc:"
-ln -s "$CLI_TARGET" "$INSTALL_HOME/.local/bin/cc:"
-CLI_INODE="$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")"
+CLI_TARGET="$INSTALL_DIR/cc.app/Contents/Helpers/cc-shelf"
+ln -s "$CLI_TARGET" "$INSTALL_HOME/.local/bin/cc-shelf"
+CLI_INODE="$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc-shelf")"
 printf 'my edited skill\n' >"$INSTALL_HOME/.codex/skills/cc-handoff/SKILL.md"
 
 INVALID_APP="$TEST_ROOT/invalid/cc.app"
@@ -104,8 +104,8 @@ for phase in staged installed move-before move-after; do
   expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip"
   PATH="$ORIGINAL_TEST_PATH"
   test "$(cat "$INSTALL_DIR/cc.app/Contents/Resources/existing-marker")" = 1.0.0
-  test "$(readlink "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_TARGET"
-  test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+  test "$(readlink "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_TARGET"
+  test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
   test "$(cat "$INSTALL_HOME/.codex/skills/cc-handoff/SKILL.md")" = 'my edited skill'
   test -z "$(find "$INSTALL_DIR" -maxdepth 1 -name '.cc.app.*' -print -quit)"
   if [[ "$phase" == move-* ]]; then test -e "$CC_TEST_FAIL_ONCE"; fi
@@ -115,11 +115,11 @@ unset CC_TEST_FAIL_STAGE CC_TEST_FAIL_VALIDATION CC_TEST_FAIL_DEST CC_TEST_FAIL_
 run_installer "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
 test "$(plutil -extract CFBundleShortVersionString raw "$INSTALL_DIR/cc.app/Contents/Info.plist")" = 9.9.9
 test "$(plutil -extract CFBundleExecutable raw "$INSTALL_DIR/cc.app/Contents/Info.plist")" = cc
-test "$(readlink "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_TARGET"
-test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+test "$(readlink "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_TARGET"
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
 codesign --verify --deep --strict "$INSTALL_DIR/cc.app"
 run_installer "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
-test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
 test -z "$(find "$INSTALL_DIR" -maxdepth 1 -name '.cc.app.*' -print -quit)"
 
 # Stop only the selected app, including an installation path containing spaces.
@@ -164,7 +164,7 @@ make_app "$MISSING_HELPER_APP" 9.9.9 work.hayashigoto.cc none
 ditto -c -k --keepParent "$MISSING_HELPER_APP" "$TEST_ROOT/missing-helper.zip"
 expect_rejection "$INSTALL_DIR" "$INSTALL_HOME" "$TEST_ROOT/missing-helper.zip"
 test "$(cat "$INSTALL_DIR/cc.app/Contents/Resources/existing-marker")" = 9.9.9
-test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc:")" = "$CLI_INODE"
+test "$(stat -f '%i' "$INSTALL_HOME/.local/bin/cc-shelf")" = "$CLI_INODE"
 
 # App-only updates preserve unrelated commands, even dangling links.
 for kind in file link; do
@@ -173,18 +173,49 @@ for kind in file link; do
   mkdir -p "$custom_home/.local/bin"
   make_app "$custom_dir/cc.app" 1.0.0
   if [[ "$kind" == link ]]; then
-    ln -s "$TEST_ROOT/missing-custom-command" "$custom_home/.local/bin/cc:"
+    ln -s "$TEST_ROOT/missing-custom-command" "$custom_home/.local/bin/cc-shelf"
   else
-    printf 'my command\n' >"$custom_home/.local/bin/cc:"
+    printf 'my command\n' >"$custom_home/.local/bin/cc-shelf"
   fi
   run_installer "$custom_dir" "$custom_home" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
   if [[ "$kind" == link ]]; then
-    test "$(readlink "$custom_home/.local/bin/cc:")" = "$TEST_ROOT/missing-custom-command"
+    test "$(readlink "$custom_home/.local/bin/cc-shelf")" = "$TEST_ROOT/missing-custom-command"
   else
-    test "$(cat "$custom_home/.local/bin/cc:")" = 'my command'
+    test "$(cat "$custom_home/.local/bin/cc-shelf")" = 'my command'
   fi
   test "$(cat "$custom_dir/cc.app/Contents/Resources/existing-marker")" = 9.9.9
 done
+
+# App-only updates keep old agent-tool state until its explicit reinstall.
+PREVIOUS_DIR="$TEST_ROOT/Previous Applications"
+PREVIOUS_HOME="$TEST_ROOT/previous-home"
+mkdir -p "$PREVIOUS_HOME/.local/bin" "$PREVIOUS_HOME/.codex/skills/cc-handoff"
+make_app "$PREVIOUS_DIR/cc.app" 1.0.0 work.hayashigoto.cc cc:
+PREVIOUS_TARGET="$PREVIOUS_DIR/cc.app/Contents/Helpers/cc:"
+ln -s "$PREVIOUS_TARGET" "$PREVIOUS_HOME/.local/bin/cc:"
+printf 'previous handoff instructions\n' >"$PREVIOUS_HOME/.codex/skills/cc-handoff/SKILL.md"
+expect_rejection "$PREVIOUS_DIR" "$PREVIOUS_HOME" "$TEST_ROOT/missing-helper.zip"
+test "$(cat "$PREVIOUS_DIR/cc.app/Contents/Resources/existing-marker")" = 1.0.0
+test "$(readlink "$PREVIOUS_HOME/.local/bin/cc:")" = "$PREVIOUS_TARGET"
+run_installer "$PREVIOUS_DIR" "$PREVIOUS_HOME" "$TEST_ROOT/valid.zip" "$ROOT_DIR/script/install_latest.sh"
+test "$(cat "$PREVIOUS_DIR/cc.app/Contents/Resources/existing-marker")" = 9.9.9
+test -x "$PREVIOUS_DIR/cc.app/Contents/Helpers/cc-shelf"
+test "$(readlink "$PREVIOUS_HOME/.local/bin/cc:")" = "$PREVIOUS_TARGET"
+test ! -L "$PREVIOUS_HOME/.local/bin/cc-shelf"
+test "$(cat "$PREVIOUS_HOME/.codex/skills/cc-handoff/SKILL.md")" = 'previous handoff instructions'
+grep -Fq "To switch the CLI to cc-shelf and update its skills, run:" "$TEST_ROOT/install.log"
+follow_up_command="$(sed -n 's/^  CC_INSTALL_HOME=/CC_INSTALL_HOME=/p' "$TEST_ROOT/install.log")"
+test -n "$follow_up_command"
+# Execute the printed command with a harmless recorder to verify its quoted
+# app and home targets, including paths containing spaces.
+cat >"$PREVIOUS_DIR/cc.app/Contents/Resources/install_agent_tools.sh" <<'FOLLOW_UP'
+#!/bin/bash
+printf '%s\n%s\n' "$CC_INSTALL_HOME" "$CC_INSTALL_APP"
+FOLLOW_UP
+chmod +x "$PREVIOUS_DIR/cc.app/Contents/Resources/install_agent_tools.sh"
+env -u CC_INSTALL_HOME -u CC_INSTALL_APP bash -c "$follow_up_command" >"$TEST_ROOT/follow-up.log"
+test "$(sed -n '1p' "$TEST_ROOT/follow-up.log")" = "$PREVIOUS_HOME"
+test "$(sed -n '2p' "$TEST_ROOT/follow-up.log")" = "$PREVIOUS_DIR/cc.app"
 
 FOREIGN_DIR="$TEST_ROOT/foreign-apps"
 FOREIGN_HOME="$TEST_ROOT/foreign-home"

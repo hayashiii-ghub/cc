@@ -4,7 +4,7 @@ cc: is a local shelf for macOS. Keep files, folders, links, images, and text
 close while moving between apps, or hand an artifact from Codex or Claude to the
 same shelf.
 
-cc: v0.4.0 uses `cc.app`, the `cc:` CLI, and the `cc-handoff` skill.
+cc: uses `cc.app` and the `cc-handoff` agent skill.
 
 cc: is free, open source, local-first, and built for macOS 26 or later.
 Click the `cc:` icon in the menu bar to open or close the shelf. Right-click the
@@ -20,7 +20,8 @@ immediately and are remembered. Escape cancels recording; **Restore Defaults**
 returns both actions to their original keys. Finder selection is added only
 while Finder is the frontmost app.
 
-The gear button at the top right opens **Settings…** directly. Items show native file
+The gear button at the top right opens **Settings…** directly. Click outside the
+shelf or press Escape while it has focus to close it. Items show native file
 icons or image/PDF previews, their names, item type, source (You, Codex, or
 Claude Code), and an optional handoff note. Double-click
 an item to open its managed copy; double-click text to copy it. Its small action
@@ -28,9 +29,10 @@ menu contains Copy, Show in Finder where available, and Remove from Shelf.
 
 Both presentations use the same item list and controls. Recent items appear
 first, and the shelf height follows the number of items. **Add Files…** and
-**Paste** stay at the bottom. **Drag files** appears when there are at least two
-files, folders, or images and no import or export is running. Dragging leaves
-the items in the shelf. **Clear All…** at the bottom right asks you to confirm
+**Paste** stay at the bottom. When the shelf has at least one item of any kind,
+**Drag** and **Clear All…** appear together at the bottom right. Both stay visible
+but disabled during imports or exports, and both are hidden when the shelf is
+empty. Dragging leaves the items in the shelf. **Clear All…** asks you to confirm
 the item count before clearing the entire shelf, including text and links.
 
 Right-click the `cc:` menu-bar icon for **Copy All to Folder…**. In Notch mode,
@@ -45,23 +47,31 @@ stays in place. Copies exported from cc: remain where you saved them.
 
 ## Agent tools
 
-Use the `cc:` CLI and `cc-handoff` skill for Codex and Claude integrations.
-The `cc` command is reserved for the system C compiler. After installing cc:
-v0.4.0 or later into `/Applications`, review and run:
+Use the `cc-shelf` CLI and `cc-handoff` skill for Codex and Claude integrations.
+The `cc` command is reserved for the system C compiler.
+
+The `cc-shelf` command is included in v0.4.2 and later. After installing the
+app into `/Applications`, review and run:
 
 ```sh
 "/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --print-plan
 "/Applications/cc.app/Contents/Resources/install_agent_tools.sh"
 ```
 
-The installer creates a CLI symlink at `~/.local/bin/cc:` and skill copies
+The installer creates a CLI symlink at `~/.local/bin/cc-shelf` and skill copies
 at `~/.codex/skills/cc-handoff` and `~/.claude/skills/cc-handoff`.
 It makes no network requests and does not change shell configuration. Re-running
-it updates unchanged copies it previously installed. Existing unrelated files,
-symlinks, edited skills, or extra skill files stop installation before changes.
+it updates unchanged copies it previously installed. Unrelated files or symlinks
+at the new installation destinations, edited skills, or extra skill files stop
+installation before changes.
 
-If `~/.local/bin` is not on PATH, use `~/.local/bin/cc:` or the bundled
-`/Applications/cc.app/Contents/Helpers/cc:` executable directly. Installing
+After installing a build with `cc-shelf`, rerun this installer to switch the
+command and refresh unchanged skill copies. App-only updates do not update the
+skills. The installer removes an old `cc:` link only when it points to that same
+app's `Contents/Helpers/cc:`; unrelated old commands are preserved.
+
+If `~/.local/bin` is not on PATH, use `~/.local/bin/cc-shelf` or the bundled
+`/Applications/cc.app/Contents/Helpers/cc-shelf` executable directly. Installing
 a skill does not start Codex or Claude or read their conversations. Ask the agent
 to hand a specified artifact to cc: or read a specified shelf item when you
 want to use the skill.
@@ -69,16 +79,16 @@ want to use the skill.
 ### CLI
 
 ```sh
-cc: add ./report.pdf --source codex --note "For review"
-printf '%s' 'Review these findings.' | cc: add --stdin --title "Review notes" --source claude
-cc: add --text "A short handoff" --source human
-cc: list
-cc: get "ITEM_UUID"
-cc: get "ITEM_UUID" --text
-cc: get "ITEM_UUID" --output ./from-cc.pdf
+cc-shelf add ./report.pdf --source codex --note "For review"
+printf '%s' 'Review these findings.' | cc-shelf add --stdin --title "Review notes" --source claude
+cc-shelf add --text "A short handoff" --source human
+cc-shelf list
+cc-shelf get "ITEM_UUID"
+cc-shelf get "ITEM_UUID" --text
+cc-shelf get "ITEM_UUID" --output ./from-cc.pdf
 ```
 
-Replace `ITEM_UUID` with the ID returned by `cc: list`. Supported source
+Replace `ITEM_UUID` with the ID returned by `cc-shelf list`. Supported source
 labels are `human`, `codex`, and `claude`; notes are optional. Text input accepts
 an optional title and the same source/note flags.
 
@@ -106,6 +116,8 @@ Japanese/English product site under `site/`. The site's app previews are
 HTML/CSS illustrations in `site/app/ShelfPreview.tsx` with sample items.
 
 Source builds require Xcode.
+
+Run the CLI from source with `swift run cc-shelf --help`.
 
 Validate the macOS app, CLI, skill installer, and packaging scripts:
 
@@ -140,13 +152,13 @@ npm test
 
 ## Install
 
-Download [cc: v0.4.1](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.1)
+Download [cc: v0.4.2](https://github.com/hayashiii-ghub/cc/releases/tag/v0.4.2)
 as a [DMG](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.dmg)
 or [ZIP](https://github.com/hayashiii-ghub/cc/releases/latest/download/cc-macos.zip).
 The product site is [cc.hayashiii-gpt.chatgpt.site](https://cc.hayashiii-gpt.chatgpt.site).
 
 Build from source with `make package`. It creates `dist/cc-macos.dmg` and
-`dist/cc-macos.zip`, each containing `cc.app`, its `cc:` CLI, the optional
+`dist/cc-macos.zip`, each containing `cc.app`, its `cc-shelf` CLI, the optional
 `cc-handoff` skill, and Sparkle. Open the DMG and drag `cc.app` to Applications.
 The application supports Apple Silicon and Intel when built with full Xcode.
 

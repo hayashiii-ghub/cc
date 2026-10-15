@@ -48,7 +48,7 @@ struct CCCLI {
             let contentURL = try repository.contentURL(for: record)
             if options.text {
                 guard let text = record.text else {
-                    throw CCRepositoryError(code: "not_text", message: "This item is a file or folder. Use cc: get or cc: get --output instead.")
+                    throw CCRepositoryError(code: "not_text", message: "This item is a file or folder. Use cc-shelf get or cc-shelf get --output instead.")
                 }
                 FileHandle.standardOutput.write(Data(text.utf8))
             } else {
@@ -59,20 +59,20 @@ struct CCCLI {
             }
         case "--help", "help", "-h":
             FileHandle.standardOutput.write(Data((
-                "cc: — local shelf\n\ncc: list\n"
-                + "cc: add PATH [--source human|codex|claude] [--note TEXT]\n"
-                + "cc: add --text TEXT|--stdin [--title TEXT] [--source human|codex|claude] [--note TEXT]\n"
-                + "cc: get UUID [--text | --output PATH]\n"
+                "cc-shelf — local shelf\n\ncc-shelf list\n"
+                + "cc-shelf add PATH [--source human|codex|claude] [--note TEXT]\n"
+                + "cc-shelf add --text TEXT|--stdin [--title TEXT] [--source human|codex|claude] [--note TEXT]\n"
+                + "cc-shelf get UUID [--text | --output PATH]\n"
             ).utf8))
         default:
-            throw CCRepositoryError(code: "unknown_command", message: "Unknown command. Use cc: --help.")
+            throw CCRepositoryError(code: "unknown_command", message: "Unknown command. Use cc-shelf --help.")
         }
     }
 
     private static func export(record: CCRecord, contentURL: URL?, to output: URL) throws {
         do {
             _ = try FileManager.default.attributesOfItem(atPath: output.path)
-            throw CCRepositoryError(code: "output_exists", message: "The output path already exists. cc: will not overwrite it.")
+            throw CCRepositoryError(code: "output_exists", message: "The output path already exists. cc-shelf will not overwrite it.")
         } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
             // The output must be a new path so existing documents remain untouched.
         }
@@ -86,7 +86,7 @@ struct CCCLI {
     }
 
     private static func usage() -> CCRepositoryError {
-        CCRepositoryError(code: "usage", message: "Invalid arguments. Use cc: --help.")
+        CCRepositoryError(code: "usage", message: "Invalid arguments. Use cc-shelf --help.")
     }
 
     private static func emit<T: Encodable>(_ value: T, to handle: FileHandle = .standardOutput) {
@@ -98,7 +98,7 @@ struct CCCLI {
             data.append(10)
             handle.write(data)
         } catch {
-            FileHandle.standardError.write(Data("{\"ok\":false,\"error\":{\"code\":\"encoding_error\",\"message\":\"Could not encode cc: response.\"}}\n".utf8))
+            FileHandle.standardError.write(Data("{\"ok\":false,\"error\":{\"code\":\"encoding_error\",\"message\":\"Could not encode cc-shelf response.\"}}\n".utf8))
             exit(1)
         }
     }
@@ -151,7 +151,7 @@ struct CCCLI {
         init(_ arguments: [String]) throws {
             guard let value = arguments.first else { throw usage() }
             guard let id = UUID(uuidString: value) else {
-                throw CCRepositoryError(code: "invalid_id", message: "The item ID must be a UUID from cc: list.")
+                throw CCRepositoryError(code: "invalid_id", message: "The item ID must be a UUID from cc-shelf list.")
             }
             self.id = id
             var index = 1

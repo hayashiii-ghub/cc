@@ -10,7 +10,7 @@ let package = Package(
     products: [
         .executable(name: "cc", targets: ["CC"]),
         .executable(name: "cc-demo", targets: ["CCDemo"]),
-        .executable(name: "cc-cli", targets: ["CCCLI"])
+        .executable(name: "cc-shelf", targets: ["CCCLI"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0")

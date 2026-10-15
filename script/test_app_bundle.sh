@@ -61,6 +61,8 @@ INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
 plutil -lint "$INFO_PLIST" >/dev/null
 test "$(plutil -extract CFBundleShortVersionString raw "$INFO_PLIST")" = 1.2.3
 test "$(basename "$APP_BUNDLE")" = cc.app
+test "$CC_CLI_NAME" = cc-shelf
+test "$CC_CLI_PRODUCT_NAME" = cc-shelf
 test "$(plutil -extract CFBundleName raw "$INFO_PLIST")" = cc:
 test "$(plutil -extract CFBundleDisplayName raw "$INFO_PLIST")" = cc:
 test "$(plutil -extract CFBundleExecutable raw "$INFO_PLIST")" = cc
@@ -73,25 +75,26 @@ test "$(plutil -extract SUEnableAutomaticChecks raw "$INFO_PLIST")" = true
 test "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$INFO_PLIST")" = cc
 test ! -e "$APP_BUNDLE/Contents/PlugIns"
 test -d "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
-test -x "$APP_HELPERS/cc:"
-cmp -s "$TMP_ROOT/$CC_CLI_PRODUCT_NAME" "$APP_HELPERS/cc:"
-test "$("$APP_HELPERS/cc:")" = "test CLI"
+test -x "$APP_HELPERS/cc-shelf"
+test ! -e "$APP_HELPERS/cc:"
+cmp -s "$TMP_ROOT/$CC_CLI_PRODUCT_NAME" "$APP_HELPERS/cc-shelf"
+test "$("$APP_HELPERS/cc-shelf")" = "test CLI"
 test -x "$APP_RESOURCES/install_agent_tools.sh"
 cmp -s "$ROOT_DIR/script/install_agent_tools.sh" "$APP_RESOURCES/install_agent_tools.sh"
 cmp -s "$ROOT_DIR/skills/cc-handoff/SKILL.md" "$APP_RESOURCES/skills/cc-handoff/SKILL.md"
 
 unset CC_CODESIGN_IDENTITY
 cc_sign_cli_and_app "$APP_BUNDLE"
-test "$(sed -n '1p' "$CC_TEST_SIGN_LOG")" = "--force --sign - $APP_HELPERS/cc:"
+test "$(sed -n '1p' "$CC_TEST_SIGN_LOG")" = "--force --sign - $APP_HELPERS/cc-shelf"
 test "$(sed -n '2p' "$CC_TEST_SIGN_LOG")" = "--force --sign - $APP_BUNDLE"
 test "$(sed -n '3p' "$CC_TEST_SIGN_LOG")" = "--verify --deep --strict $APP_BUNDLE"
 : >"$CC_TEST_SIGN_LOG"
 CC_CODESIGN_IDENTITY='Developer ID Application: cc Test'
 cc_sign_cli_and_app "$APP_BUNDLE"
-test "$(sed -n '1p' "$CC_TEST_SIGN_LOG")" = "--force --sign $CC_CODESIGN_IDENTITY --options runtime --timestamp $APP_HELPERS/cc:"
+test "$(sed -n '1p' "$CC_TEST_SIGN_LOG")" = "--force --sign $CC_CODESIGN_IDENTITY --options runtime --timestamp $APP_HELPERS/cc-shelf"
 test "$(sed -n '2p' "$CC_TEST_SIGN_LOG")" = "--force --sign $CC_CODESIGN_IDENTITY --options runtime --timestamp $APP_BUNDLE"
 if grep -q -- --entitlements "$CC_TEST_SIGN_LOG"; then
-  echo "cc: CLI packaging must not request App Group entitlements" >&2
+  echo "cc-shelf packaging must not request App Group entitlements" >&2
   exit 1
 fi
 APPCAST_PATH="$FAKE_ROOT/dist/appcast.xml"
@@ -186,7 +189,7 @@ done
 cp "$ROOT_DIR/Assets/MenuBarTemplate.svg" "$FAKE_ROOT/Assets/MenuBarTemplate.svg"
 ditto "$ROOT_DIR/skills/cc-handoff" "$FAKE_ROOT/skills/cc-handoff"
 cp "$APP_MACOS/cc" "$TMP_ROOT/build-bin/cc"
-cp "$APP_HELPERS/cc:" "$TMP_ROOT/build-bin/cc-cli"
+cp "$APP_HELPERS/cc-shelf" "$TMP_ROOT/build-bin/cc-shelf"
 ditto "$APP_BUNDLE" "$FAKE_ROOT/dist/cc.app"
 INSTALLED_APP="$TMP_ROOT/Existing Applications/cc.app"
 ditto "$APP_BUNDLE" "$INSTALLED_APP"

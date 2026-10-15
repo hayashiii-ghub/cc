@@ -34,16 +34,3 @@ extension ShelfItem {
         return provider
     }
 }
-
-extension Collection where Element == ShelfItem {
-    var batchDragFileURLs: [URL] {
-        compactMap { item in
-            guard item.kind == .file || item.kind == .folder || item.kind == .image,
-                  let url = item.url,
-                  url.isFileURL else {
-                return nil
-            }
-            return url
-        }
-    }
-}

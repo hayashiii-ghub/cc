@@ -129,9 +129,6 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         let hostingController = NSHostingController(
             rootView: ContentView(
                 store: store,
-                onDismiss: { [weak self] in
-                    self?.hideShelf()
-                },
                 onShowSettings: onShowSettings,
                 onClearAll: onClearAll
             )

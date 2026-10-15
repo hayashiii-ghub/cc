@@ -28,7 +28,6 @@ struct NotchIslandView: View {
     let sideTabWidth: CGFloat
     let contentWidth: CGFloat
     let onToggleExpanded: () -> Void
-    let onDismiss: () -> Void
     let onAddFinderSelection: () -> Void
     let onShowSettings: () -> Void
     let onClearAll: () -> Void
@@ -143,7 +142,6 @@ struct NotchIslandView: View {
             ShelfContentView(
                 store: store,
                 surface: .island,
-                onDismiss: onDismiss,
                 onShowSettings: onShowSettings,
                 onClearAll: onClearAll,
                 onAddFiles: onAddFinderSelection

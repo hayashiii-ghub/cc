@@ -146,9 +146,6 @@ final class NotchIslandController: NSObject {
             onToggleExpanded: { [weak self] in
                 self?.toggleShelf()
             },
-            onDismiss: { [weak self] in
-                self?.hideShelf()
-            },
             onAddFinderSelection: { [weak self] in
                 self?.onAddFinderSelection()
             },

@@ -146,31 +146,105 @@ struct ShelfDragTests {
         #expect(store.items.first?.isManagedFile == true)
     }
 
-    @Test func batchDragUsesOnlyFileBackedItemsInShelfOrder() {
-        let fileURL = URL(fileURLWithPath: "/tmp/notes.md")
-        let folderURL = URL(fileURLWithPath: "/tmp/Archive", isDirectory: true)
-        let imageURL = URL(fileURLWithPath: "/tmp/image.png")
-        let items = [
-            ShelfItem(kind: .file, title: "notes.md", detail: "", url: fileURL),
-            ShelfItem(kind: .link, title: "Example", detail: "", url: URL(string: "https://example.com")),
-            ShelfItem(kind: .folder, title: "Archive", detail: "", url: folderURL),
-            ShelfItem(kind: .text, title: "Text", detail: "", text: "Text"),
-            ShelfItem(kind: .image, title: "image.png", detail: "", url: imageURL)
-        ]
+    @Test func dragAllWritesEveryItemKindInShelfOrderWithNativeTypesAndUUIDs() throws {
+        let items = mixedDragItems()
+        let pasteboard = privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
 
-        #expect(items.batchDragFileURLs == [fileURL, folderURL, imageURL])
+        let writtenItems = try writeDragItems(items, to: pasteboard)
+
+        #expect(writtenItems.map { $0.string(forType: ShelfDragPayload.pasteboardType) }
+            == items.map { Optional($0.id.uuidString) })
+        for (item, written) in zip(items, writtenItems) {
+            switch item.kind {
+            case .file, .folder, .image:
+                #expect(written.types.contains(.fileURL))
+                #expect(written.string(forType: .fileURL) == item.url?.absoluteString)
+            case .link:
+                #expect(written.types.contains(.URL))
+                #expect(written.types.contains(.string))
+                #expect(!written.types.contains(.fileURL))
+                #expect(written.string(forType: .URL) == item.url?.absoluteString)
+                #expect(written.string(forType: .string) == item.url?.absoluteString)
+            case .text:
+                #expect(written.types.contains(.string))
+                #expect(!written.types.contains(.fileURL))
+                #expect(written.string(forType: .string) == item.text)
+            }
+        }
     }
 
-    @Test func batchFileWriterProvidesAFileURLAndInternalShelfMarker() {
-        let fileURL = URL(fileURLWithPath: "/tmp/notes.md")
-        let pasteboard = NSPasteboard(name: .drag)
-        let writer = ShelfFileDragWriter(fileURL: fileURL)
+    @Test func singleTextAndSingleLinkEachProduceOneCompleteDragItem() throws {
+        let items = mixedDragItems().filter { $0.kind == .text || $0.kind == .link }
+        for item in items {
+            let pasteboard = privatePasteboard()
+            defer { pasteboard.releaseGlobally() }
 
-        let types = writer.writableTypes(for: pasteboard)
+            let writtenItems = try writeDragItems([item], to: pasteboard)
+            let written = try #require(writtenItems.first)
 
-        #expect(types.contains(.fileURL))
-        #expect(types.contains(ShelfDragPayload.pasteboardType))
-        #expect(writer.pasteboardPropertyList(forType: .fileURL) as? String == fileURL.absoluteString)
+            #expect(writtenItems.count == 1)
+            #expect(written.string(forType: ShelfDragPayload.pasteboardType) == item.id.uuidString)
+            #expect(written.string(forType: .string) == (item.kind == .text ? item.text : item.url?.absoluteString))
+            #expect(!written.types.contains(.fileURL))
+            if item.kind == .link {
+                #expect(written.string(forType: .URL) == item.url?.absoluteString)
+            }
+        }
+    }
+
+    @Test func dragAllPasteboardMarkersRejectInternalDropsAndDirectImports() throws {
+        let store = shelfFixture.makeStore()
+        #expect(store.addClipboardText("Keep this item"))
+        let before = store.items
+        let pasteboard = privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let writtenItems = try writeDragItems(mixedDragItems(), to: pasteboard)
+        let providers = try writtenItems.map { item in
+            let provider = NSItemProvider()
+            for type in item.types {
+                let data = try #require(item.data(forType: type))
+                provider.registerDataRepresentation(
+                    forTypeIdentifier: type.rawValue,
+                    visibility: .all
+                ) { completion in
+                    completion(data, nil)
+                    return nil
+                }
+            }
+            return provider
+        }
+        #expect(providers.allSatisfy {
+            $0.hasItemConformingToTypeIdentifier(ShelfDragPayload.typeIdentifier)
+        })
+
+        #expect(!store.handleDrop(providers: providers))
+        store.importItems(from: providers)
+
+        #expect(!store.isImporting)
+        #expect(store.items == before)
+    }
+
+    private func mixedDragItems() -> [ShelfItem] {
+        [
+            ShelfItem(kind: .file, title: "notes.md", detail: "", url: URL(fileURLWithPath: "/tmp/notes.md")),
+            ShelfItem(kind: .link, title: "Example", detail: "", url: URL(string: "https://example.com/review?first=1&second=two#section")),
+            ShelfItem(kind: .folder, title: "Archive", detail: "", url: URL(fileURLWithPath: "/tmp/Archive", isDirectory: true)),
+            ShelfItem(kind: .text, title: "Short title", detail: "", text: "Complete note\nリンク先へ 🧭\twith tabs"),
+            ShelfItem(kind: .image, title: "image.png", detail: "", url: URL(fileURLWithPath: "/tmp/image.png"))
+        ]
+    }
+
+    private func privatePasteboard() -> NSPasteboard {
+        NSPasteboard(name: NSPasteboard.Name("cc.ShelfDragTests.\(UUID().uuidString)"))
+    }
+
+    private func writeDragItems(_ items: [ShelfItem], to pasteboard: NSPasteboard) throws -> [NSPasteboardItem] {
+        pasteboard.clearContents()
+        #expect(pasteboard.writeObjects(items.map { ShelfItemDragWriter(item: $0) }))
+        let writtenItems = try #require(pasteboard.pasteboardItems)
+        #expect(writtenItems.count == items.count)
+        return writtenItems
     }
 
     private func waitForImports(in store: ShelfStore) async throws {

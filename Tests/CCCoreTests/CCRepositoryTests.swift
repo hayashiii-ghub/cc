@@ -307,6 +307,44 @@ struct CCRepositoryTests {
         }
     }
 
+    @Test func CLIHelpUsesTheShelfCommandName() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let executable = try cliExecutable()
+        for argument in ["help", "--help", "-h"] {
+            let response = try runCLI(executable, arguments: [argument], data: fixture.data)
+            #expect(response.status == 0)
+            #expect(response.error.isEmpty)
+            let help = try #require(String(data: response.output, encoding: .utf8))
+            #expect(help.contains("cc-shelf list\n"))
+            #expect(help.contains("cc-shelf add PATH "))
+            #expect(help.contains("cc-shelf add --text "))
+            #expect(help.contains("cc-shelf get UUID "))
+        }
+    }
+
+    @Test func CLIArgumentErrorsKeepJSONAndUseTheShelfCommandName() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let executable = try cliExecutable()
+        let cases: [(arguments: [String], code: String, guidance: String)] = [
+            ([], "usage", "cc-shelf --help"),
+            (["unknown-command"], "unknown_command", "cc-shelf --help"),
+            (["get", "not-an-id"], "invalid_id", "cc-shelf list"),
+        ]
+        for example in cases {
+            let response = try runCLI(executable, arguments: example.arguments, data: fixture.data)
+            #expect(response.status != 0)
+            #expect(response.output.isEmpty)
+            let envelope = try #require(JSONSerialization.jsonObject(with: response.error) as? [String: Any])
+            #expect(envelope["ok"] as? Bool == false)
+            let error = try #require(envelope["error"] as? [String: Any])
+            #expect(error["code"] as? String == example.code)
+            let message = try #require(error["message"] as? String)
+            #expect(message.contains(example.guidance))
+        }
+    }
+
     @Test func CLIReadsFullTextAndNeverOverwritesOutput() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -357,13 +395,13 @@ struct CCRepositoryTests {
         for initial in [Bundle.main.bundleURL, URL(fileURLWithPath: CommandLine.arguments[0])] {
             var directory = initial.deletingLastPathComponent()
             for _ in 0..<5 {
-                candidates.append(directory.appendingPathComponent("cc-cli"))
+                candidates.append(directory.appendingPathComponent("cc-shelf"))
                 directory.deleteLastPathComponent()
             }
         }
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        candidates.append(root.appendingPathComponent(".build/debug/cc-cli"))
-        return try #require(candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }, "Build the cc: CLI, or set CC_CLI_TEST_BINARY, to run cross-process tests.")
+        candidates.append(root.appendingPathComponent(".build/debug/cc-shelf"))
+        return try #require(candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }, "Build the cc-shelf CLI, or set CC_CLI_TEST_BINARY, to run cross-process tests.")
     }
 
     private func runCLI(_ executable: URL, arguments: [String], data: URL) throws -> (status: Int32, output: Data, error: Data) {

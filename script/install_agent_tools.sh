@@ -14,9 +14,11 @@ if [[ -z "$INSTALL_APP" ]]; then
 fi
 INSTALL_HOME="${INSTALL_HOME%/}"
 INSTALL_APP="${INSTALL_APP%/}"
-CLI_BINARY="$INSTALL_APP/Contents/Helpers/cc:"
+CLI_BINARY="$INSTALL_APP/Contents/Helpers/cc-shelf"
 SKILL_SOURCE="$INSTALL_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
-CLI_DESTINATION="$INSTALL_HOME/.local/bin/cc:"
+CLI_DESTINATION="$INSTALL_HOME/.local/bin/cc-shelf"
+PREVIOUS_CLI_DESTINATION="$INSTALL_HOME/.local/bin/cc:"
+PREVIOUS_CLI_BINARY="$INSTALL_APP/Contents/Helpers/cc:"
 CODEX_DESTINATION="$INSTALL_HOME/.codex/skills/cc-handoff"
 CLAUDE_DESTINATION="$INSTALL_HOME/.claude/skills/cc-handoff"
 MANIFEST_NAME=".cc-install-manifest"
@@ -100,6 +102,9 @@ preflight_skill "$CLAUDE_DESTINATION"
 if [[ "$PRINT_PLAN" == 1 ]]; then
   printf 'CLI link: %s -> %s\nCodex skill: %s\nClaude skill: %s\n' \
     "$CLI_DESTINATION" "$CLI_BINARY" "$CODEX_DESTINATION" "$CLAUDE_DESTINATION"
+  if [[ -L "$PREVIOUS_CLI_DESTINATION" && "$(readlink "$PREVIOUS_CLI_DESTINATION")" == "$PREVIOUS_CLI_BINARY" ]]; then
+    printf 'Previous CLI link to remove: %s\n' "$PREVIOUS_CLI_DESTINATION"
+  fi
   exit 0
 fi
 
@@ -132,6 +137,13 @@ cleanup() {
       if [[ -L "$CLI_DESTINATION" && "$(readlink "$CLI_DESTINATION")" == "$CLI_BINARY" ]]; then
         rm -f "$CLI_DESTINATION" || rollback_failed=1
       elif [[ -e "$CLI_DESTINATION" || -L "$CLI_DESTINATION" ]]; then
+        rollback_failed=1
+      fi
+    fi
+    if [[ -L "$STAGING_DIR/cli.previous" ]]; then
+      if [[ ! -e "$PREVIOUS_CLI_DESTINATION" && ! -L "$PREVIOUS_CLI_DESTINATION" ]]; then
+        mv "$STAGING_DIR/cli.previous" "$PREVIOUS_CLI_DESTINATION" || rollback_failed=1
+      else
         rollback_failed=1
       fi
     fi
@@ -192,6 +204,10 @@ if [[ ! -L "$CLI_DESTINATION" ]]; then
   ln -s "$CLI_BINARY" "$STAGING_DIR/cli.new"
   CLI_INSTALLED=1
   mv "$STAGING_DIR/cli.new" "$CLI_DESTINATION"
+fi
+# Retire only the exact link installed for this app. Custom commands survive.
+if [[ -L "$PREVIOUS_CLI_DESTINATION" && "$(readlink "$PREVIOUS_CLI_DESTINATION")" == "$PREVIOUS_CLI_BINARY" ]]; then
+  mv "$PREVIOUS_CLI_DESTINATION" "$STAGING_DIR/cli.previous"
 fi
 SUCCESS=1
 printf 'Installed CLI link: %s\nInstalled Codex skill: %s\nInstalled Claude skill: %s\n' \

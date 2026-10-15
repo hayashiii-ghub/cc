@@ -8,8 +8,8 @@ CC_MIN_SYSTEM_VERSION="26.0"
 CC_SPARKLE_FEED_URL="https://github.com/hayashiii-ghub/cc/releases/latest/download/appcast.xml"
 CC_SPARKLE_PUBLIC_ED_KEY="RfBevuBjjY33b182nr6OCFHD3Ifgd+25deHDmpeR9ug="
 CC_RELEASES_URL="https://github.com/hayashiii-ghub/cc/releases"
-CC_CLI_NAME="cc:"
-CC_CLI_PRODUCT_NAME="cc-cli"
+CC_CLI_NAME="cc-shelf"
+CC_CLI_PRODUCT_NAME="cc-shelf"
 
 cc_copy_bundle_resources() {
   local root_dir="$1"
@@ -34,7 +34,7 @@ cc_embed_cli() {
   local destination="$app_bundle/Contents/Helpers/$CC_CLI_NAME"
 
   if [[ ! -x "$cli_binary" ]]; then
-    echo "cc: CLI executable not found at $cli_binary" >&2
+    echo "cc-shelf executable not found at $cli_binary" >&2
     return 1
   fi
   mkdir -p "$app_bundle/Contents/Helpers"

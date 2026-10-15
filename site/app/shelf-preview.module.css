@@ -116,7 +116,6 @@
 .dragLabel { display: flex; align-items: center; gap: 4px; color: var(--shelf-muted); white-space: nowrap; }
 .dragLabel svg { width: 16px; height: 16px; flex: 0 0 auto; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
 .clearAllLabel { color: var(--shelf-fg); }
-.clearAllLabel[data-disabled="true"] { opacity: 0.35; }
 .emptyShelf { min-height: 244px; display: grid; place-items: center; padding: 28px; color: var(--shelf-muted); }
 .emptyShelf p { max-width: 24ch; margin: 0; text-align: center; font-size: 13px; line-height: 1.6; }
 .notchShelf { position: relative; padding-top: 32px; background: #08090a; border-radius: 0 0 26px 26px; }

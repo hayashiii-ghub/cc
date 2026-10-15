@@ -47,15 +47,24 @@ struct ActionBar: View {
 
             Spacer(minLength: 4)
 
-            if canDragAll && !isBusy {
-                MultiFileDragSource(
-                    fileURLs: isBusy ? [] : store.items.batchDragFileURLs,
-                    tint: surface.tint.withAlphaComponent(0.6)
+            if store.isExporting {
+                ProgressView()
+                    .controlSize(.mini)
+                    .frame(width: 12, height: 12)
+                    .accessibilityLabel("Copying Items")
+                    .help("Copying…")
+            }
+
+            if !store.items.isEmpty {
+                ShelfItemsDragSource(
+                    items: store.items,
+                    isEnabled: !isBusy,
+                    tint: surface.tint.withAlphaComponent(isBusy ? 0.24 : 0.6)
                 )
                 .padding(.leading, 8)
-                .frame(width: 90, height: 28)
+                .frame(width: 64, height: 28)
                 .overlay(alignment: .leading) {
-                    Text("Drag files")
+                    Text("Drag")
                         .padding(.leading, 27)
                         .foregroundStyle(surface.secondary)
                         .opacity(isBusy ? 0.4 : 1)
@@ -67,26 +76,17 @@ struct ActionBar: View {
                     in: RoundedRectangle(cornerRadius: 5)
                 )
                 .onHover { isDragHovered = $0 }
-                .accessibilityLabel("Drag All Files")
-                .help("Drag All \(store.items.batchDragFileURLs.count) Files")
+                .accessibilityLabel("Drag All Items")
+                .help("Drag \(store.items.count) \(store.items.count == 1 ? "Item" : "Items")")
+                .disabled(isBusy)
+
+                Button(action: onClearAll) {
+                    actionLabel("Clear All…")
+                }
+                .accessibilityLabel("Clear All…")
+                .help("Clear All…")
                 .disabled(isBusy)
             }
-
-            if store.isExporting {
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.mini)
-                    Text("Copying…")
-                }
-                .foregroundStyle(surface.secondary)
-                .accessibilityLabel("Copying Items")
-            }
-
-            Button(action: onClearAll) {
-                actionLabel("Clear All…")
-            }
-            .accessibilityLabel("Clear All…")
-            .help("Clear All…")
-            .disabled(store.items.isEmpty || isBusy)
         }
         .font(.callout)
         .foregroundStyle(surface.foreground)
@@ -100,10 +100,6 @@ struct ActionBar: View {
                 try? await Task.sleep(for: .milliseconds(500))
             }
         }
-    }
-
-    private var canDragAll: Bool {
-        store.items.batchDragFileURLs.count > 1
     }
 
     private var isBusy: Bool {

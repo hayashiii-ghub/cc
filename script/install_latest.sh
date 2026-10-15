@@ -75,8 +75,11 @@ install_app() (
   local install_dir="$(dirname "$destination_app")"
   local staged_app="$install_dir/.$APP_BUNDLE_NAME.app.new.$$"
   local backup_app="$install_dir/.$APP_BUNDLE_NAME.app.backup.$$"
-  local cli_destination="$INSTALL_HOME/.local/bin/cc:"
-  local cli_binary="$destination_app/Contents/Helpers/cc:"
+  local cli_destination="$INSTALL_HOME/.local/bin/cc-shelf"
+  local cli_binary="$destination_app/Contents/Helpers/cc-shelf"
+  local previous_cli_destination="$INSTALL_HOME/.local/bin/cc:"
+  local previous_cli_binary="$destination_app/Contents/Helpers/cc:"
+  local previous_cli_managed=0
   local cli_managed=0
   local app_installed=0
   local success=0
@@ -128,13 +131,16 @@ install_app() (
       || { echo "Preserving an existing recovery path: $existing" >&2; exit 1; }
   done
 
-  # The existing exact helper link keeps its inode across app updates. Custom
-  # commands are not part of app installation and remain untouched.
-  if [[ -L "$cli_destination" && "$(readlink "$cli_destination")" == "$cli_binary" ]]; then
+  # Existing cc-shelf links keep their inode across app updates. The old
+  # command and skills are switched by the explicit agent-tools installer.
+  if [[ -L "$previous_cli_destination" && "$(readlink "$previous_cli_destination")" == "$previous_cli_binary" ]]; then
+    previous_cli_managed=1
+  fi
+  if [[ -L "$cli_destination" && "$(readlink "$cli_destination")" == "$cli_binary" ]] || (( previous_cli_managed )); then
     cli_managed=1
     [[ ! -L "$INSTALL_HOME/.local" && ! -L "$INSTALL_HOME/.local/bin" ]] \
       || { echo "Preserving a symlinked CLI directory." >&2; exit 1; }
-    [[ -x "$source_app/Contents/Helpers/cc:" ]] \
+    [[ -x "$source_app/Contents/Helpers/cc-shelf" ]] \
       || { echo "The archive lacks the CLI required by the existing installation." >&2; exit 1; }
   fi
   trap 'status=$?; rollback_install; exit "$status"' EXIT
@@ -144,7 +150,7 @@ install_app() (
   validate_app "$staged_app" \
     || { echo "Staged cc.app failed validation" >&2; exit 1; }
   if (( cli_managed )); then
-    [[ -x "$staged_app/Contents/Helpers/cc:" ]] \
+    [[ -x "$staged_app/Contents/Helpers/cc-shelf" ]] \
       || { echo "The archive lacks the CLI required by the existing installation." >&2; exit 1; }
   fi
 
@@ -157,6 +163,10 @@ install_app() (
     || { echo "Installed cc.app failed validation" >&2; exit 1; }
   run_install xattr -dr com.apple.quarantine "$destination_app" 2>/dev/null || true
   success=1
+  if (( previous_cli_managed )); then
+    printf 'To switch the CLI to cc-shelf and update its skills, run:\n  CC_INSTALL_HOME=%q CC_INSTALL_APP=%q %q\n' \
+      "$INSTALL_HOME" "$destination_app" "$destination_app/Contents/Resources/install_agent_tools.sh"
+  fi
 )
 
 INSTALL_DIR="$(choose_install_dir)"

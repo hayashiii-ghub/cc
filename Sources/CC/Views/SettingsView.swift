@@ -152,7 +152,7 @@ struct SettingsView: View {
 
     private var agentTools: some View {
         Section("Agent Tools") {
-            Text("Install the cc: CLI and skill by running this command in Terminal:")
+            Text("Install the cc-shelf CLI and skill by running this command in Terminal:")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

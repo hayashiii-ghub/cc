@@ -4,7 +4,6 @@ import SwiftUI
 struct ShelfContentView: View {
     @ObservedObject var store: ShelfStore
     var surface: ShelfSurface = .regular
-    let onDismiss: () -> Void
     let onShowSettings: () -> Void
     let onClearAll: () -> Void
     var onAddFiles: (() -> Void)? = nil
@@ -15,7 +14,6 @@ struct ShelfContentView: View {
                 count: store.items.count,
                 surface: surface,
                 hasUnreadItems: !store.unreadItemIDs.isEmpty,
-                onDismiss: onDismiss,
                 onShowSettings: onShowSettings
             )
 
@@ -71,7 +69,6 @@ private struct ShelfHeader: View {
     let count: Int
     let surface: ShelfSurface
     let hasUnreadItems: Bool
-    let onDismiss: () -> Void
     let onShowSettings: () -> Void
 
     var body: some View {
@@ -93,14 +90,6 @@ private struct ShelfHeader: View {
                 title: "Settings…",
                 tint: NSColor(surface.foreground),
                 action: onShowSettings
-            )
-            .frame(width: 26, height: 28)
-
-            ShelfHeaderButton(
-                systemImage: "xmark",
-                title: "Hide Shelf",
-                tint: NSColor(surface.foreground),
-                action: onDismiss
             )
             .frame(width: 26, height: 28)
         }
