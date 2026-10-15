@@ -20,18 +20,22 @@ immediately and are remembered. Escape cancels recording; **Restore Defaults**
 returns both actions to their original keys. Finder selection is added only
 while Finder is the frontmost app.
 
-The ellipsis at the top right opens its menu. Add files, copy items to a
-folder, clear the shelf, or open Settings there. Items show native file
+The gear button at the top right opens **Settings…** directly. Items show native file
 icons or image/PDF previews, their names, item type, source (You, Codex, or
 Claude Code), and an optional handoff note. Double-click
 an item to open its managed copy; double-click text to copy it. Its small action
 menu contains Copy, Show in Finder where available, and Remove from Shelf.
 
 Both presentations use the same item list and controls. Recent items appear
-first, and the shelf height follows the number of items. Add files and Paste stay at the bottom;
-Drag files appears when there are at least two files. Copy All to Folder is in
-the shelf menu. In Notch mode, closing the shelf leaves a small `cc:` entry beside
-the notch. The menu-bar icon remains available in either mode.
+first, and the shelf height follows the number of items. **Add Files…** and
+**Paste** stay at the bottom. **Drag files** appears when there are at least two
+files, folders, or images and no import or export is running. Dragging leaves
+the items in the shelf. **Clear All…** at the bottom right asks you to confirm
+the item count before clearing the entire shelf, including text and links.
+
+Right-click the `cc:` menu-bar icon for **Copy All to Folder…**. In Notch mode,
+closing the shelf leaves a small `cc:` entry beside the notch. The menu-bar
+icon remains available in either mode.
 
 cc: keeps its records and managed file copies locally across app restarts.
 The local store is `~/Library/Application Support/cc`.
