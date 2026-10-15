@@ -2,6 +2,32 @@
 
 This repository contains the standalone cc: product for macOS.
 
+## Agent setup and updates
+
+For a setup request, locate the installed `cc.app` and use its bundled installer.
+The commands below assume `/Applications`. For another location, use its script
+path and set `CC_INSTALL_APP` to that app’s absolute path on each invocation.
+
+```sh
+"/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --check
+"/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --print-plan
+"/Applications/cc.app/Contents/Resources/install_agent_tools.sh"
+```
+
+`--check` is read-only and prints JSON. Exit 0 means inspection completed, not
+that tools are current: inspect `status`. Invalid checks return `unknown` and a
+nonzero exit. Run the final command when setup or an update is requested.
+It installs the CLI link and both skills listed below without network access
+or shell configuration changes. Rerun after app updates to refresh unchanged
+managed skills; app updates alone do not refresh them. Settings reports status.
+
+For handoff and shelf-reading requests, follow
+[cc-handoff](skills/cc-handoff/SKILL.md); it covers CLI discovery, text, JSON,
+permissions, and errors. Installing it does not start agents or read chats.
+
+For a requested app installation or update, use `make install-latest` or the
+latest GitHub release. Preserve existing data and unrelated installations.
+
 ## Project map
 
 - `Sources/CC/`, `Sources/CCCore/`, and `Sources/CCCLI/`: the macOS app, shared storage, and CLI. Tests are in `Tests/CCTests/` and `Tests/CCCoreTests/`.
@@ -33,13 +59,24 @@ Earlier versions require a manual installation and separate data/settings
 transfer because the bundle identity changed. Keep pre-v0.4.0 updates
 informational in the Sparkle feed. Verify actual publication status before reporting a release.
 
-## Validation
+## Development and validation
 
-- macOS app: `make check`
-- website: from `site/`, run `npm run lint` and `npm test`
+Source builds require Xcode and macOS 26 or later.
+
+- App: `make run` builds and opens it; `make check` validates the app, CLI, installer, and packaging scripts.
+- Distribution: `make package` creates `dist/cc-macos.dmg` and `dist/cc-macos.zip`, including the CLI, installer, skill, and Sparkle. It does not install agent tools.
+- Agent installer: `make install-agent-tools` uses `/Applications/cc.app`; set `CC_INSTALL_APP` for another copy and `CC_INSTALL_HOME` for isolated tests.
+- CLI: `swift run cc-shelf --help`. `swift run cc-demo add-finder-selection` triggers the running debug app; release builds omit the helper and its triggers.
+- Site: from `site/`, run `npm ci`, then `npm run dev` for preview or `npm run lint` and `npm test` for validation.
+
+App publication uses the existing tag-triggered GitHub Actions release workflow.
+Site publication uses the existing Sites project in `site/.openai/hosting.json`;
+a GitHub push alone does not publish it. Verify public assets and the live site
+separately from source checks and local installation.
 
 ## Working conventions
 
+- Keep human-facing guidance in `README.md` and agent procedures in `AGENTS.md`, both minimal. Ask before adding other documentation; retain required licenses and the distributable skill.
 - Keep app and site changes scoped unless a cross-product release or brand change is explicitly required.
 - Do not edit generated or dependency directories such as `.build/`, `node_modules/`, `dist/`, `.vinext/`, or `.wrangler/`.
 - Reuse existing scripts and package commands instead of duplicating build or release logic.
