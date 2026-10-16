@@ -33,7 +33,7 @@ latest GitHub release. Preserve existing data and unrelated installations.
 - `Sources/CC/`, `Sources/CCCore/`, and `Sources/CCCLI/`: the macOS app, shared storage, and CLI. Tests are in `Tests/CCTests/` and `Tests/CCCoreTests/`.
 - `Package.swift`, `Makefile`, `Assets/`, and `script/`: app build, validation, and packaging.
 - `Tools/CCDemo/`: debug-only recording helper.
-- `site/`: the Japanese/English product site, built with Next.js/vinext and deployed through a Cloudflare Worker. App previews use HTML/CSS in `site/app/ShelfPreview.tsx`.
+- `site/`: the Japanese/English static product site, built with Bun and TypeScript. Source is in `site/src/`, build output is `site/dist/`, and app previews use HTML/CSS in `site/src/render.ts`.
 
 Use `cc:` for product copy and `cc-shelf` for the CLI command. Use `CC` for
 Swift type/module names and `cc` for paths, IDs, and URL slugs. The package
@@ -67,7 +67,7 @@ Source builds require Xcode and macOS 26 or later.
 - Distribution: `make package` creates `dist/cc-macos.dmg` and `dist/cc-macos.zip`, including the CLI, installer, skill, and Sparkle. It does not install agent tools.
 - Agent installer: `make install-agent-tools` uses `/Applications/cc.app`; set `CC_INSTALL_APP` for another copy and `CC_INSTALL_HOME` for isolated tests.
 - CLI: `swift run cc-shelf --help`. `swift run cc-demo add-finder-selection` triggers the running debug app; release builds omit the helper and its triggers.
-- Site: from `site/`, run `npm ci`, then `npm run dev` for preview or `npm run lint` and `npm test` for validation.
+- Site: from `site/`, use Bun 1.4.2 and run `bun install --frozen-lockfile`, then `bun run dev` for preview or `bun run check` and `bun run test` for validation. `bun run start` serves the existing `dist/` build.
 
 App publication uses the existing tag-triggered GitHub Actions release workflow.
 Site publication uses the existing Sites project in `site/.openai/hosting.json`;
@@ -78,6 +78,6 @@ separately from source checks and local installation.
 
 - Keep human-facing guidance in `README.md` and agent procedures in `AGENTS.md`, both minimal. Ask before adding other documentation; retain required licenses and the distributable skill.
 - Keep app and site changes scoped unless a cross-product release or brand change is explicitly required.
-- Do not edit generated or dependency directories such as `.build/`, `node_modules/`, `dist/`, `.vinext/`, or `.wrangler/`.
+- Do not edit generated or dependency directories such as `.build/`, `node_modules/`, or `dist/`.
 - Reuse existing scripts and package commands instead of duplicating build or release logic.
 - Back up ignored raw recordings separately before media cleanup. Preserve current icon and site asset appearance during naming-only changes.

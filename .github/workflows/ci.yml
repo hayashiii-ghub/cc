@@ -30,18 +30,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: site/package-lock.json
+          bun-version: 1.4.2
 
       - name: Install site dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Lint site
-        run: npm run lint
+      - name: Check site types
+        run: bun run check
 
       - name: Test site
-        run: npm test
+        run: bun run test

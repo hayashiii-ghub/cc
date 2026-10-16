@@ -1,7 +1,7 @@
 # cc: website visuals
 
-The page uses HTML/CSS product illustrations in `app/ShelfPreview.tsx` with
-`app/shelf-preview.module.css`. No screenshots or videos are used for the app
+The page uses HTML/CSS product illustrations in `src/render.ts` with
+`src/styles/shelf.css`. No screenshots or videos are used for the app
 previews. The interactive example switches Menu Bar / Notch, filled / empty,
 and light / dark appearance using sample items only. It never accesses the
 visitor's files or clipboard.
@@ -30,6 +30,6 @@ app’s saved copies and handoff flow without claiming an origin for the name.
 It is separate from the transparent mark used on the page. Check it at 16×16
 and 32×32 on both light and dark browser backgrounds when changing the mark.
 
-Validate with `npm run lint`, `npm test`, and a browser review at desktop and
+Validate with `bun run check`, `bun run test`, and a browser review at desktop and
 mobile widths, including all preview controls. Publication requires explicit
 authorization.
