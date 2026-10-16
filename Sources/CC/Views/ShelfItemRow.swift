@@ -47,17 +47,17 @@ struct ShelfItemRow: View {
             Menu {
                 itemActions
             } label: {
-                Image(systemName: "ellipsis")
+                Text("Details")
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(surface.secondary.opacity(isHovered ? 1 : 0.75))
-                    .frame(width: 22, height: 28)
+                    .padding(.horizontal, 4)
+                    .frame(height: 28)
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
-            .accessibilityLabel("Actions for \(appearance.title)")
-            .help("Item Actions")
+            .help("Item Details")
+            .accessibilityLabel("Details for \(appearance.title)")
         }
         .contentShape(Rectangle())
         .foregroundStyle(surface.foreground)
@@ -67,12 +67,15 @@ struct ShelfItemRow: View {
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
         .onHover { isHovered = $0 }
-        .contextMenu {
-            itemActions
-        }
     }
 
     private var itemActions: some View {
-        ShelfItemActions(item: item, onOpen: onOpen, onCopy: onCopy, onReveal: onReveal, onRemove: onRemove)
+        ShelfItemActions(
+            item: item,
+            onOpen: onOpen,
+            onCopy: onCopy,
+            onReveal: onReveal,
+            onRemove: onRemove
+        )
     }
 }

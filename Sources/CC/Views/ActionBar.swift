@@ -30,10 +30,10 @@ struct ActionBar: View {
                     _ = store.addItemsFromOpenPanel()
                 }
             } label: {
-                actionLabel(store.isImporting ? "Adding…" : "Add Files…", isWorking: store.isImporting)
+                actionLabel(store.isImporting ? "Adding" : "Add Files", isWorking: store.isImporting)
             }
-            .accessibilityLabel(store.isImporting ? "Adding Files" : "Add Files…")
-            .help(store.isImporting ? "Adding Files…" : "Add Files…")
+            .accessibilityLabel(store.isImporting ? "Adding Files" : "Add Files")
+            .help(store.isImporting ? "Adding Files" : "Add Files")
             .disabled(store.isExporting || store.isImporting)
 
             Button {
@@ -52,7 +52,7 @@ struct ActionBar: View {
                     .controlSize(.mini)
                     .frame(width: 12, height: 12)
                     .accessibilityLabel("Copying Items")
-                    .help("Copying…")
+                    .help("Copying")
             }
 
             if !store.items.isEmpty {
@@ -73,10 +73,10 @@ struct ActionBar: View {
                 .disabled(isBusy)
 
                 Button(action: onClearAll) {
-                    actionLabel("Clear All…")
+                    actionLabel("Clear All")
                 }
-                .accessibilityLabel("Clear All…")
-                .help("Clear All…")
+                .accessibilityLabel("Clear All")
+                .help("Clear All")
                 .disabled(isBusy)
             }
         }

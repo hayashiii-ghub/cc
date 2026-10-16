@@ -71,7 +71,7 @@ function ShelfWindow({
                   <span className={styles.detailSeparator}> · </span>{item.note}
                 </p>
               </div>
-              <span className={styles.itemMenu} aria-hidden="true">···</span>
+              <span className={styles.itemMenu} aria-hidden="true">{copy.details}</span>
             </li>
           ))}
         </ul>

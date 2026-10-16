@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        url: "/cc/cc-og.png?v=0.4.3-handoff",
+        url: "/cc/cc-og.png?v=0.4.4",
         width: 1200,
         height: 630,
         alt: title,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/cc/cc-og.png?v=0.4.3-handoff",
+        url: "/cc/cc-og.png?v=0.4.4",
         alt: title,
       },
     ],

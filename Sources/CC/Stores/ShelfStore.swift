@@ -37,6 +37,7 @@ final class ShelfStore: ObservableObject {
     private var refreshTimer: Timer?
     private var seenItemIDs: Set<UUID> = []
     private let fileActions = FileActionService()
+    private let itemOpener: ShelfItemOpener
     private let inbox: ShelfInbox
     private let importer: ShelfItemImporter
     private let errorPresenter: @MainActor (Error) -> Void
@@ -44,9 +45,11 @@ final class ShelfStore: ObservableObject {
     init(
         repository: CCRepository = CCRepository(),
         inbox: ShelfInbox? = nil,
+        itemOpener: ShelfItemOpener? = nil,
         errorPresenter: @escaping @MainActor (Error) -> Void = ShelfStore.showAlert
     ) {
         self.repository = repository
+        self.itemOpener = itemOpener ?? ShelfItemOpener()
         fileRegistration = ShelfFileRegistration(repository: repository)
         let inbox = inbox ?? ShelfInbox(directoryURL: repository.rootURL.appendingPathComponent("Imports"))
         self.inbox = inbox
@@ -202,19 +205,23 @@ final class ShelfStore: ObservableObject {
         }
     }
 
-    func open(_ item: ShelfItem) {
-        guard canRead(item) else { return }
-        switch item.kind {
-        case .file, .folder, .image:
-            guard let url = item.url else { return }
-            NSWorkspace.shared.open(url)
-        case .link:
-            guard let url = item.url else { return }
-            NSWorkspace.shared.open(url)
-        case .text:
+    @discardableResult
+    func open(_ item: ShelfItem) -> Task<Void, Never>? {
+        guard canRead(item) else { return nil }
+        if item.kind == .text {
             copyToPasteboard(item)
+            return nil
+        }
+        return Task { @MainActor in
+            do {
+                try await itemOpener.open(item)
+            } catch {
+                present(error)
+            }
         }
     }
+
+    var openingPreferences: ShelfOpenPreferences { itemOpener.preferences }
 
     func reveal(_ item: ShelfItem) {
         guard canRead(item) else { return }
@@ -374,6 +381,8 @@ final class ShelfStore: ObservableObject {
 
     private static func showAlert(_ error: Error) {
         let alert = NSAlert(error: error)
+        alert.window.level = .popUpMenu
+        NSApp.activate()
         alert.runModal()
     }
 

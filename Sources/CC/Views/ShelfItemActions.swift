@@ -8,16 +8,14 @@ struct ShelfItemActions: View {
     let onRemove: () -> Void
 
     var body: some View {
-        if item.kind == .text {
-            Button("Copy Text", action: onCopy)
-        } else {
+        if item.kind != .text {
             Button("Open", action: onOpen)
-            Button(item.kind == .link ? "Copy Link" : "Copy", action: onCopy)
         }
+        Button("Copy", action: onCopy)
         if item.secondaryAction == .reveal {
             Button("Show in Finder", action: onReveal)
         }
         Divider()
-        Button("Remove from Shelf", role: .destructive, action: onRemove)
+        Button("Remove", role: .destructive, action: onRemove)
     }
 }

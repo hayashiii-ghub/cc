@@ -18,7 +18,7 @@ struct ShortcutRecorder: NSViewRepresentable {
         button.onBegin = onBegin
         button.onCancel = onCancel
         button.onRecord = onRecord
-        button.title = isRecording ? "Press shortcut…" : binding.displayString
+        button.title = isRecording ? "Press shortcut" : binding.displayString
         button.setAccessibilityLabel("Shortcut for \(actionName)")
         button.setAccessibilityValue(isRecording ? "Recording" : binding.accessibilityString)
         button.toolTip = isRecording ? "Press a shortcut. Escape cancels." : "Click to change this shortcut."

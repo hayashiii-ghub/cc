@@ -47,6 +47,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let agentTools = AgentToolsStatusController()
     private lazy var settingsWindowController = SettingsWindowController(
         preferences: presentationPreferences,
+        openingPreferences: store.openingPreferences,
         shortcutController: shortcutController,
         agentTools: agentTools,
         onCheckForUpdates: { [weak self] in
@@ -242,16 +243,16 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu(title: "cc:")
         menu.delegate = self
         menu.autoenablesItems = false
-        menu.addItem(NSMenuItem(title: "Add Files…", action: #selector(addFiles), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "Add Files", action: #selector(addFiles), keyEquivalent: "o"))
         let clipboardItem = NSMenuItem(title: "Add Clipboard Text", action: #selector(addClipboardText), keyEquivalent: "")
         addClipboardMenuItem = clipboardItem
         menu.addItem(clipboardItem)
         menu.addItem(.separator())
 
-        let copyItem = NSMenuItem(title: "Copy All to Folder…", action: #selector(copyItems), keyEquivalent: "")
+        let copyItem = NSMenuItem(title: "Copy All to Folder", action: #selector(copyItems), keyEquivalent: "")
         copyMenuItem = copyItem
         menu.addItem(copyItem)
-        let clearItem = NSMenuItem(title: "Clear All…", action: #selector(clearShelf), keyEquivalent: "")
+        let clearItem = NSMenuItem(title: "Clear All", action: #selector(clearShelf), keyEquivalent: "")
         clearItem.toolTip = "Remove items from cc:. Original files stay where they are."
         clearMenuItem = clearItem
         menu.addItem(clearItem)
@@ -265,7 +266,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         toolsItem.isHidden = agentTools.report?.menuNotice == nil
         agentToolsMenuItem = toolsItem
         menu.addItem(toolsItem)
-        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Settings", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "Quit cc:", action: #selector(quit), keyEquivalent: "q"))
         for entry in menu.items where entry.action != nil {
             entry.target = self
@@ -278,7 +279,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let mainMenu = NSMenu()
         let applicationItem = NSMenuItem()
         let applicationMenu = NSMenu(title: "cc:")
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "Settings", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self
         applicationMenu.addItem(settingsItem)
         applicationMenu.addItem(.separator())
@@ -292,7 +293,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let fileMenu = NSMenu(title: "File")
         fileMenu.delegate = self
         fileMenu.autoenablesItems = false
-        let addFilesItem = NSMenuItem(title: "Add Files…", action: #selector(addFiles), keyEquivalent: "o")
+        let addFilesItem = NSMenuItem(title: "Add Files", action: #selector(addFiles), keyEquivalent: "o")
         addFilesItem.target = self
         fileMenu.addItem(addFilesItem)
         fileItem.submenu = fileMenu

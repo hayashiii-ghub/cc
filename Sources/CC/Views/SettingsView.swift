@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     @ObservedObject var preferences: ShelfPresentationPreferences
+    @ObservedObject var openingPreferences: ShelfOpenPreferences
     @ObservedObject var shortcutPreferences: ShortcutPreferences
     @ObservedObject var agentTools: AgentToolsStatusController
     let shortcutController: ShortcutController
@@ -28,6 +29,7 @@ struct SettingsView: View {
             }
 
             shelfLocation
+            ShelfOpeningSettings(preferences: openingPreferences)
             shortcuts
             agentToolsSection
             updates
@@ -132,7 +134,7 @@ struct SettingsView: View {
     private var updates: some View {
         Section {
             HStack(spacing: 12) {
-                Button("Check for Updates…", action: onCheckForUpdates)
+                Button("Check for Updates", action: onCheckForUpdates)
 
                 Button(action: onOpenReleasePage) {
                     Label("Release Notes", systemImage: "arrow.up.right")

@@ -101,7 +101,7 @@
       .file { display: grid; place-items: center; width: 28px; height: 34px; flex: 0 0 auto; border: 1px solid #8b8b8b; border-radius: 4px; color: #bbb; font-size: 8px; }
       .shelf li b { display: block; font-size: 13px; font-weight: 400; }
       .shelf li small { display: block; margin-top: 4px; color: #aaa; font-size: 11px; }
-      .shelf li em { margin-left: auto; font-style: normal; color: #999; }
+      .shelf li em { margin-left: auto; font-style: normal; color: inherit; font-size: 12px; }
       .shelf footer { height: 48px; padding: 0 10px; display: flex; align-items: center; gap: 4px; border-top: 1px solid #ffffff12; color: #f3f3f3; font-size: 12px; white-space: nowrap; }
       .shelf footer .action { padding: 0 6px; }
       .footer-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
@@ -130,11 +130,11 @@
         <div class="shelf" aria-label="cc: shelf with sample items">
           <header><strong>cc:</strong><small>3 items</small><div class="header-actions" aria-hidden="true"><span class="header-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4l1 3 2 1 3-1 2 3-2 2v4l2 2-2 3-3-1-2 1-1 3h-4l-1-3-2-1-3 1-2-3 2-2v-4L2 8l2-3 3 1 2-1 1-3Z"/><circle cx="12" cy="12" r="3.5"/></svg></span></div></header>
           <ul>
-            <li><span class="file">PDF</span><div><b>Project brief.pdf</b><small>PDF document · You</small></div><em>···</em></li>
-            <li><span class="file">MD</span><div><b>Review findings.md</b><small>Markdown · Codex</small></div><em>···</em></li>
-            <li><span class="file">Aa</span><div><b>Draft reply</b><small>Text · Claude Code</small></div><em>···</em></li>
+            <li><span class="file">PDF</span><div><b>Project brief.pdf</b><small>PDF document · You</small></div><em>Details</em></li>
+            <li><span class="file">MD</span><div><b>Review findings.md</b><small>Markdown · Codex</small></div><em>Details</em></li>
+            <li><span class="file">Aa</span><div><b>Draft reply</b><small>Text · Claude Code</small></div><em>Details</em></li>
           </ul>
-          <footer><span class="action">Add Files…</span><span class="action">Paste</span><div class="footer-actions"><span class="action">Drag</span><span class="action">Clear All…</span></div></footer>
+          <footer><span class="action">Add Files</span><span class="action">Paste</span><div class="footer-actions"><span class="action">Drag</span><span class="action">Clear All</span></div></footer>
         </div>
         <p class="preview-note">SAMPLE ITEMS · LOCAL TO YOUR MAC</p>
       </figure>

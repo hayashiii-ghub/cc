@@ -383,7 +383,7 @@ final class NotchIslandController: NSObject {
         localEventMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown, .keyDown]
         ) { [weak self] event in
-            guard let self else { return event }
+            guard let self, NSApp.modalWindow == nil else { return event }
 
             if event.type == .keyDown, event.keyCode == 53 {
                 self.hideShelf()

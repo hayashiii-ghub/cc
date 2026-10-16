@@ -106,7 +106,7 @@
 .itemDetail { margin: 5px 0 0; color: var(--shelf-muted); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .sourceEmphasis { color: var(--shelf-fg); }
 .detailSeparator { opacity: 0.6; }
-.itemMenu { align-self: flex-start; margin-top: 6px; color: var(--shelf-muted); font-size: 20px; line-height: 1; letter-spacing: 0.5px; }
+.itemMenu { display: flex; align-items: center; align-self: center; flex: 0 0 auto; min-height: 28px; padding-inline: 4px; color: var(--shelf-fg); font-size: 12px; font-weight: 400; line-height: 1.4; white-space: nowrap; }
 .shelfFooter { min-height: 52px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 10px; border-top: 1px solid var(--shelf-line); font-size: 12px; line-height: 1.4; color: var(--shelf-fg); }
 .shelfFooter:lang(ja) { flex-wrap: wrap; row-gap: 10px; }
 .footerPrimary { display: flex; align-items: center; flex: 0 0 auto; gap: 4px; white-space: nowrap; }

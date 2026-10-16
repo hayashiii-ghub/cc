@@ -14,7 +14,7 @@ struct AgentToolsStatusTests {
         first.checkAfterVersionChange()
         try await finish(first)
         #expect(first.report?.status == .notInstalled)
-        #expect(first.report?.menuNotice == "Set Up Agent Tools…")
+        #expect(first.report?.menuNotice == "Set Up Agent Tools")
         #expect(await checks.count == 1)
 
         let relaunched = AgentToolsStatusController(defaults: defaults, version: "1") { await checks.next() }
@@ -40,7 +40,7 @@ struct AgentToolsStatusTests {
         let controller = AgentToolsStatusController(defaults: defaults, version: "1") { await checks.next() }
         controller.checkAfterVersionChange()
         try await finish(controller)
-        #expect(controller.report?.menuNotice == "Update Agent Tools…")
+        #expect(controller.report?.menuNotice == "Update Agent Tools")
 
         controller.refresh()
         controller.refresh()

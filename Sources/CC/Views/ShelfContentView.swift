@@ -87,7 +87,7 @@ private struct ShelfHeader: View {
 
             ShelfHeaderButton(
                 systemImage: "gearshape",
-                title: "Settings…",
+                title: "Settings",
                 tint: NSColor(surface.foreground),
                 action: onShowSettings
             )

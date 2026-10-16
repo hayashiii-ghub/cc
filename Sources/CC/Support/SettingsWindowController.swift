@@ -7,6 +7,7 @@ final class SettingsWindowController {
     private static let preferredContentHeight: CGFloat = 640
 
     private let preferences: ShelfPresentationPreferences
+    private let openingPreferences: ShelfOpenPreferences
     private let shortcutController: ShortcutController
     private let agentTools: AgentToolsStatusController
     private let onCheckForUpdates: () -> Void
@@ -16,12 +17,14 @@ final class SettingsWindowController {
 
     init(
         preferences: ShelfPresentationPreferences,
+        openingPreferences: ShelfOpenPreferences,
         shortcutController: ShortcutController,
         agentTools: AgentToolsStatusController,
         onCheckForUpdates: @escaping () -> Void,
         onOpenReleasePage: @escaping () -> Void
     ) {
         self.preferences = preferences
+        self.openingPreferences = openingPreferences
         self.shortcutController = shortcutController
         self.agentTools = agentTools
         self.onCheckForUpdates = onCheckForUpdates
@@ -40,6 +43,7 @@ final class SettingsWindowController {
     private var settingsView: SettingsView {
         SettingsView(
             preferences: preferences,
+            openingPreferences: openingPreferences,
             shortcutPreferences: shortcutController.preferences,
             agentTools: agentTools,
             shortcutController: shortcutController,

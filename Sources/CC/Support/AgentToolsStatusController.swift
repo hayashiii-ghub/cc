@@ -43,8 +43,8 @@ struct AgentToolsReport: Codable, Equatable, Sendable {
 
     var menuNotice: String? {
         switch status {
-        case .notInstalled: "Set Up Agent Tools…"
-        case .outdated: "Update Agent Tools…"
+        case .notInstalled: "Set Up Agent Tools"
+        case .outdated: "Update Agent Tools"
         default: nil
         }
     }
@@ -126,7 +126,7 @@ final class AgentToolsStatusController: ObservableObject {
     }
 
     var message: String {
-        isChecking ? "Checking agent tools…" : (report ?? .unknown).message
+        isChecking ? "Checking agent tools" : (report ?? .unknown).message
     }
 
     func checkAfterVersionChange() {
