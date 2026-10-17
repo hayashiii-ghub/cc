@@ -10,7 +10,7 @@ cc:は、そんな受け渡しを一か所にまとめます。
 成果物も「cc:に置いて」と頼めば、同じ棚で受け取り、開いたりまとめてドラッグしたりできます。
 
 無料・オープンソース。macOS 26以降、Apple Silicon / Intel対応。
-[サイト](https://cc.hayashiii-gpt.chatgpt.site) · [最新版をダウンロード](https://github.com/hayashiii-ghub/cc/releases/latest)
+[サイト](https://cc.shigoto.dev) · [最新版をダウンロード](https://github.com/hayashiii-ghub/cc/releases/latest)
 
 ## 使い方
 

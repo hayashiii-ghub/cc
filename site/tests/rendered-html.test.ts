@@ -37,13 +37,13 @@ test("renders the standalone cc: site at the root", async () => {
   assert.doesNotMatch(html, /aria-label="(?:Pause|Play) /);
   assert.match(html, /cc-mark\.svg/);
   assert.match(html, /property="og:type" content="website"/);
-  assert.match(html, /property="og:url" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.4"/);
+  assert.match(html, /property="og:url" content="https:\/\/cc\.shigoto\.dev\/"/);
+  assert.match(html, /property="og:image" content="https:\/\/cc\.shigoto\.dev\/cc\/cc-og\.png\?v=0\.4\.4"/);
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
-  assert.match(html, /name="twitter:image" content="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-og\.png\?v=0\.4\.4"/);
+  assert.match(html, /name="twitter:image" content="https:\/\/cc\.shigoto\.dev\/cc\/cc-og\.png\?v=0\.4\.4"/);
   assert.match(html, /name="twitter:image:alt" content="cc:"/);
-  assert.match(html, /rel="icon" href="https:\/\/cc\.hayashiii-gpt\.chatgpt\.site\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
+  assert.match(html, /rel="icon" href="\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
   assert.match(html, /releases\/latest\/download\/cc-macos\.dmg/);
@@ -135,8 +135,8 @@ test("build emits hashed browser assets and preserves local image, font, and OGP
   for (const url of [...scripts, ...styles]) assert.match(url, /^\/assets\/[^/]+-[a-zA-Z0-9_-]+\.(?:js|css)$/);
   for (const match of html.matchAll(/(?:src|href|content)="([^"]+)"/g)) {
     const value = match[1]!;
-    if (!value.startsWith("/") && !value.startsWith("https://cc.hayashiii-gpt.chatgpt.site/")) continue;
-    const pathname = new URL(value, "https://cc.hayashiii-gpt.chatgpt.site").pathname;
+    if (!value.startsWith("/") && !value.startsWith("https://cc.shigoto.dev/")) continue;
+    const pathname = new URL(value, "https://cc.shigoto.dev").pathname;
     if (pathname === "/") continue;
     assert.ok(await Bun.file(join(distRoot, pathname.slice(1))).exists(), `Missing built asset: ${pathname}`);
   }

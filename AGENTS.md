@@ -70,9 +70,10 @@ Source builds require Xcode and macOS 26 or later.
 - Site: from `site/`, use Bun 1.4.2 and run `bun install --frozen-lockfile`, then `bun run dev` for preview or `bun run check` and `bun run test` for validation. `bun run start` serves the existing `dist/` build.
 
 App publication uses the existing tag-triggered GitHub Actions release workflow.
-Site publication uses the existing Sites project in `site/.openai/hosting.json`;
-a GitHub push alone does not publish it. Verify public assets and the live site
-separately from source checks and local installation.
+Site publication uses the Vercel `cc` project, with `site/` as its root and
+`dist/` as build output. Pull requests get previews; `main` publishes
+`https://cc.shigoto.dev`. Keep the former Sites identity for old-URL redirects.
+Verify public assets separately from source checks and local installation.
 
 ## Working conventions
 
