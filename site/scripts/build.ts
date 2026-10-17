@@ -6,7 +6,7 @@ import { escapeHtml, renderPage } from "../src/render.ts";
 
 export const siteRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 export const distRoot = join(siteRoot, "dist");
-const siteURL = "https://cc.hayashiii-gpt.chatgpt.site";
+const siteURL = "https://cc.shigoto.dev";
 const imageURL = `${siteURL}/cc/cc-og.png?v=0.4.4`;
 
 type Assets = { scripts: string[]; styles: string[] };
@@ -25,8 +25,9 @@ export function renderDocument(body: string, assets: Assets, language: SiteLangu
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
 <meta name="description" content="${description}">
-<link rel="icon" href="${siteURL}/cc/cc-favicon.svg" type="image/svg+xml">
-<link rel="shortcut icon" href="${siteURL}/cc/cc-favicon.svg">
+<link rel="canonical" href="${siteURL}/">
+<link rel="icon" href="/cc/cc-favicon.svg" type="image/svg+xml">
+<link rel="shortcut icon" href="/cc/cc-favicon.svg">
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:type" content="website">
