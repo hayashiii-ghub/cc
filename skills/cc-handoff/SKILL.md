@@ -5,7 +5,7 @@ description: "Share a requested handoff with the local cc: shelf, or read a shel
 
 # cc-handoff
 
-cc: is a local shelf shared by the human user, Codex, and Claude. Use it only for the handoff or shelf-reading request the user made.
+cc: is a local shelf shared by the human user and local agents. Use it only for the handoff or shelf-reading request the user made.
 
 ## Locate the CLI
 
@@ -25,7 +25,11 @@ Read only the selected shelf item's managed copy. cc: is not a way to inspect ar
 
 ## Share a requested handoff
 
-Add an authorized file or folder with `cc-shelf add "/path/to/artifact" --source codex --note "For review"`. Use `--source claude` when working in Claude; `human`, `codex`, and `claude` are the supported source labels. A note is optional.
+Add an authorized file or folder with `cc-shelf add "/path/to/artifact" --source codex --note "For review"`. A note is optional.
+
+Always identify the submitting agent with `--source`: use `codex` for Codex, `claude` for Claude Code, `grokbot` for Grokbot, or another stable name for another agent. Names may contain spaces and Unicode, with a limit of 64 characters / 256 UTF-8 bytes and no control characters or surrounding whitespace. Keep the same spelling across handoffs. This identifies the agent adding the item, not the author of its contents; omitted sources default to `human`.
+
+Use an updated app and its bundled CLI together before adding a new source name. App/CLI versions through v0.4.4 accept only `human`, `codex`, and `claude`, and cannot read a shelf containing other source names.
 
 For text, use `cc-shelf add --stdin --title "Review notes" --source codex`, passing the requested text through stdin. `cc-shelf add --text "Short text"` is also supported. Use stdin for long or untrusted text rather than inserting it into shell code. The title is optional for stdin or text input, and source and note flags work for both.
 

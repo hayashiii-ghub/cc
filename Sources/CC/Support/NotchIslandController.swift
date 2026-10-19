@@ -187,6 +187,8 @@ final class NotchIslandController: NSObject {
             backing: .buffered,
             defer: false
         )
+        // The black Island also needs a dark appearance for AppKit-backed menu controls.
+        panel.appearance = NSAppearance(named: .darkAqua)
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false

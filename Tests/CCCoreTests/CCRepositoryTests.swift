@@ -182,11 +182,80 @@ struct CCRepositoryTests {
         #expect(try repository.addLink(url, source: "codex", note: "Second").id == secondLink.id)
     }
 
+    @Test(arguments: ["grokbot", "review-bot", "Research Bot", "調査アシスタント", String(repeating: "a", count: 64)])
+    func customSendersSurviveRestartAndDeduplicateByName(source: String) throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let existing = try repository.addText("Existing handoff", source: "codex")
+        let file = fixture.root.appendingPathComponent("result.txt")
+        try Data("Result".utf8).write(to: file)
+        let link = try #require(URL(string: "https://example.com/result"))
+        let records = [
+            try repository.addFile(file, source: source),
+            try repository.addText("Same content", source: source),
+            try repository.addLink(link, source: source)
+        ]
+        #expect(try repository.addFile(file, source: source).id == records[0].id)
+        #expect(try repository.addText("Same content", source: source).id == records[1].id)
+        #expect(try repository.addLink(link, source: source).id == records[2].id)
+
+        let restarted = CCRepository(rootURL: fixture.data)
+        #expect(try restarted.get(existing.id) == existing)
+        for record in records {
+            #expect(record.source == source)
+            #expect(try restarted.get(record.id) == record)
+        }
+        #expect(try restarted.list().count == 4)
+        let human = try restarted.addText("Same content", source: "human")
+        #expect(human.id != records[1].id)
+        #expect(human.source == "human")
+    }
+
+    @Test(arguments: [
+        "", " ", " grokbot", "grokbot ", "grok\nbot", "grok\tbot", "grok\u{2028}bot",
+        "grok\u{2029}bot", "grok\u{0000}bot", String(repeating: "a", count: 65),
+        "e" + String(repeating: "\u{0301}", count: 128)
+    ])
+    func rejectsMalformedSenderNamesWithoutChangingStoredItems(source: String) throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let existing = try repository.addText("Keep this")
+        let database = fixture.data.appendingPathComponent("records.json")
+        let before = try Data(contentsOf: database)
+        let file = fixture.root.appendingPathComponent("result.txt")
+        try Data("Result".utf8).write(to: file)
+        let link = try #require(URL(string: "https://example.com/result"))
+        #expect(throws: CCRepositoryError.self) { try repository.addText("Rejected", source: source) }
+        #expect(throws: CCRepositoryError.self) { try repository.addFile(file, source: source) }
+        #expect(throws: CCRepositoryError.self) { try repository.addLink(link, source: source) }
+        #expect(try Data(contentsOf: database) == before)
+        #expect(try repository.list() == [existing])
+    }
+
+    @Test func malformedStoredSendersFailClosedWithoutReplacingTheStore() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        _ = try repository.addText("Keep this", source: "grokbot")
+        let database = fixture.data.appendingPathComponent("records.json")
+        var object = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: database)) as? [String: Any])
+        var records = try #require(object["records"] as? [[String: Any]])
+        records[0]["source"] = "bad\nsource"
+        object["records"] = records
+        let malformed = try JSONSerialization.data(withJSONObject: object)
+        try malformed.write(to: database)
+        #expect(throws: CCRepositoryError.self) { try repository.list() }
+        #expect(throws: CCRepositoryError.self) { try repository.addText("Must not overwrite") }
+        #expect(try Data(contentsOf: database) == malformed)
+    }
+
     @Test func rejectsInvalidSourcesIDsAndSymbolicLinks() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
         let repository = CCRepository(rootURL: fixture.data)
-        #expect(throws: CCRepositoryError.self) { try repository.addText("text", source: "unknown") }
+        #expect(throws: CCRepositoryError.self) { try repository.addText("text", source: "bad\nsource") }
         #expect(throws: CCRepositoryError.self) { try repository.get(UUID()) }
         let source = fixture.root.appendingPathComponent("source.txt")
         try Data("private".utf8).write(to: source)
@@ -345,6 +414,38 @@ struct CCRepositoryTests {
         }
     }
 
+    @Test func CLIStoresSenderNamesForFilesTextAndStandardInput() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let executable = try cliExecutable()
+        let file = fixture.root.appendingPathComponent("result.txt")
+        try Data("File result".utf8).write(to: file)
+        let cases: [(arguments: [String], input: Data?, source: String)] = [
+            (["add", file.path, "--source", "grokbot"], nil, "grokbot"),
+            (["add", "--text", "Custom sender result", "--source", "調査 Bot"], nil, "調査 Bot"),
+            (["add", "--stdin", "--source", "grokbot"], Data("Standard input result".utf8), "grokbot"),
+            (["add", "--text", "Manual result"], nil, "human")
+        ]
+        let repository = CCRepository(rootURL: fixture.data)
+        for example in cases {
+            let response = try runCLI(executable, arguments: example.arguments, data: fixture.data, input: example.input)
+            #expect(response.status == 0)
+            #expect(response.error.isEmpty)
+            let envelope = try #require(JSONSerialization.jsonObject(with: response.output) as? [String: Any])
+            #expect(envelope["ok"] as? Bool == true)
+            let item = try #require(envelope["item"] as? [String: Any])
+            #expect(item["source"] as? String == example.source)
+            let id = try #require((item["id"] as? String).flatMap(UUID.init(uuidString:)))
+            #expect(try repository.get(id).source == example.source)
+        }
+        #expect(try repository.list().count == cases.count)
+        let rejected = try runCLI(executable, arguments: ["add", "--text", "Rejected", "--source", "bad\nsource"], data: fixture.data)
+        #expect(rejected.status != 0)
+        let envelope = try #require(JSONSerialization.jsonObject(with: rejected.error) as? [String: Any])
+        #expect((envelope["error"] as? [String: Any])?["code"] as? String == "invalid_source")
+        #expect(try repository.list().count == cases.count)
+    }
+
     @Test func CLIReadsFullTextAndNeverOverwritesOutput() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -404,7 +505,7 @@ struct CCRepositoryTests {
         return try #require(candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }, "Build the cc-shelf CLI, or set CC_CLI_TEST_BINARY, to run cross-process tests.")
     }
 
-    private func runCLI(_ executable: URL, arguments: [String], data: URL) throws -> (status: Int32, output: Data, error: Data) {
+    private func runCLI(_ executable: URL, arguments: [String], data: URL, input: Data? = nil) throws -> (status: Int32, output: Data, error: Data) {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
@@ -413,9 +514,15 @@ struct CCRepositoryTests {
         process.environment = environment
         let output = Pipe()
         let error = Pipe()
+        let standardInput = Pipe()
         process.standardOutput = output
         process.standardError = error
+        process.standardInput = input == nil ? FileHandle.nullDevice : standardInput
         try process.run()
+        if let input {
+            try standardInput.fileHandleForWriting.write(contentsOf: input)
+            try standardInput.fileHandleForWriting.close()
+        }
         let bytes = output.fileHandleForReading.readDataToEndOfFile()
         let errors = error.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

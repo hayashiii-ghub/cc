@@ -1,3 +1,4 @@
+import CCCore
 import Foundation
 
 struct ShelfItemAppearance {
@@ -51,12 +52,7 @@ struct ShelfItemAppearance {
             }
             destination = item.displayTitle
         }
-        let source: String
-        switch item.source {
-        case "codex": source = "Codex"
-        case "claude": source = "Claude Code"
-        default: source = "You"
-        }
+        let source = CCSource.displayName(for: item.source)
         let note = item.note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let summary = note.flatMap { $0.isEmpty ? nil : $0 } ?? typeDescription
         subtitle = "\(source) · \(summary)"

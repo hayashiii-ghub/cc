@@ -217,8 +217,11 @@ public struct CCRepository: Sendable {
     }
 
     private func validateSource(_ source: String) throws {
-        guard ["human", "codex", "claude"].contains(source) else {
-            throw failure("invalid_source", "Source must be human, codex, or claude.")
+        guard CCSource.isValid(source) else {
+            throw failure(
+                "invalid_source",
+                "Source must be a name of 1–64 characters (up to 256 UTF-8 bytes), without control characters or surrounding whitespace."
+            )
         }
     }
 

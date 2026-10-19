@@ -58,12 +58,18 @@ struct CCCLI {
                 emit(ItemEnvelope(ok: true, item: CLIItem(record: record, path: contentURL?.path)))
             }
         case "--help", "help", "-h":
-            FileHandle.standardOutput.write(Data((
-                "cc-shelf — local shelf\n\ncc-shelf list\n"
-                + "cc-shelf add PATH [--source human|codex|claude] [--note TEXT]\n"
-                + "cc-shelf add --text TEXT|--stdin [--title TEXT] [--source human|codex|claude] [--note TEXT]\n"
-                + "cc-shelf get UUID [--text | --output PATH]\n"
-            ).utf8))
+            let help = """
+            cc-shelf — local shelf
+
+            cc-shelf list
+            cc-shelf add PATH [--source NAME] [--note TEXT]
+            cc-shelf add --text TEXT|--stdin [--title TEXT] [--source NAME] [--note TEXT]
+            cc-shelf get UUID [--text | --output PATH]
+
+            Source names: human (default), codex, claude, grokbot, or your own name.
+            Names support spaces and Unicode, up to 64 characters / 256 UTF-8 bytes, without control characters or surrounding whitespace.
+            """
+            FileHandle.standardOutput.write(Data((help + "\n").utf8))
         default:
             throw CCRepositoryError(code: "unknown_command", message: "Unknown command. Use cc-shelf --help.")
         }

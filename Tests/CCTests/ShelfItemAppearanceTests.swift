@@ -39,4 +39,22 @@ struct ShelfItemAppearanceTests {
         #expect(appearance.help.contains("12 characters"))
     }
 
+    @Test(arguments: [
+        ("human", "You"),
+        ("codex", "Codex"),
+        ("claude", "Claude Code"),
+        ("grokbot", "Grokbot"),
+        ("Research Bot", "Research Bot"),
+        ("調査アシスタント", "調査アシスタント")
+    ])
+    func showsWhoAddedTheItem(source: String, displayName: String) {
+        let item = ShelfItem(kind: .text, title: "Draft", detail: "", text: "Content", source: source)
+        let appearance = ShelfItemAppearance(item: item)
+        #expect(appearance.subtitle == "\(displayName) · 7 characters")
+        #expect(appearance.help.hasPrefix("\(displayName) · "))
+        if source != "human" {
+            #expect(!appearance.subtitle.hasPrefix("You · "))
+        }
+    }
+
 }
