@@ -72,7 +72,7 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .frame(width: 180)
+                .frame(width: 180, alignment: .trailing)
             }
 
             HStack {
@@ -134,7 +134,7 @@ struct SettingsView: View {
                 onCancel: { shortcutController.cancelRecording(action) },
                 onRecord: { shortcutController.setShortcut($0, for: action) }
             )
-            .frame(width: 150, height: 28)
+            .frame(width: 180, height: 28, alignment: .trailing)
         }
     }
 
@@ -173,9 +173,12 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button("Copy Install Command") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(installCommand, forType: .string)
+            HStack {
+                Spacer()
+                Button("Copy Install Command") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(installCommand, forType: .string)
+                }
             }
         }
     }

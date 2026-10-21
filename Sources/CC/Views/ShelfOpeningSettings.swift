@@ -57,7 +57,7 @@ struct ShelfOpeningSettings: View {
                     .truncationMode(.middle)
             }
             .menuStyle(.borderedButton)
-            .frame(width: 180)
+            .frame(width: 180, alignment: .trailing)
             .accessibilityLabel(category.title)
             .accessibilityValue(destinationTitle(for: category))
         }
