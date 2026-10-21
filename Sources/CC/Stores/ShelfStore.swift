@@ -38,6 +38,7 @@ final class ShelfStore: ObservableObject {
     private var seenItemIDs: Set<UUID> = []
     private let fileActions = FileActionService()
     private let itemOpener: ShelfItemOpener
+    private let receiptSound: ShelfReceiptSound
     private let inbox: ShelfInbox
     private let importer: ShelfItemImporter
     private let errorPresenter: @MainActor (Error) -> Void
@@ -46,10 +47,12 @@ final class ShelfStore: ObservableObject {
         repository: CCRepository = CCRepository(),
         inbox: ShelfInbox? = nil,
         itemOpener: ShelfItemOpener? = nil,
+        receiptSound: ShelfReceiptSound? = nil,
         errorPresenter: @escaping @MainActor (Error) -> Void = ShelfStore.showAlert
     ) {
         self.repository = repository
         self.itemOpener = itemOpener ?? ShelfItemOpener()
+        self.receiptSound = receiptSound ?? ShelfReceiptSound()
         fileRegistration = ShelfFileRegistration(repository: repository)
         let inbox = inbox ?? ShelfInbox(directoryURL: repository.rootURL.appendingPathComponent("Imports"))
         self.inbox = inbox
@@ -95,6 +98,7 @@ final class ShelfStore: ObservableObject {
                     isManagedFile: record.relativePath != nil
                 )
             }
+            receiptSound.observe(records)
             if items != updatedItems { items = updatedItems }
             let unread = Set(items.map(\.id)).subtracting(seenItemIDs)
             if unreadItemIDs != unread { unreadItemIDs = unread }
@@ -222,6 +226,7 @@ final class ShelfStore: ObservableObject {
     }
 
     var openingPreferences: ShelfOpenPreferences { itemOpener.preferences }
+    var soundPreferences: ShelfSoundPreferences { receiptSound.preferences }
 
     func reveal(_ item: ShelfItem) {
         guard canRead(item) else { return }

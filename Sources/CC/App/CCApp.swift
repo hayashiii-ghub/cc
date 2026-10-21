@@ -48,6 +48,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var settingsWindowController = SettingsWindowController(
         preferences: presentationPreferences,
         openingPreferences: store.openingPreferences,
+        soundPreferences: store.soundPreferences,
         shortcutController: shortcutController,
         agentTools: agentTools,
         onCheckForUpdates: { [weak self] in

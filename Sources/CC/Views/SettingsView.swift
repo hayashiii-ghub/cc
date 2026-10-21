@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var preferences: ShelfPresentationPreferences
     @ObservedObject var openingPreferences: ShelfOpenPreferences
+    @ObservedObject var soundPreferences: ShelfSoundPreferences
     @ObservedObject var shortcutPreferences: ShortcutPreferences
     @ObservedObject var agentTools: AgentToolsStatusController
     let shortcutController: ShortcutController
@@ -28,7 +29,7 @@ struct SettingsView: View {
                 appHeader
             }
 
-            shelfLocation
+            general
             ShelfOpeningSettings(preferences: openingPreferences)
             shortcuts
             agentToolsSection
@@ -45,18 +46,12 @@ struct SettingsView: View {
                 .frame(width: 34, height: 34)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("cc:")
-                    .font(.headline)
-                Text("Files, links, and notes on this Mac.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text("cc:")
+                .font(.headline)
         }
     }
 
-    private var shelfLocation: some View {
+    private var general: some View {
         Section("General") {
             Picker("Shelf Location", selection: $preferences.mode) {
                 Text("Menu Bar").tag(ShelfPresentationMode.menuBar)
@@ -65,22 +60,9 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
 
-            Text(locationDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
+                .toggleStyle(.switch)
         }
-    }
-
-    private var locationDescription: String {
-        if !preferences.hasNotchedDisplay {
-            return preferences.mode == .notch
-                ? "cc: is using the menu bar. Your Notch preference applies when a notched display is available."
-                : "Notch requires a display with a notch."
-        }
-        return preferences.mode == .menuBar
-            ? "Click cc: in the menu bar to open or close the shelf."
-            : "The shelf appears around the notch."
     }
 
     private var shortcuts: some View {
@@ -100,17 +82,13 @@ struct SettingsView: View {
         } header: {
             Text("Shortcuts")
         } footer: {
-            VStack(alignment: .leading, spacing: 6) {
-                if let message = shortcutPreferences.errorMessage {
-                    Text(message)
-                        .foregroundStyle(.red)
-                        .accessibilityLabel("Shortcut error: \(message)")
-                }
-                Text("Click a shortcut, then press the new keys. Escape cancels. Add Finder Selection works in Finder.")
-                    .foregroundStyle(.secondary)
+            if let message = shortcutPreferences.errorMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .accessibilityLabel("Shortcut error: \(message)")
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .font(.caption)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -145,22 +123,12 @@ struct SettingsView: View {
             .controlSize(.regular)
         } header: {
             Text("Updates")
-        } footer: {
-            Text("Shelf items stay on this Mac until you remove them, including after you quit cc:.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var agentToolsSection: some View {
         Section("Agent Tools") {
             Text(agentTools.message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Install the cc-shelf CLI and skill by running this command in Terminal:")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

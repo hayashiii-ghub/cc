@@ -8,6 +8,7 @@ final class SettingsWindowController {
 
     private let preferences: ShelfPresentationPreferences
     private let openingPreferences: ShelfOpenPreferences
+    private let soundPreferences: ShelfSoundPreferences
     private let shortcutController: ShortcutController
     private let agentTools: AgentToolsStatusController
     private let onCheckForUpdates: () -> Void
@@ -18,6 +19,7 @@ final class SettingsWindowController {
     init(
         preferences: ShelfPresentationPreferences,
         openingPreferences: ShelfOpenPreferences,
+        soundPreferences: ShelfSoundPreferences,
         shortcutController: ShortcutController,
         agentTools: AgentToolsStatusController,
         onCheckForUpdates: @escaping () -> Void,
@@ -25,6 +27,7 @@ final class SettingsWindowController {
     ) {
         self.preferences = preferences
         self.openingPreferences = openingPreferences
+        self.soundPreferences = soundPreferences
         self.shortcutController = shortcutController
         self.agentTools = agentTools
         self.onCheckForUpdates = onCheckForUpdates
@@ -44,6 +47,7 @@ final class SettingsWindowController {
         SettingsView(
             preferences: preferences,
             openingPreferences: openingPreferences,
+            soundPreferences: soundPreferences,
             shortcutPreferences: shortcutController.preferences,
             agentTools: agentTools,
             shortcutController: shortcutController,

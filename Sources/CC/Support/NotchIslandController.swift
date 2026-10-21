@@ -196,7 +196,7 @@ final class NotchIslandController: NSObject {
         panel.isMovableByWindowBackground = false
         panel.isReleasedWhenClosed = false
         panel.level = .popUpMenu
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.animationBehavior = .none
         panel.ignoresMouseEvents = true
         self.panel = panel
