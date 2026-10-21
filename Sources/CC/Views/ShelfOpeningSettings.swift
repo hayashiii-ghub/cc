@@ -14,13 +14,6 @@ struct ShelfOpeningSettings: View {
             }
         } header: {
             Text("Open Items")
-        } footer: {
-            Text(usesFinder
-                ? "Finder shows files in their folder. These choices apply only in cc:."
-                : "These choices apply only in cc:.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .disabled(isChoosingApplication)
         .onAppear {
@@ -28,10 +21,6 @@ struct ShelfOpeningSettings: View {
                 ($0.rawValue, ShelfOpeningApplications.candidates(for: $0))
             })
         }
-    }
-
-    private var usesFinder: Bool {
-        ShelfOpenCategory.allCases.contains { preferences.destination(for: $0) == .finder }
     }
 
     private func openingRow(for category: ShelfOpenCategory) -> some View {

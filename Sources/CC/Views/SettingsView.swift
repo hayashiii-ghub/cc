@@ -46,14 +46,8 @@ struct SettingsView: View {
                 .frame(width: 34, height: 34)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("cc:")
-                    .font(.headline)
-                Text("Files, links, and notes on this Mac.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text("cc:")
+                .font(.headline)
         }
     }
 
@@ -129,22 +123,12 @@ struct SettingsView: View {
             .controlSize(.regular)
         } header: {
             Text("Updates")
-        } footer: {
-            Text("Shelf items stay on this Mac until you remove them, including after you quit cc:.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var agentToolsSection: some View {
         Section("Agent Tools") {
             Text(agentTools.message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Install the cc-shelf CLI and skill by running this command in Terminal:")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
