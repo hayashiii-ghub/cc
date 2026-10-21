@@ -53,7 +53,7 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
   assert.match(html, /releases\/latest\/download\/cc-macos\.dmg/);
   assert.match(text, /Open source/);
-  assert.match(text, /v0\.4\.7 · macOS 26\+ · Apple Silicon &amp; Intel/);
+  assert.match(text, /v0\.4\.8 · macOS 26\+ · Apple Silicon &amp; Intel/);
   assert.match(text, /cc: is not yet notarized by Apple/);
   assert.match(text, /Privacy &amp; Security/);
   assert.doesNotMatch(html, /v1\.1\.4|Chrome Web Store|CodexIsland/);

@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController {
     private static let contentWidth: CGFloat = 520
-    private static let preferredContentHeight: CGFloat = 640
+    private static let preferredContentHeight: CGFloat = 680
 
     private let preferences: ShelfPresentationPreferences
     private let openingPreferences: ShelfOpenPreferences

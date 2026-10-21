@@ -24,49 +24,82 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
                 appHeader
-            }
 
-            general
-            ShelfOpeningSettings(preferences: openingPreferences)
-            shortcuts
-            agentToolsSection
-            updates
+                general
+                settingsCard {
+                    ShelfOpeningSettings(preferences: openingPreferences)
+                }
+                shortcuts
+                agentToolsSection
+
+                Divider()
+                footer
+            }
+            .font(.body)
+            .controlSize(.regular)
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var appHeader: some View {
-        HStack(alignment: .center, spacing: 12) {
-            CCMark()
-                .fill(.primary)
-                .frame(width: 34, height: 34)
-                .accessibilityHidden(true)
-
+        HStack {
             Text("cc:")
-                .font(.headline)
+                .font(.title2.weight(.semibold))
+            Spacer()
+            Button("Check for Updates…", action: onCheckForUpdates)
         }
     }
 
     private var general: some View {
-        Section("General") {
-            Picker("Shelf Location", selection: $preferences.mode) {
-                Text("Menu Bar").tag(ShelfPresentationMode.menuBar)
-                Text("Notch").tag(ShelfPresentationMode.notch)
-                    .disabled(!preferences.hasNotchedDisplay)
-            }
-            .pickerStyle(.menu)
+        settingsCard {
+            Text("General")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
 
-            Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
-                .toggleStyle(.switch)
+            HStack {
+                Text("Shelf Location")
+                Spacer(minLength: 12)
+                Picker("Shelf Location", selection: $preferences.mode) {
+                    Text("Menu Bar").tag(ShelfPresentationMode.menuBar)
+                    Text("Notch").tag(ShelfPresentationMode.notch)
+                        .disabled(!preferences.hasNotchedDisplay)
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(width: 180, alignment: .trailing)
+            }
+
+            HStack {
+                Text("Play Sound When Agents Add Items")
+                Spacer(minLength: 12)
+                Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
         }
     }
 
     private var shortcuts: some View {
-        Section {
+        settingsCard {
+            HStack {
+                Text("Shortcuts")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button("Restore Defaults") {
+                    shortcutController.restoreDefaults()
+                }
+                .controlSize(.small)
+                .disabled(shortcutPreferences.values == .defaults && shortcutPreferences.recordingAction == nil)
+            }
+
             shortcutRow(
                 "Add Finder Selection",
                 action: .addFinderSelection
@@ -75,13 +108,7 @@ struct SettingsView: View {
                 "Show or Hide Shelf",
                 action: .toggleShelf
             )
-            Button("Restore Defaults") {
-                shortcutController.restoreDefaults()
-            }
-            .disabled(shortcutPreferences.values == .defaults && shortcutPreferences.recordingAction == nil)
-        } header: {
-            Text("Shortcuts")
-        } footer: {
+
             if let message = shortcutPreferences.errorMessage {
                 Text(message)
                     .font(.caption)
@@ -96,7 +123,9 @@ struct SettingsView: View {
         _ title: String,
         action: ShelfShortcut
     ) -> some View {
-        LabeledContent(title) {
+        HStack {
+            Text(title)
+            Spacer(minLength: 12)
             ShortcutRecorder(
                 binding: shortcutPreferences.values.binding(for: action),
                 isRecording: shortcutPreferences.recordingAction == action,
@@ -105,29 +134,34 @@ struct SettingsView: View {
                 onCancel: { shortcutController.cancelRecording(action) },
                 onRecord: { shortcutController.setShortcut($0, for: action) }
             )
-            .frame(width: 150, height: 28)
+            .frame(width: 180, height: 28, alignment: .trailing)
         }
     }
 
-    private var updates: some View {
-        Section {
-            HStack(spacing: 12) {
-                Button("Check for Updates", action: onCheckForUpdates)
-
-                Button(action: onOpenReleasePage) {
-                    Label("Release Notes", systemImage: "arrow.up.right")
-                }
-                .buttonStyle(.link)
-                .accessibilityLabel("Open cc: Release Notes")
+    private var footer: some View {
+        HStack {
+            Button(action: onOpenReleasePage) {
+                Label("Release Notes", systemImage: "arrow.up.right")
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
             }
-            .controlSize(.regular)
-        } header: {
-            Text("Updates")
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open cc: Release Notes")
+            Spacer()
+            Button("Quit cc:") {
+                NSApp.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
         }
     }
 
     private var agentToolsSection: some View {
-        Section("Agent Tools") {
+        settingsCard {
+            Text("Agent Tools")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
+
             Text(agentTools.message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -139,10 +173,20 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button("Copy Install Command") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(installCommand, forType: .string)
+            HStack {
+                Spacer()
+                Button("Copy Install Command") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(installCommand, forType: .string)
+                }
             }
         }
+    }
+
+    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 14, content: content)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 24))
     }
 }

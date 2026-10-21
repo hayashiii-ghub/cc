@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Keep the app icon, menu-bar SVG, SwiftUI mark, and site on the same cc: geometry."""
 
+import json
 from pathlib import Path
+import subprocess
+import tempfile
 
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +47,62 @@ def c_path(color, offset):
 
 def letters(color):
     return "\n".join(c_path(color, offset) for offset in LETTER_OFFSETS)
+
+
+def outlined_letters(color):
+    paths = []
+    for offset in LETTER_OFFSETS:
+        points = [letter_point(START, offset)]
+        for curve in CURVES:
+            points.extend(letter_point(value, offset) for value in curve)
+        paths.append(points)
+
+    # Closed contours keep Icon Composer from shading the implicit closure of open strokes.
+    program = r'''
+import CoreGraphics
+import Foundation
+
+let input = FileHandle.standardInput.readDataToEndOfFile()
+let geometry = try JSONSerialization.jsonObject(with: input) as! [String: Any]
+let paths = geometry["paths"] as! [[[Double]]]
+let width = geometry["width"] as! Double
+let path = CGMutablePath()
+for points in paths {
+    path.move(to: CGPoint(x: points[0][0], y: points[0][1]))
+    for index in stride(from: 1, to: points.count, by: 3) {
+        path.addCurve(
+            to: CGPoint(x: points[index + 2][0], y: points[index + 2][1]),
+            control1: CGPoint(x: points[index][0], y: points[index][1]),
+            control2: CGPoint(x: points[index + 1][0], y: points[index + 1][1])
+        )
+    }
+}
+let outline = path.copy(strokingWithWidth: width, lineCap: .round, lineJoin: .round, miterLimit: 10)
+func number(_ value: CGFloat) -> String {
+    String(format: "%.8f", Double(value)).replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
+}
+func point(_ value: CGPoint) -> String { "\(number(value.x)) \(number(value.y))" }
+var commands: [String] = []
+outline.applyWithBlock { pointer in
+    let element = pointer.pointee
+    switch element.type {
+    case .moveToPoint: commands.append("M " + point(element.points[0]))
+    case .addLineToPoint: commands.append("L " + point(element.points[0]))
+    case .addQuadCurveToPoint: commands.append("Q " + point(element.points[0]) + " " + point(element.points[1]))
+    case .addCurveToPoint: commands.append("C " + point(element.points[0]) + " " + point(element.points[1]) + " " + point(element.points[2]))
+    case .closeSubpath: commands.append("Z")
+    @unknown default: fatalError("Unknown path element")
+    }
+}
+print(commands.joined(separator: " "))
+'''
+    with tempfile.TemporaryDirectory(prefix="cc-mark-outline-") as cache:
+        result = subprocess.run(
+            ["swift", "-module-cache-path", cache, "-e", program],
+            input=json.dumps({"width": STROKE_WIDTH, "paths": paths}),
+            text=True, capture_output=True, check=True,
+        )
+    return f'  <path d="{result.stdout.strip()}" fill="{color}"/>'
 
 
 def colon(color):
@@ -107,6 +166,8 @@ def main():
     (assets / "MenuBarTemplate.svg").write_text(svg(24, "cc: menu bar mark", letters("#000") + "\n" + colon("#000")))
     (icon / "Assets/01-cc.svg").write_text(svg(1024, "cc: letters", letters("#f2f3f1"), "-1.5 -1.3 31 26.6"))
     (icon / "Assets/02-colon.svg").write_text(svg(1024, "cc: colon", colon("#e8eeee"), "-1.5 -1.3 31 26.6"))
+    (icon / "Assets/01-cc-light.svg").write_text(svg(1024, "cc: letters", outlined_letters("#0b0b0d"), "-1.5 -1.3 31 26.6"))
+    (icon / "Assets/02-colon-light.svg").write_text(svg(1024, "cc: colon", colon("#0b0b0d"), "-1.5 -1.3 31 26.6"))
     (PROJECT_DIR / "site/public/cc/cc-mark.svg").write_text(
         svg(1024, "cc: mark", letters("#f2f3f1") + "\n" + colon("#e8eeee"))
     )
