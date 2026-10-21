@@ -3,9 +3,10 @@ import Foundation
 
 @main
 struct CCCLI {
-    static func main() {
+    @MainActor
+    static func main() async {
         do {
-            try run(Array(CommandLine.arguments.dropFirst()))
+            try await run(Array(CommandLine.arguments.dropFirst()))
         } catch {
             let failure = error as? CCRepositoryError
                 ?? CCRepositoryError(code: "io_error", message: error.localizedDescription)
@@ -14,7 +15,8 @@ struct CCCLI {
         }
     }
 
-    private static func run(_ arguments: [String]) throws {
+    @MainActor
+    private static func run(_ arguments: [String]) async throws {
         guard let command = arguments.first else { throw usage() }
         let repository = CCRepository()
         let arguments = Array(arguments.dropFirst())
@@ -57,6 +59,14 @@ struct CCCLI {
                 }
                 emit(ItemEnvelope(ok: true, item: CLIItem(record: record, path: contentURL?.path)))
             }
+        case "open":
+            let id = try itemID(arguments)
+            try await CLIItemOpener().open(id, in: repository)
+            emit(OpenEnvelope(ok: true, id: id, status: "requested"))
+        case "remove":
+            let id = try itemID(arguments)
+            try repository.remove(id)
+            emit(RemoveEnvelope(ok: true, id: id))
         case "--help", "help", "-h":
             let help = """
             cc-shelf — local shelf
@@ -65,6 +75,12 @@ struct CCCLI {
             cc-shelf add PATH [--source NAME] [--note TEXT]
             cc-shelf add --text TEXT|--stdin [--title TEXT] [--source NAME] [--note TEXT]
             cc-shelf get UUID [--text | --output PATH]
+            cc-shelf open UUID
+            cc-shelf remove UUID
+
+            Open requests cc: to open the saved copy using Open Items settings; stored text is copied to the clipboard.
+            Open requires the app's standard data directory. Its receipt confirms the request, not the final opening.
+            Remove deletes only the selected shelf item and its saved copy. Original files stay unchanged.
 
             Source names: human (default), codex, claude, grokbot, or your own name.
             Names support spaces and Unicode, up to 64 characters / 256 UTF-8 bytes, without control characters or surrounding whitespace.
@@ -93,6 +109,14 @@ struct CCCLI {
 
     private static func usage() -> CCRepositoryError {
         CCRepositoryError(code: "usage", message: "Invalid arguments. Use cc-shelf --help.")
+    }
+
+    private static func itemID(_ arguments: [String]) throws -> UUID {
+        guard arguments.count == 1 else { throw usage() }
+        guard let id = UUID(uuidString: arguments[0]) else {
+            throw CCRepositoryError(code: "invalid_id", message: "The item ID must be a UUID from cc-shelf list.")
+        }
+        return id
     }
 
     private static func emit<T: Encodable>(_ value: T, to handle: FileHandle = .standardOutput) {
@@ -208,6 +232,17 @@ struct CCCLI {
     private struct ItemsEnvelope: Encodable {
         let ok: Bool
         let items: [CLIItem]
+    }
+
+    private struct OpenEnvelope: Encodable {
+        let ok: Bool
+        let id: UUID
+        let status: String
+    }
+
+    private struct RemoveEnvelope: Encodable {
+        let ok: Bool
+        let id: UUID
     }
 
     private struct ErrorEnvelope: Encodable {

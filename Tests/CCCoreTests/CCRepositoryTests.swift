@@ -389,6 +389,8 @@ struct CCRepositoryTests {
             #expect(help.contains("cc-shelf add PATH "))
             #expect(help.contains("cc-shelf add --text "))
             #expect(help.contains("cc-shelf get UUID "))
+            #expect(help.contains("cc-shelf open UUID"))
+            #expect(help.contains("cc-shelf remove UUID"))
         }
     }
 
@@ -400,6 +402,12 @@ struct CCRepositoryTests {
             ([], "usage", "cc-shelf --help"),
             (["unknown-command"], "unknown_command", "cc-shelf --help"),
             (["get", "not-an-id"], "invalid_id", "cc-shelf list"),
+            (["open"], "usage", "cc-shelf --help"),
+            (["open", UUID().uuidString, "extra"], "usage", "cc-shelf --help"),
+            (["open", "not-an-id"], "invalid_id", "cc-shelf list"),
+            (["remove"], "usage", "cc-shelf --help"),
+            (["remove", UUID().uuidString, "extra"], "usage", "cc-shelf --help"),
+            (["remove", "not-an-id"], "invalid_id", "cc-shelf list"),
         ]
         for example in cases {
             let response = try runCLI(executable, arguments: example.arguments, data: fixture.data)
@@ -474,6 +482,82 @@ struct CCRepositoryTests {
         let invalidID = try runCLI(executable, arguments: ["get", "not-an-id"], data: fixture.data)
         #expect(invalidID.status != 0)
         #expect(invalidID.output.isEmpty)
+    }
+
+    @Test func CLIRemovesOnlyTheSelectedSavedCopyAndKeepsOriginals() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let source = fixture.root.appendingPathComponent("original.txt")
+        try Data("keep original".utf8).write(to: source)
+        let selected = try repository.addFile(source, source: "codex")
+        let otherFile = try repository.addFile(source, source: "claude")
+        let otherText = try repository.addText("Keep this note")
+        let selectedURL = try #require(try repository.contentURL(for: selected))
+        let otherURL = try #require(try repository.contentURL(for: otherFile))
+        let executable = try cliExecutable()
+
+        let response = try runCLI(executable, arguments: ["remove", selected.id.uuidString], data: fixture.data)
+
+        #expect(response.status == 0)
+        #expect(response.error.isEmpty)
+        let envelope = try #require(JSONSerialization.jsonObject(with: response.output) as? [String: Any])
+        #expect(envelope["ok"] as? Bool == true)
+        #expect((envelope["id"] as? String).flatMap(UUID.init(uuidString:)) == selected.id)
+        #expect(!FileManager.default.fileExists(atPath: selectedURL.path))
+        #expect(try String(contentsOf: source, encoding: .utf8) == "keep original")
+        #expect(try String(contentsOf: otherURL, encoding: .utf8) == "keep original")
+        #expect(try repository.get(otherFile.id) == otherFile)
+        #expect(try repository.get(otherText.id) == otherText)
+        #expect(try Set(repository.list().map(\.id)) == [otherFile.id, otherText.id])
+    }
+
+    @Test func CLIRemovesMetadataWhenTheSavedCopyIsAlreadyMissing() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let source = fixture.root.appendingPathComponent("original.txt")
+        try Data("keep original".utf8).write(to: source)
+        let record = try repository.addFile(source)
+        let managed = try #require(try repository.contentURL(for: record))
+        try FileManager.default.removeItem(at: managed)
+        let executable = try cliExecutable()
+
+        let response = try runCLI(executable, arguments: ["remove", record.id.uuidString], data: fixture.data)
+
+        #expect(response.status == 0)
+        #expect(response.error.isEmpty)
+        let envelope = try #require(JSONSerialization.jsonObject(with: response.output) as? [String: Any])
+        #expect(envelope["ok"] as? Bool == true)
+        #expect((envelope["id"] as? String).flatMap(UUID.init(uuidString:)) == record.id)
+        #expect(try repository.list().isEmpty)
+        #expect(try String(contentsOf: source, encoding: .utf8) == "keep original")
+    }
+
+    @Test func CLIRemovalRejectsExtraArgumentsAndUnknownOrAlreadyRemovedIDs() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let record = try repository.addText("Only remove after the exact request")
+        let executable = try cliExecutable()
+        let rejected = try runCLI(executable, arguments: ["remove", record.id.uuidString, "extra"], data: fixture.data)
+        #expect(rejected.status != 0)
+        #expect(rejected.output.isEmpty)
+        let rejectedEnvelope = try #require(JSONSerialization.jsonObject(with: rejected.error) as? [String: Any])
+        #expect((rejectedEnvelope["error"] as? [String: Any])?["code"] as? String == "usage")
+        #expect(try repository.get(record.id) == record)
+
+        let removed = try runCLI(executable, arguments: ["remove", record.id.uuidString], data: fixture.data)
+        #expect(removed.status == 0)
+        for id in [UUID(), record.id] {
+            let response = try runCLI(executable, arguments: ["remove", id.uuidString], data: fixture.data)
+            #expect(response.status != 0)
+            #expect(response.output.isEmpty)
+            let envelope = try #require(JSONSerialization.jsonObject(with: response.error) as? [String: Any])
+            #expect(envelope["ok"] as? Bool == false)
+            #expect((envelope["error"] as? [String: Any])?["code"] as? String == "not_found")
+        }
+        #expect(try repository.list().isEmpty)
     }
 
     private struct Fixture {

@@ -12,6 +12,10 @@ public struct CCRepository: Sendable {
         if let directory = ProcessInfo.processInfo.environment["CC_DATA_DIR"], !directory.isEmpty {
             return URL(fileURLWithPath: directory, isDirectory: true).standardizedFileURL
         }
+        return applicationRootURL
+    }
+
+    public static var applicationRootURL: URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
         return support.appendingPathComponent("cc", isDirectory: true)
