@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var preferences: ShelfPresentationPreferences
     @ObservedObject var openingPreferences: ShelfOpenPreferences
+    @ObservedObject var soundPreferences: ShelfSoundPreferences
     @ObservedObject var shortcutPreferences: ShortcutPreferences
     @ObservedObject var agentTools: AgentToolsStatusController
     let shortcutController: ShortcutController
@@ -28,7 +29,7 @@ struct SettingsView: View {
                 appHeader
             }
 
-            shelfLocation
+            general
             ShelfOpeningSettings(preferences: openingPreferences)
             shortcuts
             agentToolsSection
@@ -56,7 +57,7 @@ struct SettingsView: View {
         }
     }
 
-    private var shelfLocation: some View {
+    private var general: some View {
         Section("General") {
             Picker("Shelf Location", selection: $preferences.mode) {
                 Text("Menu Bar").tag(ShelfPresentationMode.menuBar)
@@ -66,6 +67,14 @@ struct SettingsView: View {
             .pickerStyle(.menu)
 
             Text(locationDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
+                .toggleStyle(.switch)
+
+            Text("New agent items play a short sound while cc: is running. Your own additions stay silent.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
