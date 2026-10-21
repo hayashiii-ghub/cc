@@ -8,12 +8,15 @@ struct ShelfOpeningSettings: View {
     @State private var isChoosingApplication = false
 
     var body: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Open Items")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
+
             ForEach(ShelfOpenCategory.allCases) { category in
                 openingRow(for: category)
             }
-        } header: {
-            Text("Open Items")
         }
         .disabled(isChoosingApplication)
         .onAppear {
@@ -25,7 +28,9 @@ struct ShelfOpeningSettings: View {
 
     private func openingRow(for category: ShelfOpenCategory) -> some View {
         let options = applications(for: category)
-        return LabeledContent(category.title) {
+        return HStack {
+            Text(category.title)
+            Spacer(minLength: 12)
             Menu {
                 Picker(category.title, selection: selection(for: category, applications: options)) {
                     Text("macOS Default").tag("systemDefault")

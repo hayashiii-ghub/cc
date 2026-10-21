@@ -107,6 +107,8 @@ def main():
     (assets / "MenuBarTemplate.svg").write_text(svg(24, "cc: menu bar mark", letters("#000") + "\n" + colon("#000")))
     (icon / "Assets/01-cc.svg").write_text(svg(1024, "cc: letters", letters("#f2f3f1"), "-1.5 -1.3 31 26.6"))
     (icon / "Assets/02-colon.svg").write_text(svg(1024, "cc: colon", colon("#e8eeee"), "-1.5 -1.3 31 26.6"))
+    (icon / "Assets/01-cc-light.svg").write_text(svg(1024, "cc: letters", letters("#0b0b0d"), "-1.5 -1.3 31 26.6"))
+    (icon / "Assets/02-colon-light.svg").write_text(svg(1024, "cc: colon", colon("#0b0b0d"), "-1.5 -1.3 31 26.6"))
     (PROJECT_DIR / "site/public/cc/cc-mark.svg").write_text(
         svg(1024, "cc: mark", letters("#f2f3f1") + "\n" + colon("#e8eeee"))
     )

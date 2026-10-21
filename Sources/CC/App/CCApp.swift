@@ -183,6 +183,14 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
 #if DEBUG
         configureDemoTriggers()
 #endif
+        if notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool == true {
+            showSettings()
+        }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showSettings()
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {

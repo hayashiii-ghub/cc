@@ -1,12 +1,30 @@
 {
-  "fill": {
-    "solid": "extended-srgb:0.04314,0.04314,0.05098,1.00000"
-  },
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "extended-srgb:0.04314,0.04314,0.05098,1.00000"
+      }
+    },
+    {
+      "appearance": "light",
+      "value": {
+        "solid": "extended-srgb:0.94902,0.95294,0.94510,1.00000"
+      }
+    }
+  ],
   "groups": [
     {
       "layers": [
         {
-          "image-name": "02-colon.svg",
+          "image-name-specializations": [
+            {
+              "value": "02-colon.svg"
+            },
+            {
+              "appearance": "light",
+              "value": "02-colon-light.svg"
+            }
+          ],
           "name": "02-colon"
         }
       ],
@@ -22,7 +40,15 @@
     {
       "layers": [
         {
-          "image-name": "01-cc.svg",
+          "image-name-specializations": [
+            {
+              "value": "01-cc.svg"
+            },
+            {
+              "appearance": "light",
+              "value": "01-cc-light.svg"
+            }
+          ],
           "name": "01-cc"
         }
       ],
