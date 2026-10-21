@@ -66,30 +66,9 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
 
-            Text(locationDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
             Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
                 .toggleStyle(.switch)
-
-            Text("New agent items play a short sound while cc: is running. Your own additions stay silent.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var locationDescription: String {
-        if !preferences.hasNotchedDisplay {
-            return preferences.mode == .notch
-                ? "cc: is using the menu bar. Your Notch preference applies when a notched display is available."
-                : "Notch requires a display with a notch."
-        }
-        return preferences.mode == .menuBar
-            ? "Click cc: in the menu bar to open or close the shelf."
-            : "The shelf appears around the notch."
     }
 
     private var shortcuts: some View {
@@ -109,17 +88,13 @@ struct SettingsView: View {
         } header: {
             Text("Shortcuts")
         } footer: {
-            VStack(alignment: .leading, spacing: 6) {
-                if let message = shortcutPreferences.errorMessage {
-                    Text(message)
-                        .foregroundStyle(.red)
-                        .accessibilityLabel("Shortcut error: \(message)")
-                }
-                Text("Click a shortcut, then press the new keys. Escape cancels. Add Finder Selection works in Finder.")
-                    .foregroundStyle(.secondary)
+            if let message = shortcutPreferences.errorMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .accessibilityLabel("Shortcut error: \(message)")
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .font(.caption)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
