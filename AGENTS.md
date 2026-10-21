@@ -21,7 +21,7 @@ It installs the CLI link and both skills listed below without network access
 or shell configuration changes. Rerun after app updates to refresh unchanged
 managed skills; app updates alone do not refresh them. Settings reports status.
 
-For handoff and shelf-reading requests, follow
+For handoff and shelf reading, opening, or removal requests, follow
 [cc-handoff](skills/cc-handoff/SKILL.md); it covers CLI discovery, text, JSON,
 permissions, and errors. Installing it does not start agents or read chats.
 
@@ -30,7 +30,7 @@ latest GitHub release. Preserve existing data and unrelated installations.
 
 ## Project map
 
-- `Sources/CC/`, `Sources/CCCore/`, and `Sources/CCCLI/`: the macOS app, shared storage, and CLI. Tests are in `Tests/CCTests/` and `Tests/CCCoreTests/`.
+- `Sources/CC/`, `Sources/CCCore/`, and `Sources/CCCLI/`: the macOS app, shared storage, and CLI. Tests are in `Tests/CCTests/`, `Tests/CCCoreTests/`, and `Tests/CCCLITests/`.
 - `Package.swift`, `Makefile`, `Assets/`, and `script/`: app build, validation, and packaging.
 - `Tools/CCDemo/`: debug-only recording helper.
 - `site/`: the Japanese/English static product site, built with Bun and TypeScript. Source is in `site/src/`, build output is `site/dist/`, and app previews use HTML/CSS in `site/src/render.ts`.

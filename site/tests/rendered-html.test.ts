@@ -30,7 +30,12 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /Light preview/);
   assert.match(text, /Can I change the shortcuts/);
   assert.match(text, /Use Details to choose/);
+  assert.match(text, /After updating cc: and Agent Tools/);
+  assert.match(text, /ask your agent to open or remove selected items/);
   assert.match(text, /Settings → Open Items/);
+  assert.match(text, /stored text is copied to the clipboard/);
+  assert.match(text, /only its shelf entry and managed copy are removed/);
+  assert.match(text, /The original file stays in place/);
   assert.match(text, /macOS defaults stay unchanged/);
   assert.match(text, /Option \+ Shift \+ Tab/);
   assert.doesNotMatch(html, /<video\b|-poster\.webp/);
@@ -48,7 +53,7 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
   assert.match(html, /releases\/latest\/download\/cc-macos\.dmg/);
   assert.match(text, /Open source/);
-  assert.match(text, /v0\.4\.5 · macOS 26\+ · Apple Silicon &amp; Intel/);
+  assert.match(text, /v0\.4\.6 · macOS 26\+ · Apple Silicon &amp; Intel/);
   assert.match(text, /cc: is not yet notarized by Apple/);
   assert.match(text, /Privacy &amp; Security/);
   assert.doesNotMatch(html, /v1\.1\.4|Chrome Web Store|CodexIsland/);

@@ -40,6 +40,11 @@ let package = Package(
             path: "Tests/CCCoreTests"
         ),
         .testTarget(
+            name: "CCCLITests",
+            dependencies: ["CCCLI", "CCCore"],
+            path: "Tests/CCCLITests"
+        ),
+        .testTarget(
             name: "CCTests",
             dependencies: ["CC", "CCCore"],
             path: "Tests/CCTests"
