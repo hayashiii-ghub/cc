@@ -30,9 +30,6 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private static let bundleIdentifier = "work.hayashigoto.cc"
     private static let shared = CCApplication()
     private static var singleInstanceGuard: SingleInstanceGuard?
-    private static let releasesURL = URL(
-        string: "https://github.com/hayashiii-ghub/cc/releases/latest"
-    )!
 
     private let store = ShelfStore()
     private let presentationPreferences = ShelfPresentationPreferences()
@@ -53,9 +50,6 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         agentTools: agentTools,
         onCheckForUpdates: { [weak self] in
             self?.updateController.controller.checkForUpdates(nil)
-        },
-        onOpenReleasePage: { [weak self] in
-            self?.openReleasePage()
         }
     )
     private lazy var menuBarShelfController = MenuBarShelfController(
@@ -136,7 +130,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         agentToolsObserver = agentTools.$report
             .receive(on: RunLoop.main)
             .sink { [weak self] report in
-                self?.agentToolsMenuItem?.title = report?.menuNotice ?? "Agent Tools"
+                self?.agentToolsMenuItem?.title = report?.menuNotice ?? "AI Tools"
                 self?.agentToolsMenuItem?.isHidden = report?.menuNotice == nil
             }
         agentTools.checkAfterVersionChange()
@@ -191,6 +185,10 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings()
         return false
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        agentTools.isInstalling ? .terminateCancel : .terminateNow
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -268,7 +266,7 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         let toolsItem = NSMenuItem(
-            title: agentTools.report?.menuNotice ?? "Agent Tools",
+            title: agentTools.report?.menuNotice ?? "AI Tools",
             action: #selector(showSettings),
             keyEquivalent: ""
         )
@@ -501,10 +499,6 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // An agent may add items while the confirmation is open.
             clearShelf()
         }
-    }
-
-    @objc private func openReleasePage() {
-        NSWorkspace.shared.open(Self.releasesURL)
     }
 
     @objc private func showSettings() {

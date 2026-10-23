@@ -3,8 +3,8 @@ import SwiftUI
 
 @MainActor
 final class SettingsWindowController {
-    private static let contentWidth: CGFloat = 520
-    private static let preferredContentHeight: CGFloat = 680
+    private static let contentWidth: CGFloat = 440
+    private static let preferredContentHeight: CGFloat = 500
 
     private let preferences: ShelfPresentationPreferences
     private let openingPreferences: ShelfOpenPreferences
@@ -12,7 +12,6 @@ final class SettingsWindowController {
     private let shortcutController: ShortcutController
     private let agentTools: AgentToolsStatusController
     private let onCheckForUpdates: () -> Void
-    private let onOpenReleasePage: () -> Void
     private var window: NSWindow?
     private var hostingController: NSHostingController<SettingsView>?
 
@@ -22,8 +21,7 @@ final class SettingsWindowController {
         soundPreferences: ShelfSoundPreferences,
         shortcutController: ShortcutController,
         agentTools: AgentToolsStatusController,
-        onCheckForUpdates: @escaping () -> Void,
-        onOpenReleasePage: @escaping () -> Void
+        onCheckForUpdates: @escaping () -> Void
     ) {
         self.preferences = preferences
         self.openingPreferences = openingPreferences
@@ -31,7 +29,6 @@ final class SettingsWindowController {
         self.shortcutController = shortcutController
         self.agentTools = agentTools
         self.onCheckForUpdates = onCheckForUpdates
-        self.onOpenReleasePage = onOpenReleasePage
     }
 
     func show() {
@@ -51,8 +48,7 @@ final class SettingsWindowController {
             shortcutPreferences: shortcutController.preferences,
             agentTools: agentTools,
             shortcutController: shortcutController,
-            onCheckForUpdates: onCheckForUpdates,
-            onOpenReleasePage: onOpenReleasePage
+            onCheckForUpdates: onCheckForUpdates
         )
     }
 
@@ -73,13 +69,14 @@ final class SettingsWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "cc: Settings"
+        window.title = "cc:"
         window.identifier = NSUserInterfaceItemIdentifier("CCSettingsWindow")
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: Self.contentWidth, height: 400)
-        window.contentMaxSize = NSSize(width: Self.contentWidth, height: 720)
+        window.contentMinSize = NSSize(width: 440, height: 400)
+        window.contentMaxSize = NSSize(width: 560, height: 720)
 
         let hostingController = NSHostingController(rootView: settingsView)
+        hostingController.sizingOptions = []
         window.contentViewController = hostingController
         window.setContentSize(
             NSSize(width: Self.contentWidth, height: Self.preferredContentHeight)
@@ -95,6 +92,7 @@ final class SettingsWindowController {
         guard let screen = window.screen ?? NSScreen.main else { return }
         let availableFrame = screen.visibleFrame.insetBy(dx: 12, dy: 12)
         var frame = window.frame
+        frame.size.width = min(frame.width, availableFrame.width)
         frame.size.height = min(frame.height, availableFrame.height)
         frame.origin.x = min(
             max(frame.minX, availableFrame.minX),
