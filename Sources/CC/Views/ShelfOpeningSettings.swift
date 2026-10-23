@@ -8,11 +8,12 @@ struct ShelfOpeningSettings: View {
     @State private var isChoosingApplication = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Open Items")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Open with")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .accessibilityAddTraits(.isHeader)
+                .padding(.bottom, 4)
 
             ForEach(ShelfOpenCategory.allCases) { category in
                 openingRow(for: category)
@@ -29,7 +30,7 @@ struct ShelfOpeningSettings: View {
     private func openingRow(for category: ShelfOpenCategory) -> some View {
         let options = applications(for: category)
         return HStack {
-            Text(category.title)
+            Text(categoryTitle(category))
             Spacer(minLength: 12)
             Menu {
                 Picker(category.title, selection: selection(for: category, applications: options)) {
@@ -57,9 +58,21 @@ struct ShelfOpeningSettings: View {
                     .truncationMode(.middle)
             }
             .menuStyle(.borderedButton)
-            .frame(width: 180, alignment: .trailing)
+            .controlSize(.large)
+            .buttonSizing(.flexible)
+            .frame(width: 180, height: 28, alignment: .trailing)
             .accessibilityLabel(category.title)
             .accessibilityValue(destinationTitle(for: category))
+        }
+        .frame(minHeight: 32)
+    }
+
+    private func categoryTitle(_ category: ShelfOpenCategory) -> String {
+        switch category {
+        case .textAndCode: "Text & code"
+        case .imagesAndPDFs: "Images & PDFs"
+        case .folders: "Folders"
+        case .webLinks: "Web links"
         }
     }
 
