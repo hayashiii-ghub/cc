@@ -38,6 +38,9 @@ jobs:
       - name: Install site dependencies
         run: bun install --frozen-lockfile
 
+      - name: Audit site dependencies
+        run: bun audit --audit-level=high
+
       - name: Check site types
         run: bun run check
 
