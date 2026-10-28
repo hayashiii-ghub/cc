@@ -1,51 +1,26 @@
 # cc:
 
-エージェントと資料や成果物を受け渡す、macOSの小さな棚。
+資料や成果物をエージェントと受け渡す、macOSの小さな棚。
+ファイル・画像・リンク・テキストを集めて「棚の資料を読んで」「cc:に置いて」と頼めます。
 
-AIが作ったファイルが深い一時フォルダにあり、CLIにはパスしか出てこない。
-複数の資料を渡すたびにコピペが必要で、長いテキストはチャットに貼りづらい。
-cc:は、そんな受け渡しを一か所にまとめます。
-
-ファイル・フォルダ・画像・リンク・テキストを棚に集めて、CodexやClaude Codeに読むよう頼む。
-成果物も「cc:に置いて」と頼めば、同じ棚で受け取り、開いたりまとめてドラッグしたりできます。
-
-無料・オープンソース。macOS 26以降、Apple Silicon / Intel対応。
-[サイト](https://cc.shigoto.dev) · [最新版をダウンロード](https://github.com/hayashiii-ghub/cc/releases/latest)
+macOS 26以降・Apple Silicon / Intel対応。無料・オープンソース。
+[サイト](https://cc.shigoto.dev) · [ダウンロード](https://github.com/hayashiii-ghub/cc/releases/latest)
 
 ## 使い方
 
-DMGまたはZIPから`cc.app`をApplicationsへ入れて起動します。
-エージェント連携は、**Settings → AI Tools → Set Up**で、Codex・Claude Code向けのCLIとスキルをまとめて設定できます。更新が必要な場合も同じ画面の**Update**から行えます。
-エージェントに次の文を渡して設定することもできます。
+1. DMGまたはZIPの`cc.app`をApplicationsへ入れて起動します。
+2. **Settings → AI Tools → Set Up**でCodex・Claude Code向けのCLIとスキルを設定します。更新は同じ画面の**Update**から。
+3. メニューバーの`cc:`から棚を開き、ドラッグや**Paste**で資料を追加します。
 
-```text
-https://github.com/hayashiii-ghub/cc
-このリポジトリのAGENTS.mdを読んで、インストール済みのcc:のエージェント連携を設定して。
-```
-
-メニューバーの`cc:`から棚を開き、ドラッグや**Paste**で資料を追加します。
 初期ショートカットは、Finderの選択項目を追加する**Option + Tab**と、棚を開閉する**Option + Shift + Tab**。
-設定でキーや棚の位置（メニューバー／ノッチ）を変更できます。
+開くアプリは**Settings → Open with**で選べます。AIにも棚の項目を開く・削除するよう頼めます。
 
-**Settings → Open with**で、テキスト・コード、画像・PDF、フォルダ、Webリンクの開く先を選べます。
-棚の**Details**から、開く・コピー・削除を選べます。開く先の設定はcc:内だけに適用され、Mac全体の既定アプリは変わりません。
-AIにも「棚の○○を開いて」「棚の○○を削除して」と頼めます。開く先は同じ設定に従い、テキストはクリップボードにコピーします。削除するのは棚の保存コピーだけです。
-
-**Settings → Sound for AI items**をオンにすると、cc:の起動中にAIから新しい項目を受け取ったとき、短い音で知らせます。初期設定はオフです。
-
-## データと更新
-
-資料はMac内にコピーして保存します。棚から削除しても元ファイルは残ります。
+資料はMac内にコピーして保存し、棚から削除しても元ファイルは残ります。
 アカウント登録・クラウド同期・利用状況の収集はありません。
+アプリの更新は**Settings → Updates…**から。v0.4.0より前の版は手動導入とデータ・設定の移行が必要です。
 
-アプリの更新は**Settings → Updates…**から。
-エージェント連携の状態は**Settings → AI Tools**で確認できます。編集済みスキルや無関係なファイルは保護し、確認できない状態では設定を実行しません。
-v0.4.0より前の版からは手動インストールとデータ・設定の移行が必要です。
+Appleの公証は未対応です。初回起動がブロックされた場合は、信頼できる配布版か確かめて、macOSの**プライバシーとセキュリティ → このまま開く**を使います。
+セットアップ・開発・公開手順は[AGENTS.md](AGENTS.md)へ。
 
-Appleの公証は未対応です。初回起動がブロックされた場合は、macOSの**システム設定 → プライバシーとセキュリティ → このまま開く**を使います。
-セットアップ・開発手順は[AGENTS.md](AGENTS.md)にあります。
-
-## クレジット
-
-ノッチの操作とサイトの表現は[CodexIsland](https://github.com/ericjypark/codex-island)を参考にしています。両者は独立したプロジェクトです。
-[第三者ライセンス](THIRD_PARTY_NOTICES.md) · [MIT](LICENSE)
+ノッチの操作とサイトの表現は[CodexIsland](https://github.com/ericjypark/codex-island)を参考にしています。独立したプロジェクトです。
+[MIT](LICENSE) · [第三者ライセンス](THIRD_PARTY_NOTICES.md)
