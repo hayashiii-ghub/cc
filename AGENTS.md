@@ -1,12 +1,10 @@
-# Repository guide
+# cc:
 
-This repository contains the standalone cc: product for macOS.
+User guidance belongs in `README.md`; repository procedures belong here. Keep both minimal; ask before adding other documentation. Retain licenses and the functional `skills/cc-handoff/SKILL.md`. PR descriptions state the change and validation.
 
-## Agent setup and updates
+## Agent setup
 
-For a setup request, locate the installed `cc.app` and use its bundled installer.
-The commands below assume `/Applications`. For another location, use its script
-path and set `CC_INSTALL_APP` to that app’s absolute path on each invocation.
+Locate the installed `cc.app` and use its bundled installer. These commands assume `/Applications`; for another location, use its script path and set `CC_INSTALL_APP` to that app's absolute path:
 
 ```sh
 "/Applications/cc.app/Contents/Resources/install_agent_tools.sh" --check
@@ -14,71 +12,22 @@ path and set `CC_INSTALL_APP` to that app’s absolute path on each invocation.
 "/Applications/cc.app/Contents/Resources/install_agent_tools.sh"
 ```
 
-`--check` is read-only and prints JSON. Exit 0 means inspection completed, not
-that tools are current: inspect `status`. Invalid checks return `unknown` and a
-nonzero exit. Run the final command when setup or an update is requested.
-It installs the CLI link and both skills listed below without network access
-or shell configuration changes. Rerun after app updates to refresh unchanged
-managed skills; app updates alone do not refresh them. Settings reports status.
+`--check` is read-only: inspect JSON `status`; exit 0 alone does not mean current. Failed/invalid inspection means unknown. Run the final command only for requested setup/update. It installs CLI/skills without network or shell changes; rerun after app updates. Preserve edited skills, unrelated commands/settings, and rollback on failure. Remove only links owned by the selected app.
 
-For handoff and shelf reading, opening, or removal requests, follow
-[cc-handoff](skills/cc-handoff/SKILL.md); it covers CLI discovery, text, JSON,
-permissions, and errors. Installing it does not start agents or read chats.
+For shelf handoff/read/open/remove requests, follow [cc-handoff](skills/cc-handoff/SKILL.md). Setup does not start agents or read chats. For a requested app install/update, use `make install-latest` or GitHub Releases; preserve existing data and unrelated installations.
 
-For a requested app installation or update, use `make install-latest` or the
-latest GitHub release. Preserve existing data and unrelated installations.
+## Development
 
-## Project map
+- `Sources/CC`, `CCCore`, `CCCLI`: app, storage, CLI; matching tests are in `Tests/`. `Tools/CCDemo` is debug-only. Source builds require Xcode and macOS 26+.
+- Preserve product `cc:`, CLI `cc-shelf` (`Contents/Helpers/cc-shelf`, installed at `~/.local/bin/cc-shelf`), identity `work.hayashigoto.cc`, store `~/Library/Application Support/cc`, and scheme `cc:`. Do not use the system `cc` compiler as the CLI, add aliases, or restore the `context` namespace.
+- `make check` validates app/CLI/installer/packaging scripts; `make run` builds/opens. `swift run cc-shelf --help` inspects CLI options. `swift run cc-demo add-finder-selection` targets the running debug app; releases omit demo triggers.
+- `make install-agent-tools` uses `/Applications/cc.app`; set `CC_INSTALL_APP` for another app and `CC_INSTALL_HOME` for isolated tests.
+- `site/src/` owns the Bun/TypeScript static site. From `site/`, use Bun 1.4.2: `bun install --frozen-lockfile`, `bun run check`, `bun run test`. `bun run dev` previews; `bun run start` serves the existing build.
+- Keep HTML/CSS app illustrations (`site/src/render.ts`) synthetic and distinct from real preview controls. `site/media/cc-og.html` owns the 1200×630 social image: render with local fonts to `site/public/cc/cc-og.png`, confirm PNG bytes/dimensions. Check favicon changes at 16/32px on light/dark backgrounds. Browser changes require desktop/mobile and preview-control checks.
+- Do not edit generated `.build/`, `node_modules/`, or `dist/`. Reuse existing scripts. Preserve app/site scope, current icon appearance during naming-only changes, and ignored raw recordings during cleanup.
 
-- `Sources/CC/`, `Sources/CCCore/`, and `Sources/CCCLI/`: the macOS app, shared storage, and CLI. Tests are in `Tests/CCTests/`, `Tests/CCCoreTests/`, and `Tests/CCCLITests/`.
-- `Package.swift`, `Makefile`, `Assets/`, and `script/`: app build, validation, and packaging.
-- `Tools/CCDemo/`: debug-only recording helper.
-- `site/`: the Japanese/English static product site, built with Bun and TypeScript. Source is in `site/src/`, build output is `site/dist/`, and app previews use HTML/CSS in `site/src/render.ts`.
+## Release
 
-Use `cc:` for product copy and `cc-shelf` for the CLI command. Use `CC` for
-Swift type/module names and `cc` for paths, IDs, and URL slugs. The package
-products are `cc`, `cc-shelf`, and `cc-demo`; the bundled CLI is
-`Contents/Helpers/cc-shelf`. The installed command is
-`~/.local/bin/cc-shelf`. Do not add a command alias or use the system `cc`
-compiler as the shelf CLI.
+`make package` creates `dist/cc-macos.{dmg,zip}` with CLI, installer, skill, and Sparkle; it does not install agent tools. App publication uses the existing tag-triggered GitHub Actions workflow. Keep pre-v0.4.0 Sparkle updates informational because identity/storage migration requires manual installation.
 
-The app identity is `work.hayashigoto.cc`, its local store is
-`~/Library/Application Support/cc`, its deep-link scheme is `cc:`, and
-its environment variables use `CC_`. Packages contain `cc.app`, displayed
-as `cc:` by macOS, and are named `cc-macos.dmg` and `cc-macos.zip`.
-
-The agent skill is `cc-handoff`, with source in `skills/cc-handoff/SKILL.md`
-and installed copies in `~/.codex/skills/cc-handoff` and
-`~/.claude/skills/cc-handoff`. Keep protections for unrelated commands,
-edited skills, and failed installation rollback. Do not restore the earlier
-`context` namespace or add compatibility command aliases. When retiring an old
-CLI link, remove only the exact link managed for the selected app.
-
-v0.4.0 is the first release using the `cc` app identity and storage directory.
-Earlier versions require a manual installation and separate data/settings
-transfer because the bundle identity changed. Keep pre-v0.4.0 updates
-informational in the Sparkle feed. Verify actual publication status before reporting a release.
-
-## Development and validation
-
-Source builds require Xcode and macOS 26 or later.
-
-- App: `make run` builds and opens it; `make check` validates the app, CLI, installer, and packaging scripts.
-- Distribution: `make package` creates `dist/cc-macos.dmg` and `dist/cc-macos.zip`, including the CLI, installer, skill, and Sparkle. It does not install agent tools.
-- Agent installer: `make install-agent-tools` uses `/Applications/cc.app`; set `CC_INSTALL_APP` for another copy and `CC_INSTALL_HOME` for isolated tests.
-- CLI: `swift run cc-shelf --help`. `swift run cc-demo add-finder-selection` triggers the running debug app; release builds omit the helper and its triggers.
-- Site: from `site/`, use Bun 1.4.2 and run `bun install --frozen-lockfile`, then `bun run dev` for preview or `bun run check` and `bun run test` for validation. `bun run start` serves the existing `dist/` build.
-
-App publication uses the existing tag-triggered GitHub Actions release workflow.
-Site publication uses the Vercel `cc` project, with `site/` as its root and
-`dist/` as build output. Pull requests get previews; `main` publishes
-`https://cc.shigoto.dev`. Keep the former Sites identity for old-URL redirects.
-Verify public assets separately from source checks and local installation.
-
-## Working conventions
-
-- Keep human-facing guidance in `README.md` and agent procedures in `AGENTS.md`, both minimal. Ask before adding other documentation; retain required licenses and the distributable skill.
-- Keep app and site changes scoped unless a cross-product release or brand change is explicitly required.
-- Do not edit generated or dependency directories such as `.build/`, `node_modules/`, or `dist/`.
-- Reuse existing scripts and package commands instead of duplicating build or release logic.
-- Back up ignored raw recordings separately before media cleanup. Preserve current icon and site asset appearance during naming-only changes.
+Vercel project `cc` builds `site/` to `dist/`; PRs get previews and `main` publishes `https://cc.shigoto.dev`. Preserve former Sites redirect identity. Verify public assets, local installation, and agent-tool updates separately before reporting completion.
