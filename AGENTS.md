@@ -14,6 +14,8 @@ Locate the installed `cc.app` and use its bundled installer. These commands assu
 
 `--check` is read-only: inspect JSON `status`; exit 0 alone does not mean current. Failed/invalid inspection means unknown. Run the final command only for requested setup/update. It installs CLI/skills without network or shell changes; rerun after app updates. Preserve edited skills, unrelated commands/settings, and rollback on failure. Remove only links owned by the selected app.
 
+The `cc-handoff` skill is installed for Codex, Claude Code, and Antigravity (`~/.gemini/config/skills/cc-handoff`).
+
 For shelf handoff/read/open/remove requests, follow [cc-handoff](skills/cc-handoff/SKILL.md). Setup does not start agents or read chats. For a requested app install/update, use `make install-latest` or GitHub Releases; preserve existing data and unrelated installations.
 
 ## Development

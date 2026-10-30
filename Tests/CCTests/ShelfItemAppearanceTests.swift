@@ -43,6 +43,7 @@ struct ShelfItemAppearanceTests {
         ("human", "You"),
         ("codex", "Codex"),
         ("claude", "Claude Code"),
+        ("antigravity", "Antigravity"),
         ("grokbot", "Grokbot"),
         ("Research Bot", "Research Bot"),
         ("調査アシスタント", "調査アシスタント")

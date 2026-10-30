@@ -9,7 +9,7 @@ macOS 26以降・Apple Silicon / Intel対応。無料・オープンソース。
 ## 使い方
 
 1. DMGまたはZIPの`cc.app`をApplicationsへ入れて起動します。
-2. **Settings → AI Tools → Set Up**でCodex・Claude Code向けのCLIとスキルを設定します。更新は同じ画面の**Update**から。
+2. **Settings → AI Tools → Set Up**でCodex・Claude Code・Antigravity向けのCLIとスキルを設定します。更新は同じ画面の**Update**から。
 3. メニューバーの`cc:`から棚を開き、ドラッグや**Paste**で資料を追加します。
 
 初期ショートカットは、Finderの選択項目を追加する**Option + Tab**と、棚を開閉する**Option + Shift + Tab**。

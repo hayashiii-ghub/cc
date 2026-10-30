@@ -21,6 +21,7 @@ PREVIOUS_CLI_DESTINATION="$INSTALL_HOME/.local/bin/cc:"
 PREVIOUS_CLI_BINARY="$INSTALL_APP/Contents/Helpers/cc:"
 CODEX_DESTINATION="$INSTALL_HOME/.codex/skills/cc-handoff"
 CLAUDE_DESTINATION="$INSTALL_HOME/.claude/skills/cc-handoff"
+ANTIGRAVITY_DESTINATION="$INSTALL_HOME/.gemini/config/skills/cc-handoff"
 MANIFEST_NAME=".cc-install-manifest"
 OWNER_MARKER="cc: cc-handoff installer v1"
 PRINT_PLAN=0
@@ -47,12 +48,12 @@ file_hash() {
 }
 
 print_check() {
-  printf '{"status":"%s","cli":"%s","codex":"%s","claude":"%s","legacy_cli":"%s"}\n' \
-    "$1" "$2" "$3" "$4" "$5"
+  printf '{"status":"%s","cli":"%s","codex":"%s","claude":"%s","antigravity":"%s","legacy_cli":"%s"}\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6"
 }
 
 if (( ARGUMENT_ERROR )); then
-  if (( CHECK_MODE )); then print_check unknown unknown unknown unknown unknown; fi
+  if (( CHECK_MODE )); then print_check unknown unknown unknown unknown unknown unknown; fi
   printf 'usage: install_agent_tools.sh [--print-plan | --check]\n' >&2
   exit 2
 fi
@@ -82,7 +83,7 @@ validate_source() {
 }
 
 if ! validate_source; then
-  if (( CHECK_MODE )); then print_check unknown unknown unknown unknown unknown; fi
+  if (( CHECK_MODE )); then print_check unknown unknown unknown unknown unknown unknown; fi
   fail "$SOURCE_ERROR"
 fi
 
@@ -90,6 +91,7 @@ PARENTS=(
   "$INSTALL_HOME/.local" "$INSTALL_HOME/.local/bin"
   "$INSTALL_HOME/.codex" "$INSTALL_HOME/.codex/skills"
   "$INSTALL_HOME/.claude" "$INSTALL_HOME/.claude/skills"
+  "$INSTALL_HOME/.gemini" "$INSTALL_HOME/.gemini/config" "$INSTALL_HOME/.gemini/config/skills"
 )
 
 # These read-only inspectors also guard the installer's writes. They return
@@ -141,7 +143,11 @@ inspect_skill() {
   local destination="$1"
   local manifest="$destination/$MANIFEST_NAME"
   local manifest_owner saved_hash manifest_lines manifest_bytes actual_hash extra_files
-  inspect_parents "${destination%/skills/cc-handoff}" "${destination%/cc-handoff}"
+  if [[ "$destination" == "$ANTIGRAVITY_DESTINATION" ]]; then
+    inspect_parents "$INSTALL_HOME/.gemini" "$INSTALL_HOME/.gemini/config" "$INSTALL_HOME/.gemini/config/skills"
+  else
+    inspect_parents "${destination%/skills/cc-handoff}" "${destination%/cc-handoff}"
+  fi
   [[ "$INSPECTION_STATE" == up-to-date ]] || return 0
   if [[ -L "$destination" ]]; then
     inspection_result blocked "Preserving existing skill symlink: $destination"
@@ -226,15 +232,17 @@ if (( CHECK_MODE )); then
   CODEX_STATE="$INSPECTION_STATE"
   inspect_skill "$CLAUDE_DESTINATION"
   CLAUDE_STATE="$INSPECTION_STATE"
+  inspect_skill "$ANTIGRAVITY_DESTINATION"
+  ANTIGRAVITY_STATE="$INSPECTION_STATE"
   inspect_legacy_cli
   CHECK_STATUS=up-to-date
   CHECK_EXIT_STATUS=0
-  case "$CLI_STATE $CODEX_STATE $CLAUDE_STATE" in
+  case "$CLI_STATE $CODEX_STATE $CLAUDE_STATE $ANTIGRAVITY_STATE" in
     *unknown*) CHECK_STATUS=unknown; CHECK_EXIT_STATUS=1 ;;
     *blocked*) CHECK_STATUS=blocked ;;
     *user-modified*) CHECK_STATUS=user-modified ;;
     *outdated*) CHECK_STATUS=outdated ;;
-    'not-installed not-installed not-installed') CHECK_STATUS=not-installed ;;
+    'not-installed not-installed not-installed not-installed') CHECK_STATUS=not-installed ;;
     *not-installed*) CHECK_STATUS=outdated ;;
   esac
   if (( LEGACY_INSPECTION_FAILED )); then
@@ -243,7 +251,7 @@ if (( CHECK_MODE )); then
   elif [[ "$LEGACY_CLI_STATE" == managed && ( "$CHECK_STATUS" == up-to-date || "$CHECK_STATUS" == not-installed ) ]]; then
     CHECK_STATUS=outdated
   fi
-  print_check "$CHECK_STATUS" "$CLI_STATE" "$CODEX_STATE" "$CLAUDE_STATE" "$LEGACY_CLI_STATE"
+  print_check "$CHECK_STATUS" "$CLI_STATE" "$CODEX_STATE" "$CLAUDE_STATE" "$ANTIGRAVITY_STATE" "$LEGACY_CLI_STATE"
   if (( CHECK_EXIT_STATUS )); then printf 'Could not inspect all agent tool files.\n' >&2; fi
   exit "$CHECK_EXIT_STATUS"
 fi
@@ -251,10 +259,11 @@ fi
 preflight_cli
 preflight_skill "$CODEX_DESTINATION"
 preflight_skill "$CLAUDE_DESTINATION"
+preflight_skill "$ANTIGRAVITY_DESTINATION"
 
 if [[ "$PRINT_PLAN" == 1 ]]; then
-  printf 'CLI link: %s -> %s\nCodex skill: %s\nClaude skill: %s\n' \
-    "$CLI_DESTINATION" "$CLI_BINARY" "$CODEX_DESTINATION" "$CLAUDE_DESTINATION"
+  printf 'CLI link: %s -> %s\nCodex skill: %s\nClaude skill: %s\nAntigravity skill: %s\n' \
+    "$CLI_DESTINATION" "$CLI_BINARY" "$CODEX_DESTINATION" "$CLAUDE_DESTINATION" "$ANTIGRAVITY_DESTINATION"
   if [[ -L "$PREVIOUS_CLI_DESTINATION" && "$(readlink "$PREVIOUS_CLI_DESTINATION")" == "$PREVIOUS_CLI_BINARY" ]]; then
     printf 'Previous CLI link to remove: %s\n' "$PREVIOUS_CLI_DESTINATION"
   fi
@@ -266,6 +275,7 @@ SUCCESS=0
 CLI_INSTALLED=0
 CODEX_INSTALLED=0
 CLAUDE_INSTALLED=0
+ANTIGRAVITY_INSTALLED=0
 CREATED_DIR_COUNT=0
 CREATED_DIRS=()
 
@@ -300,6 +310,7 @@ cleanup() {
         rollback_failed=1
       fi
     fi
+    restore_skill "$ANTIGRAVITY_DESTINATION" "$STAGING_DIR/antigravity.previous" "$ANTIGRAVITY_INSTALLED" || rollback_failed=1
     restore_skill "$CLAUDE_DESTINATION" "$STAGING_DIR/claude.previous" "$CLAUDE_INSTALLED" || rollback_failed=1
     restore_skill "$CODEX_DESTINATION" "$STAGING_DIR/codex.previous" "$CODEX_INSTALLED" || rollback_failed=1
     for ((index = CREATED_DIR_COUNT - 1; index >= 0; index--)); do
@@ -350,8 +361,10 @@ commit_skill() {
 
 stage_skill "$STAGING_DIR/codex.new"
 stage_skill "$STAGING_DIR/claude.new"
+stage_skill "$STAGING_DIR/antigravity.new"
 commit_skill "$CODEX_DESTINATION" "$STAGING_DIR/codex.new" "$STAGING_DIR/codex.previous" CODEX_INSTALLED
 commit_skill "$CLAUDE_DESTINATION" "$STAGING_DIR/claude.new" "$STAGING_DIR/claude.previous" CLAUDE_INSTALLED
+commit_skill "$ANTIGRAVITY_DESTINATION" "$STAGING_DIR/antigravity.new" "$STAGING_DIR/antigravity.previous" ANTIGRAVITY_INSTALLED
 preflight_cli
 if [[ ! -L "$CLI_DESTINATION" ]]; then
   ln -s "$CLI_BINARY" "$STAGING_DIR/cli.new"
@@ -363,5 +376,5 @@ if [[ -L "$PREVIOUS_CLI_DESTINATION" && "$(readlink "$PREVIOUS_CLI_DESTINATION")
   mv "$PREVIOUS_CLI_DESTINATION" "$STAGING_DIR/cli.previous"
 fi
 SUCCESS=1
-printf 'Installed CLI link: %s\nInstalled Codex skill: %s\nInstalled Claude skill: %s\n' \
-  "$CLI_DESTINATION" "$CODEX_DESTINATION" "$CLAUDE_DESTINATION"
+printf 'Installed CLI link: %s\nInstalled Codex skill: %s\nInstalled Claude skill: %s\nInstalled Antigravity skill: %s\n' \
+  "$CLI_DESTINATION" "$CODEX_DESTINATION" "$CLAUDE_DESTINATION" "$ANTIGRAVITY_DESTINATION"

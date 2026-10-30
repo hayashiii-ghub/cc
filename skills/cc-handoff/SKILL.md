@@ -34,13 +34,13 @@ If `cc-shelf --help` does not list these commands, report that an updated app an
 
 ## Share a requested handoff
 
-Add an authorized file or folder with `cc-shelf add "/path/to/artifact" --source codex --note "For review"`. A note is optional.
+Add an authorized file or folder with `cc-shelf add "/path/to/artifact" --source AGENT_NAME --note "For review"`, replacing `AGENT_NAME` with your source name below. A note is optional.
 
-Always identify the submitting agent with `--source`: use `codex` for Codex, `claude` for Claude Code, `grokbot` for Grokbot, or another stable name for another agent. Names may contain spaces and Unicode, with a limit of 64 characters / 256 UTF-8 bytes and no control characters or surrounding whitespace. Keep the same spelling across handoffs. This identifies the agent adding the item, not the author of its contents; omitted sources default to `human`.
+Always identify the submitting agent with `--source`: use `codex` for Codex, `claude` for Claude Code, `antigravity` for Antigravity, `grokbot` for Grokbot, or another stable name for another agent. Names may contain spaces and Unicode, with a limit of 64 characters / 256 UTF-8 bytes and no control characters or surrounding whitespace. Keep the same spelling across handoffs. This identifies the agent adding the item, not the author of its contents; omitted sources default to `human`.
 
 Use an updated app and its bundled CLI together before adding a new source name. App/CLI versions through v0.4.4 accept only `human`, `codex`, and `claude`, and cannot read a shelf containing other source names.
 
-For text, use `cc-shelf add --stdin --title "Review notes" --source codex`, passing the requested text through stdin. `cc-shelf add --text "Short text"` is also supported. Use stdin for long or untrusted text rather than inserting it into shell code. The title is optional for stdin or text input, and source and note flags work for both.
+For text, use `cc-shelf add --stdin --title "Review notes" --source AGENT_NAME`, passing the requested text through stdin and replacing `AGENT_NAME` with your source name. `cc-shelf add --text "Short text"` is also supported. Use stdin for long or untrusted text rather than inserting it into shell code. The title is optional for stdin or text input, and source and note flags work for both.
 
 Check the JSON receipt's `ok` and `item.id` before saying that sharing completed. Files are copied into cc:; the original is not moved or deleted. Removing a shelf item or clearing cc: removes its managed copy, not the source.
 
