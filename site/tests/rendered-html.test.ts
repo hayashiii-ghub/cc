@@ -53,7 +53,7 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
   assert.match(html, /releases\/latest\/download\/cc-macos\.dmg/);
   assert.match(text, /Open source/);
-  assert.match(text, /v0\.4\.9 · macOS 26\+ · Apple Silicon &amp; Intel/);
+  assert.match(text, /v0\.5\.0 · macOS 26\+ · Apple Silicon &amp; Intel/);
   assert.match(text, /cc: is not yet notarized by Apple/);
   assert.match(text, /Privacy &amp; Security/);
   assert.doesNotMatch(html, /v1\.1\.4|Chrome Web Store|CodexIsland/);
@@ -68,6 +68,10 @@ for (const language of ["en", "ja"] as const) {
   test(`renders complete ${language} copy without a framework runtime`, () => {
     const html = renderPage(language);
     const copy = siteCopy[language];
+    assert.ok(html.includes(escapeHtml(copy.installMeta)));
+    assert.ok(html.includes(escapeHtml(copy.agentSetupBody)));
+    assert.ok(copy.agentSetupBody.includes("Antigravity"));
+    assert.ok(copy.faqs.find((faq) => faq.id === "agents")?.answer.includes("Antigravity"));
     assert.match(html, new RegExp(`class="page" lang="${language}" data-page`));
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
     assert.equal((html.match(/<main\b/g) ?? []).length, 1);
