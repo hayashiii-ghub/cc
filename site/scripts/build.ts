@@ -1,4 +1,6 @@
 import { cp, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { siteCopy, type SiteLanguage } from "../src/copy.ts";
@@ -7,7 +9,8 @@ import { escapeHtml, renderPage } from "../src/render.ts";
 export const siteRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 export const distRoot = join(siteRoot, "dist");
 const siteURL = "https://cc.shigoto.dev";
-const imageURL = `${siteURL}/cc/cc-og.png?v=0.4.4`;
+const imageHash = createHash("sha256").update(readFileSync(join(siteRoot, "public/cc/cc-og.png"))).digest("hex").slice(0, 12);
+const imageURL = `${siteURL}/cc/cc-og.png?v=${imageHash}`;
 
 type Assets = { scripts: string[]; styles: string[] };
 

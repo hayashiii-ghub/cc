@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "bun:test";
 import { join } from "node:path";
 import { siteCopy } from "../src/copy.ts";
@@ -14,6 +15,9 @@ function withoutBreakHints(html: string) {
 test("renders the standalone cc: site at the root", async () => {
   const html = await Bun.file(join(distRoot, "index.html")).text();
   const text = withoutBreakHints(html);
+  const ogImage = await Bun.file(join(distRoot, "cc/cc-og.png")).arrayBuffer();
+  const ogHash = createHash("sha256").update(Buffer.from(ogImage)).digest("hex").slice(0, 12);
+  const ogURL = `https://cc.shigoto.dev/cc/cc-og.png?v=${ogHash}`;
 
   assert.match(html, /<html lang="en">/);
   assert.match(html, /<title>cc:<\/title>/);
@@ -43,10 +47,10 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /cc-mark\.svg/);
   assert.match(html, /property="og:type" content="website"/);
   assert.match(html, /property="og:url" content="https:\/\/cc\.shigoto\.dev\/"/);
-  assert.match(html, /property="og:image" content="https:\/\/cc\.shigoto\.dev\/cc\/cc-og\.png\?v=0\.4\.4"/);
+  assert.ok(html.includes(`property="og:image" content="${ogURL}"`));
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
-  assert.match(html, /name="twitter:image" content="https:\/\/cc\.shigoto\.dev\/cc\/cc-og\.png\?v=0\.4\.4"/);
+  assert.ok(html.includes(`name="twitter:image" content="${ogURL}"`));
   assert.match(html, /name="twitter:image:alt" content="cc:"/);
   assert.match(html, /rel="icon" href="\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
