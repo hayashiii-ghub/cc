@@ -34,10 +34,14 @@ final class SettingsWindowController {
     func show() {
         agentTools.refresh()
         let window = settingsWindow()
+        let isOpening = !window.isVisible
         hostingController?.rootView = settingsView
         fitWindowToScreen(window)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        if isOpening {
+            window.makeFirstResponder(nil)
+        }
     }
 
     private var settingsView: SettingsView {

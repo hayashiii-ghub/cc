@@ -30,15 +30,19 @@ TEST_HOME="$TMP_ROOT/clean home"
 mkdir "$TEST_HOME"
 run_installer "$TEST_HOME" --print-plan
 grep -Fq "CLI link: $TEST_HOME/.local/bin/cc-shelf -> $TEST_APP/Contents/Helpers/cc-shelf" "$TMP_ROOT/install.log"
+grep -Fq "Antigravity skill: $TEST_HOME/.gemini/config/skills/cc-handoff" "$TMP_ROOT/install.log"
 test ! -e "$TEST_HOME/.local"
 test ! -e "$TEST_HOME/.codex"
 test ! -e "$TEST_HOME/.claude"
+test ! -e "$TEST_HOME/.gemini"
 run_installer "$TEST_HOME"
 test "$(readlink "$TEST_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 for agent in .codex .claude; do
   cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/$agent/skills/cc-handoff/SKILL.md"
   test -f "$TEST_HOME/$agent/skills/cc-handoff/.cc-install-manifest"
 done
+cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/.gemini/config/skills/cc-handoff/SKILL.md"
+test -f "$TEST_HOME/.gemini/config/skills/cc-handoff/.cc-install-manifest"
 CLI_INODE="$(stat -f '%i' "$TEST_HOME/.local/bin/cc-shelf")"
 SKILL_INODE="$(stat -f '%i' "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md")"
 run_installer "$TEST_HOME"
@@ -50,6 +54,7 @@ run_installer "$TEST_HOME"
 for agent in .codex .claude; do
   cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/$agent/skills/cc-handoff/SKILL.md"
 done
+cmp -s "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$TEST_HOME/.gemini/config/skills/cc-handoff/SKILL.md"
 
 printf '\nMy custom instruction.\n' >>"$TEST_HOME/.codex/skills/cc-handoff/SKILL.md"
 cp "$TEST_HOME/.codex/skills/cc-handoff/SKILL.md" "$TMP_ROOT/edited-skill.md"
@@ -134,6 +139,26 @@ for agent in .codex .claude; do
 done
 test "$(readlink "$ROLLBACK_HOME/.local/bin/cc-shelf")" = "$TEST_APP/Contents/Helpers/cc-shelf"
 test -z "$(find "$ROLLBACK_HOME" -maxdepth 1 -name '.cc-agent-tools.*' -print -quit)"
+
+# Failure on the final skill restores both existing and newly created files.
+ANTIGRAVITY_ROLLBACK_HOME="$TMP_ROOT/antigravity-rollback-home"
+mkdir "$ANTIGRAVITY_ROLLBACK_HOME"
+run_installer "$ANTIGRAVITY_ROLLBACK_HOME"
+cp "$ANTIGRAVITY_ROLLBACK_HOME/.gemini/config/skills/cc-handoff/SKILL.md" "$TMP_ROOT/antigravity-before.md"
+printf '\nAntigravity transaction update.\n' >>"$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md"
+export CC_TEST_FAIL_DEST="$ANTIGRAVITY_ROLLBACK_HOME/.gemini/config/skills/cc-handoff"
+for after_move in 0 1; do
+  export CC_TEST_FAIL_AFTER_MOVE="$after_move"
+  rm -f "$CC_TEST_FAIL_ONCE"
+  PATH="$TMP_ROOT/fakebin:$ORIGINAL_TEST_PATH"
+  expect_rejection "$ANTIGRAVITY_ROLLBACK_HOME"
+  PATH="$ORIGINAL_TEST_PATH"
+  for skill in .codex/skills .claude/skills .gemini/config/skills; do
+    cmp -s "$TMP_ROOT/antigravity-before.md" "$ANTIGRAVITY_ROLLBACK_HOME/$skill/cc-handoff/SKILL.md"
+  done
+  test -z "$(find "$ANTIGRAVITY_ROLLBACK_HOME" -maxdepth 1 -name '.cc-agent-tools.*' -print -quit)"
+done
+unset CC_TEST_FAIL_AFTER_MOVE
 
 # A CLI creation failure restores managed skills, before or after the move.
 CLI_ROLLBACK_HOME="$TMP_ROOT/cli-rollback-home"
@@ -314,6 +339,16 @@ assert_check() {
   local test_home="$1" expected_status="$2" expected_cli="$3"
   local expected_codex="$4" expected_claude="$5" expected_legacy="$6"
   local expected_exit="${7:-0}" actual_exit=0
+  local expected_antigravity="${8:-}"
+  if [[ -z "$expected_antigravity" ]]; then
+    if [[ "$expected_cli" == unknown && "$expected_codex" == unknown && "$expected_claude" == unknown ]]; then
+      expected_antigravity=unknown
+    elif [[ "$expected_cli" == up-to-date ]]; then
+      expected_antigravity=up-to-date
+    else
+      expected_antigravity=not-installed
+    fi
+  fi
   snapshot_check_home "$test_home" >"$TMP_ROOT/check-before.json"
   : >"$CC_TEST_CHECK_MUTATION_LOG"
   CC_INSTALL_HOME="$test_home" CC_INSTALL_APP="${CC_TEST_CHECK_APP:-$TEST_APP}" \
@@ -324,7 +359,7 @@ assert_check() {
   cmp -s "$TMP_ROOT/check-before.json" "$TMP_ROOT/check-after.json"
   test ! -s "$CC_TEST_CHECK_MUTATION_LOG"
   python3 - "$TMP_ROOT/check.json" "$actual_exit" "$expected_exit" \
-    "$expected_status" "$expected_cli" "$expected_codex" "$expected_claude" "$expected_legacy" <<'CHECK'
+    "$expected_status" "$expected_cli" "$expected_codex" "$expected_claude" "$expected_antigravity" "$expected_legacy" <<'CHECK'
 import json
 from pathlib import Path
 import sys
@@ -332,7 +367,7 @@ import sys
 raw = Path(sys.argv[1]).read_text()
 assert raw.endswith('\n') and raw.count('\n') == 1, raw
 result = json.loads(raw)
-keys = ['status', 'cli', 'codex', 'claude', 'legacy_cli']
+keys = ['status', 'cli', 'codex', 'claude', 'antigravity', 'legacy_cli']
 expected = dict(zip(keys, sys.argv[4:]))
 assert result == expected, (result, expected)
 assert sys.argv[2] == sys.argv[3], ('exit status', sys.argv[2], sys.argv[3])
@@ -467,5 +502,31 @@ if [[ "$(id -u)" != 0 ]]; then
   assert_check "$CHECK_READY_HOME" unknown up-to-date up-to-date unknown absent 1
   chmod 644 "$CHECK_READY_HOME/.claude/skills/cc-handoff/SKILL.md"
 fi
+
+CHECK_ANTIGRAVITY_HOME="$TMP_ROOT/check-antigravity-home"
+mkdir "$CHECK_ANTIGRAVITY_HOME"
+run_installer "$CHECK_ANTIGRAVITY_HOME"
+antigravity_skill="$CHECK_ANTIGRAVITY_HOME/.gemini/config/skills/cc-handoff"
+rm -rf "$antigravity_skill"
+assert_check "$CHECK_ANTIGRAVITY_HOME" outdated up-to-date up-to-date up-to-date absent 0 not-installed
+run_installer "$CHECK_ANTIGRAVITY_HOME"
+printf '\nMy custom Antigravity instruction.\n' >>"$antigravity_skill/SKILL.md"
+assert_check "$CHECK_ANTIGRAVITY_HOME" user-modified up-to-date up-to-date up-to-date absent 0 user-modified
+expect_rejection "$CHECK_ANTIGRAVITY_HOME"
+rm "$antigravity_skill/.cc-install-manifest"
+cp "$TEST_APP/Contents/Resources/skills/cc-handoff/SKILL.md" "$antigravity_skill/SKILL.md"
+assert_check "$CHECK_ANTIGRAVITY_HOME" blocked up-to-date up-to-date up-to-date absent 0 blocked
+expect_rejection "$CHECK_ANTIGRAVITY_HOME"
+test ! -e "$antigravity_skill/.cc-install-manifest"
+
+for relative in .gemini .gemini/config .gemini/config/skills; do
+  check_home="$TMP_ROOT/check-parent-${relative//\//-}-antigravity"
+  check_target="$TMP_ROOT/check-external-${relative//\//-}-antigravity"
+  mkdir -p "$check_home/$(dirname "$relative")" "$check_target"
+  ln -s "$check_target" "$check_home/$relative"
+  assert_check "$check_home" blocked not-installed not-installed not-installed absent 0 blocked
+  expect_rejection "$check_home"
+  test -z "$(find "$check_target" -mindepth 1 -print -quit)"
+done
 
 printf 'Agent tools installer and %s read-only state checks passed.\n' "$CHECK_CASE_COUNT"

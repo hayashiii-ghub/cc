@@ -19,25 +19,26 @@ struct AgentToolsReport: Codable, Equatable, Sendable {
     let cli: Status
     let codex: Status
     let claude: Status
+    let antigravity: Status
     let legacyCLI: LegacyCLI
 
     enum CodingKeys: String, CodingKey {
-        case status, cli, codex, claude
+        case status, cli, codex, claude, antigravity
         case legacyCLI = "legacy_cli"
     }
 
     static let unknown = AgentToolsReport(
-        status: .unknown, cli: .unknown, codex: .unknown, claude: .unknown, legacyCLI: .unknown
+        status: .unknown, cli: .unknown, codex: .unknown, claude: .unknown, antigravity: .unknown, legacyCLI: .unknown
     )
 
     var isConfigured: Bool {
-        [status, cli, codex, claude].allSatisfy { $0 == .upToDate }
+        [status, cli, codex, claude, antigravity].allSatisfy { $0 == .upToDate }
             && (legacyCLI == .absent || legacyCLI == .unrelated)
     }
 
     var canSetUp: Bool {
         [.notInstalled, .outdated].contains(status)
-            && [cli, codex, claude].allSatisfy { [.upToDate, .notInstalled, .outdated].contains($0) }
+            && [cli, codex, claude, antigravity].allSatisfy { [.upToDate, .notInstalled, .outdated].contains($0) }
             && legacyCLI != .unknown
     }
 
@@ -214,7 +215,7 @@ final class AgentToolsStatusController: ObservableObject {
             guard let self else { return }
             publish(result)
             if finished && result.isConfigured {
-                operationMessage = "AI tools are configured for Codex and Claude Code. Start a new assistant session."
+                operationMessage = "AI tools are configured for Codex, Claude Code, and Antigravity. Start a new assistant session."
             } else {
                 errorMessage = finished
                     ? "Setup finished, but the tools could not be confirmed."

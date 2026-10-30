@@ -24,6 +24,8 @@ struct SettingsView: View {
                     agentToolsSection
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
             }
             footer
         }
@@ -148,12 +150,16 @@ struct SettingsView: View {
             }
             .frame(minHeight: 32)
 
-            HStack(spacing: 16) {
-                toolStatus("CLI", status: agentTools.report?.cli ?? .unknown)
-                toolStatus("Codex", status: agentTools.report?.codex ?? .unknown)
-                toolStatus("Claude Code", status: agentTools.report?.claude ?? .unknown)
+            VStack(spacing: 4) {
+                HStack(spacing: 16) {
+                    toolStatus("CLI", status: agentTools.report?.cli ?? .unknown)
+                    toolStatus("Codex", status: agentTools.report?.codex ?? .unknown)
+                }
+                HStack(spacing: 16) {
+                    toolStatus("Claude Code", status: agentTools.report?.claude ?? .unknown)
+                    toolStatus("Antigravity", status: agentTools.report?.antigravity ?? .unknown)
+                }
             }
-            .frame(minHeight: 20)
 
             if let message = agentTools.errorMessage {
                 statusMessage(message, isWarning: true)

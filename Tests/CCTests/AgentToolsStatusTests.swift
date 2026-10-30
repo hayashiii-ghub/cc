@@ -90,7 +90,7 @@ struct AgentToolsStatusTests {
         [[ "$#" == 1 && "$1" == --check ]] || exit 8
         [[ "$CC_INSTALL_APP/Contents/Resources/install_agent_tools.sh" == "$0" ]] || exit 9
         [[ -d "$CC_INSTALL_HOME" && "$CC_INSTALL_HOME" == *"Other User's Home" ]] || exit 10
-        printf '%s\\n' '{"status":"outdated","cli":"up-to-date","codex":"outdated","claude":"not-installed","legacy_cli":"managed"}'
+        printf '%s\\n' '{"status":"outdated","cli":"up-to-date","codex":"outdated","claude":"not-installed","antigravity":"up-to-date","legacy_cli":"managed"}'
         """
         try body.write(to: script, atomically: true, encoding: .utf8)
         let checker = AgentToolsChecker(appURL: app, homeURL: home)
@@ -99,8 +99,11 @@ struct AgentToolsStatusTests {
         #expect(valid.cli == .upToDate)
         #expect(valid.codex == .outdated)
         #expect(valid.claude == .notInstalled)
+        #expect(valid.antigravity == .upToDate)
         #expect(valid.legacyCLI == .managed)
 
+        try "printf '%s\\n' '{\"status\":\"up-to-date\",\"cli\":\"up-to-date\",\"codex\":\"up-to-date\",\"claude\":\"up-to-date\",\"legacy_cli\":\"absent\"}'".write(to: script, atomically: true, encoding: .utf8)
+        #expect(await Task.detached { checker.check() }.value == .unknown)
         try "printf '%s\\n' 'not-json'".write(to: script, atomically: true, encoding: .utf8)
         #expect(await Task.detached { checker.check() }.value == .unknown)
         try (body + "\nexit 1\n").write(to: script, atomically: true, encoding: .utf8)
@@ -123,7 +126,7 @@ struct AgentToolsStatusTests {
         #expect(controller.operationMessage == nil)
         try await finish(controller)
         #expect(controller.report?.isConfigured == true)
-        #expect(controller.operationMessage?.contains("Codex and Claude Code") == true)
+        #expect(controller.operationMessage?.contains("Antigravity") == true)
         #expect(controller.errorMessage == nil)
         #expect(await actions.events == ["check", "install", "check"])
     }
@@ -148,9 +151,10 @@ struct AgentToolsStatusTests {
 
     @Test(arguments: [
         AgentToolsReport.unknown,
-        AgentToolsReport(status: .outdated, cli: .upToDate, codex: .outdated, claude: .upToDate, legacyCLI: .absent),
-        AgentToolsReport(status: .upToDate, cli: .upToDate, codex: .upToDate, claude: .notInstalled, legacyCLI: .absent),
-        AgentToolsReport(status: .upToDate, cli: .upToDate, codex: .upToDate, claude: .upToDate, legacyCLI: .managed)
+        AgentToolsReport(status: .outdated, cli: .upToDate, codex: .outdated, claude: .upToDate, antigravity: .upToDate, legacyCLI: .absent),
+        AgentToolsReport(status: .upToDate, cli: .upToDate, codex: .upToDate, claude: .notInstalled, antigravity: .upToDate, legacyCLI: .absent),
+        AgentToolsReport(status: .upToDate, cli: .upToDate, codex: .upToDate, claude: .upToDate, antigravity: .notInstalled, legacyCLI: .absent),
+        AgentToolsReport(status: .upToDate, cli: .upToDate, codex: .upToDate, claude: .upToDate, antigravity: .upToDate, legacyCLI: .managed)
     ])
     func anExitZeroWithoutCompleteReadbackIsNotSuccess(_ readback: AgentToolsReport) async throws {
         let suite = "AgentToolsTests.\(UUID().uuidString)"
@@ -248,7 +252,7 @@ struct AgentToolsStatusTests {
         [[ "$CC_INSTALL_HOME" == *"Other User's Home" ]] || exit 11
         if [[ "$#" == 1 && "$1" == --check ]]; then
           if [[ -f "$CC_INSTALL_HOME/installed" ]]; then state=up-to-date; else state=not-installed; fi
-          printf '{"status":"%s","cli":"%s","codex":"%s","claude":"%s","legacy_cli":"absent"}\\n' "$state" "$state" "$state" "$state"
+          printf '{"status":"%s","cli":"%s","codex":"%s","claude":"%s","antigravity":"%s","legacy_cli":"absent"}\\n' "$state" "$state" "$state" "$state" "$state"
         elif [[ "$#" == 0 ]]; then
           if IFS= read -r input; then exit 12; fi
           printf 'installer output is not a completion check\\n'
@@ -272,7 +276,7 @@ struct AgentToolsStatusTests {
     }
 
     private func report(_ status: AgentToolsReport.Status) -> AgentToolsReport {
-        AgentToolsReport(status: status, cli: status, codex: status, claude: status, legacyCLI: .absent)
+        AgentToolsReport(status: status, cli: status, codex: status, claude: status, antigravity: status, legacyCLI: .absent)
     }
 
     private func finish(_ controller: AgentToolsStatusController) async throws {

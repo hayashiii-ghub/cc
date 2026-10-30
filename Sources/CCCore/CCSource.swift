@@ -17,6 +17,7 @@ public enum CCSource {
         case "human": "You"
         case "codex": "Codex"
         case "claude": "Claude Code"
+        case "antigravity": "Antigravity"
         case "grokbot": "Grokbot"
         default: source
         }

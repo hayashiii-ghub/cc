@@ -106,8 +106,7 @@ struct NotchIslandView: View {
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.white.opacity(0.8))
-                        .frame(width: 20)
-                        .padding(.trailing, 9)
+                        .frame(width: sideTabWidth)
                         .accessibilityLabel("\(store.items.count) items in cc:")
                 }
         }
