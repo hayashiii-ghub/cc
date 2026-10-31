@@ -14,17 +14,14 @@
 .preview * ,
 .featureScene * { box-sizing: border-box; }
 
-.previewTop,
-.previewBottom {
+.previewControls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 16px;
-  padding: 20px 28px;
+  gap: 12px;
+  margin-top: 30px;
 }
-.previewTop { border-bottom: 1px solid rgba(242, 240, 235, 0.065); }
-.previewBottom { border-top: 1px solid rgba(242, 240, 235, 0.065); background: rgba(0, 0, 0, 0.13); }
 .segmented {
   display: flex;
   gap: 4px;
@@ -54,16 +51,29 @@
 .quietButton:hover { color: #f2f0eb; background: rgba(255, 255, 255, 0.075); }
 .segmented button:focus-visible,
 .quietButton:focus-visible { outline: 2px solid #f2f0eb; outline-offset: 3px; }
-.demoNote { margin: 0; color: #73736f; font-size: 12px; line-height: 1.6; }
+.demoNote { margin: 19px 0 0; text-align: center; color: #8b8b87; font-size: 11px; line-height: 1.6; }
 
 .stage {
-  min-height: 424px;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 28px;
-  background: radial-gradient(ellipse at center, rgba(54, 61, 66, 0.13), transparent 75%);
+  padding: 0;
 }
+.preview .shelf { width: 660px; }
+.preview .shelfHeader { height: 62px; padding-inline: 23px; }
+.preview .itemCount { font-size: 14px; }
+.preview .windowControl svg { width: 15px; height: 15px; }
+.preview .itemList,
+.preview .emptyShelf { min-height: 264px; }
+.preview .itemList { padding-inline: 15px; }
+.preview .itemRow { min-height: 84px; gap: 16px; padding: 12px; }
+.preview .itemIcon { width: 31px; height: 31px; }
+.preview .itemTitle { font-size: 16px; }
+.preview .itemMenu { font-size: 13px; }
+.preview .shelfFooter { min-height: 61px; padding: 14px 17px; font-size: 14px; }
+.preview .footerPrimary { gap: 10px; }
+
 .light {
   --shelf-bg: #eceeef;
   --shelf-fg: #242628;
@@ -156,13 +166,8 @@
 .notchScene .sceneNote { margin-top: 10px; }
 
 @media (max-width: 640px) {
-  .previewTop,
-  .previewBottom { padding: 16px; gap: 12px; }
   .segmented button,
   .quietButton { min-height: 40px; padding-inline: 12px; font-size: 12px; }
-  .previewBottom { justify-content: center; }
-  .demoNote { width: 100%; text-align: center; font-size: 11px; }
-  .stage { min-height: 394px; padding: 28px 16px; }
   .shelfHeader { padding-inline: 14px; }
   .itemList { padding-inline: 5px; }
   .itemRow { gap: 10px; padding-inline: 8px; }
@@ -177,6 +182,24 @@
   .shelfFooter:lang(ja) .footerActions { grid-column: 1 / -1; justify-self: end; margin-left: 0; }
   .selectedFiles { flex-wrap: wrap; justify-content: flex-start; gap: 12px 20px; }
   .notchScene { padding-top: 0; }
+}
+
+@media (max-width: 600px) {
+  .stage { min-height: 0; }
+  .preview .shelfHeader { height: 50px; padding-inline: 14px; }
+  .preview .itemList,
+  .preview .emptyShelf { min-height: 238px; }
+  .preview .itemList { padding-inline: 5px; }
+  .preview .itemRow { min-height: 74px; gap: 10px; padding: 10px 8px; }
+  .preview .itemIcon { width: 26px; height: 26px; }
+  .preview .itemTitle { font-size: 13px; }
+  .preview .itemMenu { font-size: 11px; }
+  .preview .shelfFooter { padding-inline: 10px; font-size: 11px; }
+  .preview .footerPrimary { gap: 4px; }
+  .previewControls { gap: 9px; margin-top: 23px; }
+  .segmented button,
+  .quietButton { min-height: 36px; padding-inline: 11px; font-size: 11px; }
+  .demoNote { margin-top: 16px; font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,96 @@
+.workflow { padding-top: 54px; padding-bottom: 72px; }
+.journey { padding: 44px 0 54px; border-top: 1px solid var(--line); }
+.journey h2 { display: flex; align-items: center; gap: 18px; margin: 0 0 38px; font-size: 34px; line-height: 1.4; }
+.journey h2 > span { color: var(--dim); font: 12px "CC Mono", monospace; }
+.journeyTrack { display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1.35fr) 34px minmax(0, 1fr); align-items: center; gap: 18px; }
+.journeyStop { min-width: 0; text-align: center; }
+.journeyArrow { color: #8c8c88; text-align: center; font-size: 28px; margin-top: -30px; }
+.stopLabel { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 34px; margin: 20px 0 0; color: var(--muted); font-size: 13px; }
+.stopLabel kbd { padding: 4px 7px; border: 1px solid #404143; border-radius: 5px; color: #d4d3ce; font: 11px "CC Mono", monospace; }
+.journeyShelf { --shelf-bg: #252729; --shelf-fg: #f1f1ef; --shelf-muted: #b4b6b7; --shelf-line: #ffffff1a; --shelf-icon: #d8dadb; --shelf-mark-filter: none; text-align: left; }
+.journeyShelf .shelf { width: 100%; box-shadow: 0 12px 40px #0006; }
+.journeyShelf .shelfHeader { height: 41px; padding-inline: 13px; }
+.journeyShelf .shelfHeader .mark { width: 25px; }
+.journeyShelf .itemList { min-height: 178px; padding: 4px 5px; }
+.journeyShelf .itemRow { min-height: 56px; gap: 8px; padding: 7px; }
+.journeyShelf .itemIcon { width: 22px; height: 22px; }
+.journeyShelf .itemTitle { font-size: 12px; }
+.journeyShelf .itemDetail { font-size: 10px; margin-top: 4px; }
+.journeyShelf .itemMenu { font-size: 10px; }
+.journeyShelf .shelfFooter { min-height: 44px; font-size: 10px; gap: 3px; padding: 8px; }
+.journeyShelf .footerPrimary { gap: 0; }
+.journeyShelf .footerActions { gap: 0; }
+.journeyShelf .footerPrimary > span, .journeyShelf .dragLabel, .journeyShelf .clearAllLabel { padding-inline: 4px; }
+.materialScene, .agentScene, .resultScene { min-height: 212px; }
+.materialScene { display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 14px; padding: 10px 0; }
+.fileTile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-width: 0; color: #c7c8c9; font-size: 11px; }
+.fileTile > .itemIcon { width: 53px; height: 62px; color: #d5d7da; stroke-width: .9; }
+.fileTile > span { overflow-wrap: anywhere; }
+.imageThumbnail { position: relative; width: 72px; height: 55px; overflow: hidden; border-radius: 5px; background: #4a555b; border: 1px solid #8a979c; }
+.imageThumbnail::before { content: ""; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #c5c9bb; top: 8px; right: 12px; }
+.imageThumbnail::after { content: ""; position: absolute; width: 54px; height: 54px; background: #7d8d89; transform: rotate(45deg); top: 29px; left: -5px; box-shadow: 34px -9px #687975; }
+.noteTile { grid-column: 1/-1; justify-self: center; display: flex; align-items: center; gap: 10px; width: 90%; margin-top: 9px; padding: 12px; border: 1px solid #303133; border-radius: 8px; color: var(--muted); font-size: 12px; }
+.noteTile .itemIcon { width: 19px; height: 19px; }
+.agentScene, .resultScene, .settingsDiagram { border: 1px solid #343538; border-radius: 11px; background: #101113; text-align: left; }
+.miniWindowBar { display: flex; align-items: center; gap: 5px; height: 33px; padding: 0 12px; border-bottom: 1px solid #ffffff0d; color: var(--dim); font: 10px "CC Sans", sans-serif; }
+.miniWindowBar i { width: 5px; height: 5px; border-radius: 50%; background: #57585b; flex: 0 0 auto; }
+.miniWindowBar > span { margin-left: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.requestBubble { display: flex; align-items: center; gap: 10px; margin: 28px 12px 24px; padding: 12px; border: 1px solid #4a4c50; border-radius: 10px 10px 3px 10px; color: #e8e6e1; font-size: 13px; line-height: 1.6; }
+.requestBubble > span { margin-left: auto; color: #a4a59f; }
+.agentNames { padding: 0 14px 14px; color: #8f918f; font-size: 11px; line-height: 1.8; text-align: center; }
+.resultScene { position: relative; margin-right: 8px; }
+.documentPreview { width: 75%; padding: 23px 16px 24px; }
+.documentPreview > div { height: 3px; margin-bottom: 8px; border-radius: 2px; background: #55595c; }
+.documentPreview .documentHeading { width: 55%; height: 5px; margin: 0 0 13px; background: #a1a4a2; }
+.documentPreview .documentHeading:not(:first-child) { margin-top: 20px; }
+.documentPreview .documentShort { width: 70%; }
+.floatingFile { position: absolute; right: -14px; bottom: 13px; width: 59px; height: 69px; display: grid; place-items: center; border: 1px solid #6b6e72; border-radius: 8px; background: #2c3034; transform: rotate(8deg); box-shadow: 0 8px 18px #0008; }
+.floatingFile .itemIcon { width: 32px; height: 36px; }
+.floatingFile > svg:last-child { position: absolute; width: 24px; height: 28px; right: -10px; bottom: -12px; fill: white; stroke: #141414; stroke-width: 1.5; }
+.workflowNote { text-align: center; color: var(--dim); font-size: 11px; margin: 0; }
+.storageFacts { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; padding: 28px 0 0; margin: 28px 0 0; border-top: 1px solid var(--line); list-style: none; color: #aaa9a4; font-size: 13px; }
+.storageFacts li { display: flex; align-items: center; gap: 8px; }
+.storageFacts li > span { color: #d3d1cb; }
+.visualSetup { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 0; list-style: none; margin: 42px 0; }
+.visualSetup > li { min-width: 0; }
+.installDiagram { display: flex; align-items: center; justify-content: center; gap: 27px; height: 145px; }
+.installArrow { color: var(--dim); font-size: 25px; }
+.applicationsFolder { display: grid; justify-items: center; gap: 8px; font-size: 10px; color: #aeb5ba; }
+.applicationsFolder .itemIcon { width: 70px; height: 61px; color: #8095a5; stroke-width: 1; fill: #293c4a; }
+.settingsDiagram { height: 145px; }
+.settingsContent { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 24px 17px 16px; font-size: 13px; }
+.setUpLabel { padding: 5px 13px; border-radius: 5px; background: #44474b; font-size: 11px; }
+.setupAgents { color: var(--dim); font-size: 10px; text-align: center; }
+.visualSetup h3 { margin: 20px 0 0; font-size: 14px; font-weight: 400; }
+.visualSetup h3 > span { color: var(--dim); margin-right: 12px; font: 11px "CC Mono", monospace; }
+.setupCopyButton { border: 0; padding: 12px 0; background: none; font: 12px "CC Sans", sans-serif; color: var(--muted); cursor: pointer; }
+.setupCopyButton:hover { color: var(--fg); }
+.setupCopyButton:focus-visible { outline: 2px solid var(--fg); outline-offset: 4px; }
+.setupActions { margin-top: 12px; }
+.copyStatus { margin: 0; min-height: 0; }
+.copyStatus:empty { display: none; }
+.installSection .guideLink { margin-top: 10px; }
+.installSection { padding-block: 72px 86px; }
+@media (max-width: 1000px) and (min-width: 701px) {
+  .journeyTrack { grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1.45fr) 18px minmax(0, 1fr); gap: 10px; }
+  .journeyShelf .itemMenu { display: none; }
+  .requestBubble { font-size: 12px; padding: 10px; margin-inline: 9px; }
+  .stopLabel { font-size: 11px; gap: 6px; }
+}
+@media (max-width: 700px) {
+  .workflow { padding-top: 20px; padding-bottom: 42px; }
+  .journey { padding: 35px 0 40px; }
+  .journey h2 { font-size: 28px; gap: 14px; margin-bottom: 30px; }
+  .journeyTrack { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 14px; }
+  .journeyStop { width: min(100%, 350px); }
+  .journeyArrow { transform: rotate(90deg); margin: 0; font-size: 24px; line-height: 1; }
+  .materialScene { min-height: 165px; max-width: 290px; margin: auto; }
+  .agentScene, .resultScene { min-height: 0; max-width: 290px; margin: auto; }
+  .requestBubble { margin-top: 20px; margin-bottom: 12px; }
+  .agentNames { padding-bottom: 12px; }
+  .resultScene { height: 188px; }
+  .stopLabel { margin-top: 12px; min-height: 24px; font-size: 12px; }
+  .storageFacts { gap: 13px 22px; justify-content: flex-start; font-size: 12px; }
+  .visualSetup { grid-template-columns: 1fr; gap: 32px; max-width: 330px; margin-inline: auto; }
+  .installSection { padding-block: 56px 66px; }
+}
