@@ -16,6 +16,9 @@ test("renders the standalone cc: site at the root", async () => {
   const html = await Bun.file(join(distRoot, "index.html")).text();
   const text = withoutBreakHints(html);
   const ogImage = await Bun.file(join(distRoot, "cc/cc-og.png")).arrayBuffer();
+  const ogBytes = Buffer.from(ogImage);
+  assert.equal(ogBytes.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.deepEqual([ogBytes.readUInt32BE(16), ogBytes.readUInt32BE(20)], [1200, 630]);
   const ogHash = createHash("sha256").update(Buffer.from(ogImage)).digest("hex").slice(0, 12);
   const ogURL = `https://cc.shigoto.dev/cc/cc-og.png?v=${ogHash}`;
 
@@ -38,7 +41,7 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(html, /property="og:image:width" content="1200"/);
   assert.match(html, /property="og:image:height" content="630"/);
   assert.ok(html.includes(`name="twitter:image" content="${ogURL}"`));
-  assert.match(html, /name="twitter:image:alt" content="cc:"/);
+  assert.match(html, /name="twitter:image:alt" content="cc:,[^"]+"/);
   assert.match(html, /rel="icon" href="\/cc\/cc-favicon\.svg" type="image\/svg\+xml"/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc/);
   assert.match(html, /github\.com\/hayashiii-ghub\/cc\/releases/);
@@ -81,7 +84,8 @@ for (const language of ["en", "ja"] as const) {
           assert.match(html, new RegExp(`data-shelf-mode="${mode}" data-shelf-state="${empty ? "empty" : "items"}"`));
           assert.ok(html.includes(escapeHtml(empty ? copy.emptyCount : copy.count)));
           assert.equal((html.match(/class="itemTitle"/g) ?? []).length, empty ? 0 : 3);
-          assert.equal(html.includes('class="stage light"'), mode === "menuBar" && light);
+          const stageClasses = html.match(/class="(stage[^"]*)"/)?.[1]?.split(" ") ?? [];
+          assert.equal(stageClasses.includes("light"), mode === "menuBar" && light);
           assert.equal(html.includes('class="notchCutout"'), mode === "notch");
           assert.equal(html.includes('data-action="preview-theme"'), mode === "menuBar");
           assert.equal(html.includes(escapeHtml(copy.emptyMessage)), empty);

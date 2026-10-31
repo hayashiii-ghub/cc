@@ -7,7 +7,7 @@ export const siteCopy = {
     meta: {
       title: "cc:",
       description: "Gather files, links, and long notes for your agent. Ask it to leave its work on the same shelf.",
-      imageAlt: "cc:",
+      imageAlt: "cc:, a shared shelf for AI on your Mac. The shelf shows sample items.",
     },
     skip: "Skip to content",
     primary: "Primary",
@@ -89,7 +89,7 @@ export const siteCopy = {
     meta: {
       title: "cc:",
       description: "資料やリンク、長いテキストを棚へ。エージェントに読むよう頼み、成果物も同じ棚で受け取れます。",
-      imageAlt: "cc:",
+      imageAlt: "cc:。Mac上でAIと資料や成果物を受け渡す棚。表示はサンプルです。",
     },
     skip: "本文へ移動",
     primary: "メインナビゲーション",
