@@ -21,27 +21,14 @@ test("renders the standalone cc: site at the root", async () => {
 
   assert.match(html, /<html lang="en">/);
   assert.match(html, /<title>cc:<\/title>/);
-  assert.match(text, /You and your agent/);
-  assert.match(text, /Gather files, links, and long notes/);
-  assert.match(text, /Give your agent the materials it needs/);
-  assert.match(text, /Receive the work on your shelf/);
-  assert.match(text, /Right where you reach for it/);
-  assert.match(text, /Menu Bar stays the default/);
-  assert.match(text, /optional Notch shelf/);
-  assert.match(text, /Your shelf, stored on this Mac/);
-  assert.match(text, /A few things to know/);
-  assert.doesNotMatch(text, /Questions, answered honestly/);
+  assert.match(text, /A shared shelf for AI/);
+  assert.match(text, /Share your materials. Receive the results/);
+  assert.match(text, /Give your agent the materials/);
+  assert.match(text, /Bring the results back/);
+  assert.match(text, /Use the materials in cc:/);
+  assert.match(text, /Leave the results in cc:/);
+  assert.match(text, /Originals stay in place/);
   assert.match(html, /Light preview/);
-  assert.match(text, /Can I change the shortcuts/);
-  assert.match(text, /Use Details to choose/);
-  assert.match(text, /After updating cc: and AI Tools/);
-  assert.match(text, /ask your agent to open or remove selected items/);
-  assert.match(text, /Settings → Open with/);
-  assert.match(text, /stored text is copied to the clipboard/);
-  assert.match(text, /only its shelf entry and managed copy are removed/);
-  assert.match(text, /The original file stays in place/);
-  assert.match(text, /macOS defaults stay unchanged/);
-  assert.match(text, /Option \+ Shift \+ Tab/);
   assert.doesNotMatch(html, /<video\b|-poster\.webp/);
   assert.doesNotMatch(html, /aria-label="(?:Pause|Play) /);
   assert.match(html, /cc-mark\.svg/);
@@ -59,11 +46,8 @@ test("renders the standalone cc: site at the root", async () => {
   assert.match(text, /Open source/);
   assert.match(text, /v0\.5\.0 · macOS 26\+ · Apple Silicon &amp; Intel/);
   assert.match(text, /cc: is not yet notarized by Apple/);
-  assert.match(text, /Privacy &amp; Security/);
   assert.doesNotMatch(html, /v1\.1\.4|Chrome Web Store|CodexIsland/);
-  assert.match(text, /managed copies of files and folders in its local storage/);
-  assert.match(text, /kept until you remove them/);
-  assert.match(text, /ask Codex or Claude Code to read the items you need/);
+  assert.match(text, /Copies stay on your Mac/);
   assert.doesNotMatch(text, /On Screen|remain references|in memory|temporary copies are cleared/);
 });
 
@@ -73,17 +57,13 @@ for (const language of ["en", "ja"] as const) {
     const html = renderPage(language);
     const copy = siteCopy[language];
     assert.ok(html.includes(escapeHtml(copy.installMeta)));
-    assert.ok(html.includes(escapeHtml(copy.agentSetupBody)));
-    assert.ok(copy.agentSetupBody.includes("Antigravity"));
-    assert.ok(copy.faqs.find((faq) => faq.id === "agents")?.answer.includes("Antigravity"));
+    assert.ok(html.includes("Antigravity"));
+    assert.ok(html.includes(escapeHtml(copy.flow.readRequest)));
+    assert.ok(html.includes(escapeHtml(copy.flow.returnRequest)));
     assert.match(html, new RegExp(`class="page" lang="${language}" data-page`));
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
     assert.equal((html.match(/<main\b/g) ?? []).length, 1);
     for (const phrase of copy.heroTitle.flat()) assert.ok(html.includes(escapeHtml(phrase)));
-    for (const faq of copy.faqs) {
-      assert.ok(html.includes(escapeHtml(faq.question)));
-      assert.ok(html.includes(escapeHtml(faq.answer)));
-    }
     assert.match(html, new RegExp(`aria-pressed="true" data-action="language" data-language="${language}"`));
     assert.doesNotMatch(html, /_next\/|vinext|data-rsc|<video\b/);
     const document = renderDocument(html, { styles: [], scripts: [] }, language);

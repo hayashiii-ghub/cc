@@ -3,6 +3,7 @@ import { renderInteractivePreview, renderPage, type PreviewState } from "./rende
 import "./styles/global.css";
 import "./styles/cc.css";
 import "./styles/shelf.css";
+import "./styles/workflow.css";
 
 let language: SiteLanguage = "en";
 let temporaryLanguage: SiteLanguage | undefined;
@@ -40,9 +41,7 @@ function updateMetadata() {
 
 type FocusTarget =
   | { kind: "control"; action: string; language?: string; mode?: string; empty?: string }
-  | { kind: "faq"; id: string }
-  | { kind: "link"; href: string; index: number }
-  | { kind: "setup" };
+  | { kind: "link"; href: string; index: number };
 
 // Keep focus when translated markup is replaced, including keyboard-only use.
 function focusedControl(): FocusTarget | undefined {
@@ -56,18 +55,12 @@ function focusedControl(): FocusTarget | undefined {
       empty: active.dataset.empty,
     };
   }
-  if (active instanceof HTMLElement && active.tagName === "SUMMARY") {
-    const id = active.closest<HTMLElement>("details[data-faq-id]")?.dataset.faqId;
-    if (id) return { kind: "faq", id };
-  }
   if (active instanceof HTMLAnchorElement) {
     const href = active.getAttribute("href") ?? "";
     const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-page] a"));
     return { kind: "link", href, index: links.filter(link => link.getAttribute("href") === href).indexOf(active) };
   }
-  if (active instanceof HTMLElement && active.matches("[data-page] pre[tabindex]")) {
-    return { kind: "setup" };
-  }
+
 }
 
 function restoreFocus(target: FocusTarget | undefined) {
@@ -79,14 +72,9 @@ function restoreFocus(target: FocusTarget | undefined) {
       && button.dataset.language === target.language
       && button.dataset.mode === target.mode
       && button.dataset.empty === target.empty);
-  } else if (target.kind === "faq") {
-    element = Array.from(document.querySelectorAll<HTMLDetailsElement>("details[data-faq-id]"))
-      .find(item => item.dataset.faqId === target.id)?.querySelector<HTMLElement>("summary");
   } else if (target.kind === "link") {
     element = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-page] a"))
       .filter(link => link.getAttribute("href") === target.href)[target.index];
-  } else {
-    element = document.querySelector<HTMLElement>("[data-page] pre[tabindex]");
   }
   element?.focus({ preventScroll: true });
 }
@@ -94,14 +82,10 @@ function restoreFocus(target: FocusTarget | undefined) {
 function updateLanguage(next: SiteLanguage) {
   if (next !== language) {
     const focus = focusedControl();
-    const openFAQs = new Set(Array.from(document.querySelectorAll<HTMLDetailsElement>("details[data-faq-id][open]"), item => item.dataset.faqId));
     const page = document.querySelector<HTMLElement>("[data-page]");
     language = next;
     copyRevision++;
     if (page) page.outerHTML = renderPage(language, preview);
-    for (const item of document.querySelectorAll<HTMLDetailsElement>("details[data-faq-id]")) {
-      item.open = openFAQs.has(item.dataset.faqId);
-    }
     restoreFocus(focus);
   }
   updateMetadata();

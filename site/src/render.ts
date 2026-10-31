@@ -8,7 +8,6 @@ export type PreviewState = {
 
 type ItemKind = "text" | "file" | "folder";
 type PreviewItem = { title: string; source: string; note: string; kind: ItemKind };
-type FeaturePreviewVariant = "files" | "handoff" | "notch";
 
 const defaultPreviewState: PreviewState = { mode: "menuBar", light: false, empty: false };
 const repositoryUrl = "https://github.com/hayashiii-ghub/cc";
@@ -31,8 +30,8 @@ function renderMark(width: number, height: number, alt: string, className?: stri
   return `<img src="/cc/cc-mark.svg" alt="${escapeHtml(alt)}" width="${width}" height="${height}" loading="lazy" decoding="async" srcset="/cc/cc-mark.svg ${width}w"${className ? ` class="${escapeHtml(className)}"` : ""} data-nimg="1">`;
 }
 
-function renderHeadline(language: SiteLanguage): string {
-  return siteCopy[language].heroTitle.map((line) =>
+function renderHeadline(lines: readonly (readonly string[])[]): string {
+  return lines.map((line) =>
     `<span class="heroLine">${line.map((phrase) => `<span class="heroPhrase">${escapeHtml(phrase)}</span>`).join("")}</span>`,
   ).join("");
 }
@@ -91,61 +90,59 @@ function renderShelfWindow(
   ].join("");
 }
 
-function renderFeaturePreview(language: SiteLanguage, variant: FeaturePreviewVariant): string {
-  const copy = siteCopy[language].preview;
-  const introduction = variant === "files"
-    ? [
-      '<div class="finderSelection">',
-      `<p class="sceneLabel">${escapeHtml(copy.finderSelection)}</p>`,
-      `<div class="selectedFiles"><span>${renderItemIcon("file")}${escapeHtml(copy.referenceItems[2].title)}</span><span>${renderItemIcon("file")}${escapeHtml(copy.referenceItems[1].title)}</span></div>`,
-      '</div><div class="flowCue"><span aria-hidden="true">↓</span><kbd>⌥ Tab</kbd></div>',
-    ].join("")
-    : variant === "handoff"
-      ? `<div class="sources" aria-label="${escapeHtml(copy.sourceLabel)}">${copy.sources.map((source) => `<span>${escapeHtml(source)}</span>`).join("")}</div>`
-      : "";
-  return [
-    `<div class="featureScene${variant === "notch" ? " notchScene" : ""}" data-preview-variant="${escapeHtml(variant)}" lang="${escapeHtml(language)}">`,
-    introduction,
-    renderShelfWindow(language, {
-      mode: variant === "notch" ? "notch" : "menuBar",
-      emphasizeSource: variant === "handoff",
-      items: variant === "files" ? copy.referenceItems : variant === "handoff" ? copy.receivedItems : undefined,
-    }),
-    `<p class="sceneNote">${escapeHtml(variant === "files" ? copy.filesNote : variant === "handoff" ? copy.handoffNote : copy.notchNote)}</p>`,
-    '</div>',
-  ].join("");
+function renderWorkflow(language: SiteLanguage): string {
+  const { flow, preview } = siteCopy[language];
+  const arrow = '<span class="journeyArrow" aria-hidden="true">→</span>';
+  const agent = (prompt: string) => `<div class="agentScene"><div class="miniWindowBar"><i></i><i></i><i></i><span>AI</span></div><div class="requestBubble">${escapeHtml(prompt)}<span aria-hidden="true">↵</span></div><div class="agentNames">Codex · Claude Code<br>Antigravity</div></div>`;
+  const shelf = (received: boolean) => `<div class="journeyShelf">${renderShelfWindow(language, { emphasizeSource: true, items: received ? preview.receivedItems : preview.referenceItems })}</div>`;
+  return `<section class="section workflow" id="how" aria-label="${escapeHtml(siteCopy[language].howLabel)}">
+    <article class="journey">
+      <h2><span>01</span>${escapeHtml(flow.share)}</h2>
+      <div class="journeyTrack">
+        <div class="journeyStop"><div class="materialScene"><div class="fileTile">${renderItemIcon("file")}<span>${escapeHtml(preview.referenceItems[2].title)}</span></div><div class="fileTile imageTile"><div class="imageThumbnail" aria-hidden="true"></div><span>${escapeHtml(preview.referenceItems[1].title)}</span></div><div class="noteTile">${renderItemIcon("text")}<span>${escapeHtml(preview.referenceItems[0].title)}</span></div></div><p class="stopLabel">${escapeHtml(flow.materials)}</p></div>
+        ${arrow}<div class="journeyStop">${shelf(false)}<p class="stopLabel">cc:</p></div>
+        ${arrow}<div class="journeyStop">${agent(flow.readRequest)}<p class="stopLabel">${escapeHtml(flow.ask)}</p></div>
+      </div>
+    </article>
+    <article class="journey">
+      <h2><span>02</span>${escapeHtml(flow.receive)}</h2>
+      <div class="journeyTrack">
+        <div class="journeyStop">${agent(flow.returnRequest)}<p class="stopLabel">${escapeHtml(flow.ask)}</p></div>
+        ${arrow}<div class="journeyStop">${shelf(true)}<p class="stopLabel">${escapeHtml(flow.sameShelf)}</p></div>
+        ${arrow}<div class="journeyStop"><div class="resultScene"><div class="miniWindowBar"><i></i><i></i><i></i><span>${escapeHtml(preview.receivedItems[0].title)}</span></div><div class="documentPreview" aria-hidden="true"><div class="documentHeading"></div><div></div><div></div><div class="documentShort"></div><div class="documentHeading"></div><div></div><div></div></div><div class="floatingFile">${renderItemIcon("file")}<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M4 2v21l5-5 4 8 4-2-4-8h8Z"/></svg></div></div><p class="stopLabel">${escapeHtml(flow.openDrag)}</p></div>
+      </div>
+    </article>
+    <p class="workflowNote">${escapeHtml(flow.sample)}</p>
+    <ul class="storageFacts">${flow.storage.map((label) => `<li><span aria-hidden="true">✓</span>${escapeHtml(label)}</li>`).join("")}</ul>
+  </section>`;
 }
 
 export function renderInteractivePreview(language: SiteLanguage, state: PreviewState): string {
   const copy = siteCopy[language].preview;
   return [
     `<div class="preview" data-preview-variant="interactive" lang="${escapeHtml(language)}">`,
-    '<div class="previewTop">',
+    `<div class="stage${state.mode === "menuBar" && state.light ? " light" : ""}">${renderShelfWindow(language, state)}</div>`,
+    '<div class="previewControls">',
     `<div class="segmented" role="group" aria-label="${escapeHtml(copy.location)}">`,
     `<button type="button" aria-pressed="${state.mode === "menuBar" ? "true" : "false"}" data-action="preview-mode" data-mode="menuBar">${escapeHtml(copy.menuBar)}</button>`,
     `<button type="button" aria-pressed="${state.mode === "notch" ? "true" : "false"}" data-action="preview-mode" data-mode="notch">${escapeHtml(copy.notch)}</button>`,
     '</div>',
-    state.mode === "menuBar" ? `<button class="quietButton" type="button" aria-pressed="${state.light ? "true" : "false"}" data-action="preview-theme">${escapeHtml(state.light ? copy.dark : copy.light)}</button>` : "",
-    '</div>',
-    `<div class="stage${state.mode === "menuBar" && state.light ? " light" : ""}">${renderShelfWindow(language, state)}</div>`,
-    '<div class="previewBottom">',
     `<div class="segmented" role="group" aria-label="${escapeHtml(copy.contents)}">`,
     `<button type="button" aria-pressed="${state.empty ? "false" : "true"}" data-action="preview-content" data-empty="false">${escapeHtml(copy.items)}</button>`,
     `<button type="button" aria-pressed="${state.empty ? "true" : "false"}" data-action="preview-content" data-empty="true">${escapeHtml(copy.empty)}</button>`,
     '</div>',
+    state.mode === "menuBar" ? `<button class="quietButton" type="button" aria-pressed="${state.light ? "true" : "false"}" data-action="preview-theme">${escapeHtml(state.light ? copy.dark : copy.light)}</button>` : "",
+    '</div>',
     `<p class="demoNote">${escapeHtml(copy.demoNote)}</p>`,
-    '</div></div>',
+    '</div>',
   ].join("");
 }
 
 function renderAgentSetup(language: SiteLanguage): string {
   const copy = siteCopy[language];
   return [
-    '<div class="agentSetup">',
-    `<h3>${escapeHtml(copy.agentSetupTitle)}</h3>`,
-    `<p class="centerCopy">${escapeHtml(copy.agentSetupBody)}</p>`,
-    `<pre class="setupPrompt" tabindex="0">${escapeHtml(copy.agentSetupPrompt)}</pre>`,
-    `<button class="button buttonSecondary setupCopyButton" type="button" data-action="copy-setup">${escapeHtml(copy.copySetupPrompt)}</button>`,
+    '<div class="setupActions">',
+    `<button class="setupCopyButton" type="button" data-action="copy-setup">${escapeHtml(copy.copySetupPrompt)} <span aria-hidden="true">↗</span></button>`,
     '<p class="copyStatus" role="status" data-copy-status></p>',
     '</div>',
   ].join("");
@@ -153,52 +150,34 @@ function renderAgentSetup(language: SiteLanguage): string {
 
 export function renderPage(language: SiteLanguage, state: PreviewState = defaultPreviewState): string {
   const copy = siteCopy[language];
-  const headline = renderHeadline(language);
+  const headline = renderHeadline(copy.heroTitle);
   return [
     `<div class="page" lang="${escapeHtml(language)}" data-page>`,
     `<a class="skipLink" href="#content">${escapeHtml(copy.skip)}</a>`,
     `<nav class="navPill" aria-label="${escapeHtml(copy.primary)}">`,
-    `<a class="brand" href="#top">${renderMark(30, 24, copy.home)}</a>`,
+    `<a class="brand" href="#top">${renderMark(36, 28, copy.home)}</a>`,
     `<a class="navHow" href="#how">${escapeHtml(copy.navHow)}</a>`,
-    `<a href="#install">${escapeHtml(copy.navInstall)}</a>`,
     `<a href="${escapeHtml(repositoryUrl)}">GitHub</a>`,
     `<div class="languageSwitch" role="group" aria-label="${escapeHtml(copy.languageLabel)}">`,
     `<button class="languageButton" type="button" lang="ja" aria-label="日本語" aria-pressed="${language === "ja" ? "true" : "false"}" data-action="language" data-language="ja">JA</button>`,
     `<button class="languageButton" type="button" lang="en" aria-label="English" aria-pressed="${language === "en" ? "true" : "false"}" data-action="language" data-language="en">EN</button>`,
     '</div></nav>',
     '<main id="content"><section class="hero" id="top" aria-labelledby="cc-title">',
-    `<a class="releaseChip" href="${escapeHtml(repositoryUrl)}"><span>${escapeHtml(copy.openSource)}</span><span>${escapeHtml(copy.builtForMac)}</span></a>`,
     `<h1 id="cc-title">${headline}</h1>`,
     `<p class="heroSubtitle">${copy.heroSubtitle.map((line) => `<span>${escapeHtml(line)}</span>`).join("")}</p>`,
-    `<div class="heroActions"><a class="button buttonPrimary" href="#install">${escapeHtml(copy.downloadForMac)}</a><a class="button buttonSecondary" href="${escapeHtml(repositoryUrl)}">${escapeHtml(copy.viewOnGitHub)}</a></div>`,
+    `<div class="heroActions"><a class="button buttonPrimary" href="#install">${escapeHtml(copy.downloadForMac)}</a></div>`,
     `<p class="heroMeta">${escapeHtml(copy.heroMeta)}</p>`,
     '</section>',
     `<section class="showcaseSection" aria-label="${escapeHtml(copy.showcaseLabel)}"><div class="showcaseFrame">${renderInteractivePreview(language, state)}</div><p class="shelfTypes">${escapeHtml(copy.shelfTypes.join(" · "))}</p></section>`,
-    `<section class="section features" id="how" aria-label="${escapeHtml(copy.howLabel)}">`,
-    copy.features.map((feature, index) => [
-      `<article class="featureRow${index % 2 ? " flip" : ""}"><div class="featureCopy">`,
-      `<p class="eyebrow">— ${escapeHtml(feature.index)}</p>`,
-      `<h2>${escapeHtml(feature.title)}</h2><p>${escapeHtml(feature.body)}</p><p class="featureNote">${escapeHtml(feature.note)}</p>`,
-      `</div><div class="featureVisual">${renderFeaturePreview(language, feature.preview)}</div></article>`,
-    ].join("")).join(""),
-    '</section>',
-    '<section class="section privacy" aria-labelledby="privacy-title"><div class="sectionNarrow">',
-    `<p class="eyebrow">${escapeHtml(copy.privacyEyebrow)}</p><h2 id="privacy-title">${escapeHtml(copy.privacyTitle)}</h2>`,
-    `<ul class="privacyMarks" aria-label="${escapeHtml(copy.privacyLabel)}">${copy.privacyMarks.map((mark) => `<li>${escapeHtml(mark)}</li>`).join("")}</ul>`,
-    `<p class="centerCopy">${escapeHtml(copy.privacyBody)}</p>`,
-    '</div></section>',
+    renderWorkflow(language),
     '<section class="section installSection" id="install" aria-labelledby="install-title"><div class="sectionNarrow">',
     `<p class="eyebrow">${escapeHtml(copy.installEyebrow)}</p><h2 id="install-title">${escapeHtml(copy.installTitle)}</h2>`,
-    `<h3 class="installStep">${escapeHtml(copy.installAppStep)}</h3><p class="centerCopy">${escapeHtml(copy.installBody)}</p>`,
+    `<ol class="visualSetup"><li><div class="installDiagram">${renderMark(64, 64, "cc:")}<span class="installArrow" aria-hidden="true">→</span><div class="applicationsFolder">${renderItemIcon("folder")}<span>Applications</span></div></div><h3><span>01</span>${escapeHtml(copy.flow.installApp)}</h3></li><li><div class="settingsDiagram"><div class="miniWindowBar"><i></i><i></i><i></i><span>Settings</span></div><div class="settingsContent"><span>AI Tools</span><span class="setUpLabel">Set Up</span></div><div class="setupAgents">Codex · Claude Code · Antigravity</div></div><h3><span>02</span>${escapeHtml(copy.flow.installAgent)}</h3></li></ol>`,
     `<div class="installBar"><div class="installName">${renderMark(40, 40, copy.markAlt)}<span>${escapeHtml(copy.installName)}</span></div><a class="button buttonPrimary" href="${escapeHtml(downloadUrl)}">${escapeHtml(copy.downloadDmg)}</a></div>`,
     `<p class="installMeta">${escapeHtml(copy.installMeta)}</p><p class="installNote">${escapeHtml(copy.installNote)}</p>`,
     renderAgentSetup(language),
+    `<a class="guideLink" href="${escapeHtml(repositoryUrl + '#使い方')}">${escapeHtml(copy.guideLabel)}</a>`,
     '</div></section>',
-    '<section class="section faq" aria-labelledby="faq-title"><div class="sectionNarrow">',
-    `<p class="eyebrow">${escapeHtml(copy.faqEyebrow)}</p><h2 id="faq-title">${escapeHtml(copy.faqTitle)}</h2><div>`,
-    copy.faqs.map(({ id, question, answer }) => `<details class="faqItem" data-faq-id="${escapeHtml(id)}"><summary>${escapeHtml(question)}</summary><p>${escapeHtml(answer)}</p></details>`).join(""),
-    '</div></div></section>',
-    `<section class="finalCta" aria-labelledby="final-title"><h2 id="final-title">${headline}</h2><div class="heroActions"><a class="button buttonPrimary" href="${escapeHtml(downloadUrl)}">${escapeHtml(copy.downloadForMac)}</a><a class="button buttonSecondary" href="${escapeHtml(repositoryUrl)}">${escapeHtml(copy.viewOnGitHub)}</a></div></section>`,
     '</main>',
     `<footer class="footer"><div class="footerMeta">${renderMark(30, 24, "cc:")}<span class="dot"></span><span>${escapeHtml(copy.openSource)}</span></div>`,
     `<div class="footerLinks"><a href="${escapeHtml(repositoryUrl)}">GitHub</a><a href="${escapeHtml(releasesUrl)}">${escapeHtml(copy.releases)}</a><a href="${escapeHtml(`${repositoryUrl}/issues`)}">${escapeHtml(copy.issues)}</a></div></footer>`,
