@@ -60,18 +60,14 @@
 .navPill {
   position: relative;
   z-index: 50;
-  margin: 30px auto 0;
-  width: max-content;
-  max-width: calc(100% - 24px);
-  min-height: 58px;
-  padding: 6px 10px 6px 18px;
+  margin: 28px auto 0;
+  width: calc(100% - 96px);
+  max-width: 1296px;
+  min-height: 44px;
+  padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border: 1px solid #292a2c;
-  border-radius: 999px;
-  background: #080809;
+  gap: 25px;
   color: var(--muted);
   font-size: 14px;
 }
@@ -117,6 +113,7 @@
 .faqItem summary:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 .brand {
+  margin-right: auto;
   min-height: 32px;
   padding-right: 4px;
   display: flex;
@@ -128,16 +125,18 @@
 }
 .brand img { object-fit: contain; }
 
-.hero { padding: 65px 28px 0; text-align: center; }
+.hero { max-width: 1392px; margin: auto; padding: 70px 48px 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; text-align: left; }
 
-.hero h1 { max-width: none; margin: 0; font-size: clamp(2rem, 4.65vw, 4.125rem); line-height: 1.45; letter-spacing: 0.01em; text-wrap: balance; }
+.hero h1 { max-width: none; margin: 0; font-size: clamp(2rem, 4.2vw, 3.75rem); line-height: 1.45; letter-spacing: 0.01em; text-wrap: balance; }
+.heroCopy { min-width: 0; }
+.heroDownload { flex: none; text-align: center; padding-bottom: 2px; }
 
 .heroLine { display: block; }
 .heroPhrase { display: inline-block; max-width: 100%; }
 
 .heroSubtitle {
   max-width: 650px;
-  margin: 22px auto 0;
+  margin: 19px 0 0;
   color: #c7c6c0;
   font-family: "CC Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
   font-size: 18px;
@@ -147,7 +146,7 @@
 .heroSubtitle > span { display: block; }
 
 .heroActions { margin-top: 32px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-.hero .heroActions { margin-top: 30px; }
+.hero .heroActions { margin-top: 0; }
 .button {
   min-height: 48px;
   padding: 0 20px;
@@ -167,9 +166,9 @@
 .buttonSecondary { background: rgba(255, 255, 255, 0.018); color: #c9c7c1 !important; }
 .buttonSecondary:hover { background: rgba(255, 255, 255, 0.055); color: var(--fg) !important; }
 .hero .button { min-height: 50px; padding-inline: 27px; font-size: 15px; }
-.heroMeta { margin: 18px 0 0; color: #91918e; font-size: 12px; line-height: 1.6; }
+.heroMeta { margin: 14px 0 0; color: #91918e; font-size: 12px; line-height: 1.6; }
 
-.showcaseSection { max-width: 1200px; margin: auto; padding: 49px 44px 35px; }
+.showcaseSection { max-width: 1440px; margin: auto; padding: 50px 24px 35px; }
 .showcaseFrame { width: 100%; }
 .shelfTypes { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px; margin: 30px 0 0; color: var(--muted); font-size: 14px; }
 .shelfTypes span { color: var(--dim); }
@@ -339,7 +338,7 @@
   font-weight: 400;
   letter-spacing: 0;
 }
-.page:lang(ja) .hero h1 { font-size: clamp(2rem, 4.65vw, 4.125rem); line-height: 1.45; letter-spacing: 0.01em; }
+.page:lang(ja) .hero h1 { font-size: clamp(2rem, 4.2vw, 3.75rem); line-height: 1.45; letter-spacing: 0.01em; }
 .page:lang(ja) .featureCopy h2 { max-width: none; font-size: 36px; line-height: 1.45; }
 .page:lang(ja) .privacy h2,
 .page:lang(ja) .installSection h2,
@@ -361,6 +360,12 @@
 @media (max-width: 950px) {
   .featureRow { gap: 45px; }
   .featureCopy h2 { font-size: 41px; }
+}
+
+@media (max-width: 760px) {
+  .hero { display: block; }
+  .heroDownload { margin-top: 25px; text-align: left; }
+  .hero .heroActions { justify-content: flex-start; }
 }
 
 @media (max-width: 700px) {
@@ -390,16 +395,18 @@
 }
 
 @media (max-width: 600px) {
-  .navPill { margin-top: 22px; min-height: 52px; padding: 6px 8px 6px 12px; gap: 10px; font-size: 12px; }
+  .navPill { width: calc(100% - 40px); margin-top: 22px; min-height: 40px; padding: 0; gap: 16px; font-size: 12px; }
   .navPill a:not(.brand) { min-height: 32px; padding-inline: 4px; }
   .navHow { display: none !important; }
   .languageSwitch { margin-left: 0; padding: 2px; }
   .languageButton { min-width: 31px; min-height: 32px; padding-inline: 6px; }
-  .hero { padding: 48px 22px 0; }
+  .hero { padding: 48px 22px 0; text-align: left; }
+  .brand img { width: 52px; height: 36px; }
   .hero h1,
   .page:lang(ja) .hero h1 { font-size: clamp(1.6875rem, 7.8vw, 2.5625rem); line-height: 1.5; letter-spacing: 0; }
   .heroSubtitle { max-width: 340px; margin-top: 18px; font-size: 14px; line-height: 1.85; text-wrap: balance; }
-  .hero .heroActions { margin-top: 25px; }
+  .heroDownload { margin-top: 25px; }
+  .hero .heroActions { margin-top: 0; }
   .hero .button { min-height: 48px; padding-inline: 23px; font-size: 14px; }
   .heroMeta { margin-top: 15px; font-size: 10px; }
   .showcaseSection { padding: 35px 20px 30px; }
