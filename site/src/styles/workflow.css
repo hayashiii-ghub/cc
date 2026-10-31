@@ -1,6 +1,7 @@
 .workflow { padding-top: 54px; padding-bottom: 72px; }
 .journey { padding: 44px 0 54px; border-top: 1px solid var(--line); }
-.journey h2 { display: flex; align-items: center; gap: 18px; margin: 0 0 38px; font-size: 34px; line-height: 1.4; }
+.journey h2 { display: flex; align-items: center; gap: 18px; margin: 0 0 38px; }
+.journey h2, .installSection h2, .page:lang(ja) .installSection h2 { font-size: clamp(28px, 3.3vw, 43px); line-height: 1.5; }
 .journey h2 > span { color: var(--dim); font: 12px "CC Mono", monospace; }
 .journeyTrack { display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1.35fr) 34px minmax(0, 1fr); align-items: center; gap: 18px; }
 .journeyStop { min-width: 0; text-align: center; }
@@ -47,7 +48,7 @@
 .floatingFile { position: absolute; right: -14px; bottom: 13px; width: 59px; height: 69px; display: grid; place-items: center; border: 1px solid #6b6e72; border-radius: 8px; background: #2c3034; transform: rotate(8deg); box-shadow: 0 8px 18px #0008; }
 .floatingFile .itemIcon { width: 32px; height: 36px; }
 .floatingFile > svg:last-child { position: absolute; width: 24px; height: 28px; right: -10px; bottom: -12px; fill: white; stroke: #141414; stroke-width: 1.5; }
-.workflowNote { text-align: center; color: var(--dim); font-size: 11px; margin: 0; }
+.workflowNote { text-align: center; color: var(--dim); font-size: 12px; line-height: 1.7; margin: 0; }
 .storageFacts { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; padding: 28px 0 0; margin: 28px 0 0; border-top: 1px solid var(--line); list-style: none; color: #aaa9a4; font-size: 13px; }
 .storageFacts li { display: flex; align-items: center; gap: 8px; }
 .storageFacts li > span { color: #d3d1cb; }
@@ -61,7 +62,7 @@
 .settingsContent { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 24px 17px 16px; font-size: 13px; }
 .setUpLabel { padding: 5px 13px; border-radius: 5px; background: #44474b; font-size: 11px; }
 .setupAgents { color: var(--dim); font-size: 10px; text-align: center; }
-.visualSetup h3 { margin: 20px 0 0; font-size: 14px; font-weight: 400; }
+.visualSetup h3 { margin: 20px 0 0; font-size: 14px; line-height: 1.7; font-weight: 500; }
 .visualSetup h3 > span { color: var(--dim); margin-right: 12px; font: 11px "CC Mono", monospace; }
 .setupCopyButton { border: 0; padding: 12px 0; background: none; font: 12px "CC Sans", sans-serif; color: var(--muted); cursor: pointer; }
 .setupCopyButton:hover { color: var(--fg); }
@@ -71,6 +72,9 @@
 .copyStatus:empty { display: none; }
 .installSection .guideLink { margin-top: 10px; }
 .installSection { padding-block: 72px 86px; }
+@media (max-width: 800px) {
+  .visualSetup h3 { font-size: 13px; }
+}
 @media (max-width: 1000px) and (min-width: 701px) {
   .journeyTrack { grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1.45fr) 18px minmax(0, 1fr); gap: 10px; }
   .journeyShelf .itemMenu { display: none; }
@@ -80,7 +84,7 @@
 @media (max-width: 700px) {
   .workflow { padding-top: 20px; padding-bottom: 42px; }
   .journey { padding: 35px 0 40px; }
-  .journey h2 { font-size: 28px; gap: 14px; margin-bottom: 30px; }
+  .journey h2 { gap: 14px; margin-bottom: 30px; }
   .journeyTrack { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 14px; }
   .journeyStop { width: min(100%, 350px); }
   .journeyArrow { transform: rotate(90deg); margin: 0; font-size: 24px; line-height: 1; }
@@ -93,4 +97,13 @@
   .storageFacts { gap: 13px 22px; justify-content: flex-start; font-size: 12px; }
   .visualSetup { grid-template-columns: 1fr; gap: 32px; max-width: 330px; margin-inline: auto; }
   .installSection { padding-block: 56px 66px; }
+}
+@media (max-width: 600px) {
+  .journey h2, .installSection h2, .page:lang(ja) .installSection h2 { font-size: 28px; }
+  .workflowNote { font-size: 11px; }
+  .visualSetup h3 { font-size: 14px; line-height: 1.8; }
+}
+@media (max-width: 360px) {
+  .journey h2, .installSection h2, .page:lang(ja) .installSection h2 { font-size: 26px; }
+  .visualSetup h3 { font-size: 13px; }
 }
