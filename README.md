@@ -49,7 +49,9 @@ container exec -it -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2
 
 認証と公開はMac側で行います。Macの既存Node.js 24.22.1環境へcf `1.0.0-beta.28`をglobal installしており、既定のNode.jsは変更していません。ログインは`fnm exec --using=24.22.1 cf auth login`、プレビュー公開は`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --worker cc-site-preview`で行います。資格情報をcontainerへコピーしません。
 
-本番は`container exec -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2 bun run cf:check:production`でbuild・dry-runします。確認後、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`で更新します。[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と本番URLの`https://cc.shigoto.dev`を両方確認します。DNSを引き継いだzoneが有効になり、HTTPSを確認してから、既存Workerへドメイン設定だけを適用する場合は`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を使います。
+本番は`container exec -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2 bun run cf:check:production`でbuild・dry-runします。本番への適用前に、既存DNSの引継ぎ、zoneの有効化、HTTPSの準備完了を確認します。`cf deploy`も設定済みの独自ドメインを適用するため、この確認前には実行しません。
+
+準備とレビューが済んだら、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`でコードとドメイン設定を更新します。`--no-provision`は不足するbindingリソースの作成を止めるだけで、ドメイン適用は止めません。アップロード済みWorkerのドメイン設定だけを更新する場合は、同じ前提を確認してから`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を代わりに使います。適用後に[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と`https://cc.shigoto.dev`を両方確認します。
 
 Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`・`domains`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。
 
