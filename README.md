@@ -25,9 +25,9 @@ Appleの公証は未対応です。初回起動がブロックされた場合は
 ノッチの操作とサイトの表現は[CodexIsland](https://github.com/ericjypark/codex-island)を参考にしています。独立したプロジェクトです。
 [MIT](LICENSE) · [第三者ライセンス](THIRD_PARTY_NOTICES.md)
 
-## サイトのCloudflareプレビュー
+## サイトのCloudflare公開
 
-本番は引き続きVercelです。`site/`の静的ビルドを使い、既定の`cc-site-preview`と`production` modeの`cc-site`を分けています。CF設定には独自ドメイン・routeを登録していません。アプリ・更新フィードは変更しません。
+`site/`の静的ビルドを使い、既定の`cc-site-preview`と`production` modeの`cc-site`を分けています。本番設定だけに`cc.shigoto.dev`を登録し、プレビューには独自ドメインを接続しません。設定・buildの成功と、実際のDNS・HTTPS切替完了は分けて確認します。アプリ・更新フィードは変更しません。
 
 Node.js 24.22.1 / Bun 1.4.2、image `dev-environment:0.1.1`を使います。cf `1.0.0-beta.28`とWrangler `4.158.0`は`site/package.json`と`bun.lock`で固定しています。cfの実行はNodeです。
 
@@ -49,6 +49,8 @@ container exec -it -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2
 
 認証と公開はMac側で行います。Macの既存Node.js 24.22.1環境へcf `1.0.0-beta.28`をglobal installしており、既定のNode.jsは変更していません。ログインは`fnm exec --using=24.22.1 cf auth login`、プレビュー公開は`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --worker cc-site-preview`で行います。資格情報をcontainerへコピーしません。
 
-本番候補は`container exec -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2 bun run cf:check:production`でbuild・dry-runします。確認後、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`で公開します。候補は[cc-site.hayashigoto.workers.dev](https://cc-site.hayashigoto.workers.dev/)で公開済みです。`cc.shigoto.dev`は引き続きVercelで配信しており、候補の公開と独自ドメインの切替は別工程です。
+本番は`container exec -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2 bun run cf:check:production`でbuild・dry-runします。確認後、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`で更新します。[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と本番URLの`https://cc.shigoto.dev`を両方確認します。DNSを引き継いだzoneが有効になり、HTTPSを確認してから、既存Workerへドメイン設定だけを適用する場合は`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を使います。
 
-Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。DNS切替・本番への配信・Vercel停止は別工程です。
+Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`・`domains`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。
+
+旧Vercelのproject・デプロイ・独自ドメイン登録は復旧用に保持します。戻す場合はCFのCustom Domainを解除してから、保存した元のVercel用DNSレコードを同じCloudflare zoneへ復元し、HTTPSと公開ページを確認します。サイトだけを戻すためにzone全体やメール設定を切り替えません。Vercelの停止・削除は移行確認後の別工程です。
