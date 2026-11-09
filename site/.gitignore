@@ -3,6 +3,7 @@
 /.site-build-*/
 /coverage/
 /.wrangler/
+/.cloudflare/
 /outputs/
 /work/
 .env*
