@@ -53,6 +53,8 @@ container exec -it -w /workspace/site cc-cf-preview-dev bunx --package bun@1.4.2
 
 準備とレビューが済んだら、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`でコードとドメイン設定を更新します。`--no-provision`は不足するbindingリソースの作成を止めるだけで、ドメイン適用は止めません。アップロード済みWorkerのドメイン設定だけを更新する場合は、同じ前提を確認してから`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を代わりに使います。適用後に[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と`https://cc.shigoto.dev`を両方確認します。
 
+Cloudflare Buildsの本番自動公開は、上の準備確認後に`main`だけを対象として有効にします。root directoryは`site/`、Node.jsは24.22.1、Bunは1.4.2、buildは`bun run check && bun run test && bun run cf:build:production`、deployは`node node_modules/cf/bin/cf deploy --prebuilt --mode production --worker cc-site`です。有効化後はmainへのpushで検査・公開し、他branchからは本番公開しません。上のMacからの手動コマンドも引き続き使えます。
+
 Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`・`domains`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。
 
 旧Vercelのproject・デプロイ・独自ドメイン登録は復旧用に保持します。戻す場合はCFのCustom Domainを解除してから、保存した元のVercel用DNSレコードを同じCloudflare zoneへ復元し、HTTPSと公開ページを確認します。サイトだけを戻すためにzone全体やメール設定を切り替えません。Vercelの停止・削除は移行確認後の別工程です。
