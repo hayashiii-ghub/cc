@@ -57,4 +57,4 @@ Cloudflare Buildsの本番自動公開は、上の準備確認後に`main`だけ
 
 Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`・`domains`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。
 
-旧Vercelのproject・デプロイ・独自ドメイン登録は復旧用に保持します。戻す場合はCFのCustom Domainを解除してから、保存した元のVercel用DNSレコードを同じCloudflare zoneへ復元し、HTTPSと公開ページを確認します。サイトだけを戻すためにzone全体やメール設定を切り替えません。Vercelの停止・削除は移行確認後の別工程です。
+2026-11-09、バックアップとCloudflare移行の確認後に、旧Vercelのproject・デプロイ・独自ドメイン登録を削除しました。現在の公開先はCFのCustom Domainです。Vercelへ戻す場合はprojectを再作成・再デプロイし、内容を確認してからCFのCustom Domainを解除して、確認済みのVercel用DNSレコードを同じCloudflare zoneへ設定し、HTTPSと公開ページを確認します。DNSの復元だけでは戻せません。サイトだけを戻すためにzone全体やメール設定を切り替えません。
