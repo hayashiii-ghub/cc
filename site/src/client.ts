@@ -8,7 +8,7 @@ import "./styles/workflow.css";
 let language: SiteLanguage = "en";
 let temporaryLanguage: SiteLanguage | undefined;
 let copyRevision = 0;
-let preview: PreviewState = { mode: "menuBar", light: false, empty: false };
+let preview: PreviewState = { light: false, empty: false };
 
 function preferredLanguage(): SiteLanguage {
   if (temporaryLanguage) return temporaryLanguage;
@@ -40,7 +40,7 @@ function updateMetadata() {
 }
 
 type FocusTarget =
-  | { kind: "control"; action: string; language?: string; mode?: string; empty?: string }
+  | { kind: "control"; action: string; language?: string; empty?: string }
   | { kind: "link"; href: string; index: number };
 
 // Keep focus when translated markup is replaced, including keyboard-only use.
@@ -51,7 +51,6 @@ function focusedControl(): FocusTarget | undefined {
       kind: "control",
       action: active.dataset.action,
       language: active.dataset.language,
-      mode: active.dataset.mode,
       empty: active.dataset.empty,
     };
   }
@@ -70,7 +69,6 @@ function restoreFocus(target: FocusTarget | undefined) {
     element = Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-action]")).find(button =>
       button.dataset.action === target.action
       && button.dataset.language === target.language
-      && button.dataset.mode === target.mode
       && button.dataset.empty === target.empty);
   } else if (target.kind === "link") {
     element = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-page] a"))
@@ -132,16 +130,14 @@ document.addEventListener("click", event => {
       window.dispatchEvent(new Event("cc-language-change"));
       break;
     }
-    case "preview-mode": {
-      const mode = button.dataset.mode;
-      if (mode === "menuBar" || mode === "notch") updatePreview({ ...preview, mode });
-      break;
-    }
     case "preview-theme":
       updatePreview({ ...preview, light: !preview.light });
       break;
+    case "preview-selection":
+      updatePreview({ ...preview, empty: false, selected: true });
+      break;
     case "preview-content":
-      updatePreview({ ...preview, empty: button.dataset.empty === "true" });
+      updatePreview({ ...preview, empty: button.dataset.empty === "true", selected: false });
       break;
     case "copy-setup":
       void copySetupRequest();

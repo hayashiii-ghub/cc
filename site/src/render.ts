@@ -1,15 +1,15 @@
 import { siteCopy, type SiteLanguage } from "./copy";
 
 export type PreviewState = {
-  mode: "menuBar" | "notch";
   light: boolean;
   empty: boolean;
+  selected?: boolean;
 };
 
 type ItemKind = "text" | "file" | "folder";
 type PreviewItem = { title: string; source: string; note: string; kind: ItemKind };
 
-const defaultPreviewState: PreviewState = { mode: "menuBar", light: false, empty: false };
+const defaultPreviewState: PreviewState = { light: false, empty: false };
 const repositoryUrl = "https://github.com/hayashiii-ghub/cc";
 const releasesUrl = `${repositoryUrl}/releases`;
 const downloadUrl = `${releasesUrl}/latest/download/cc-macos.dmg`;
@@ -45,16 +45,28 @@ function renderItemIcon(kind: ItemKind): string {
   return `<svg class="itemIcon" viewBox="0 0 28 28" fill="none" aria-hidden="true">${paths}</svg>`;
 }
 
+const shelfGlyphs = {
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  select: '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M13 6h8M13 17h8"/>',
+  done: '<path d="m4 12 5 5L20 6"/>',
+  trash: '<path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/>',
+  settings: '<path d="m10 2-.8 2.5-2.2 1.3-2.6-.6-2 3.5 1.9 1.9v2.8l-1.9 1.9 2 3.5 2.6-.6 2.2 1.3L10 22h4l.8-2.6 2.2-1.3 2.6.6 2-3.5-1.9-1.9v-2.8l1.9-1.9-2-3.5-2.6.6-2.2-1.3L14 2Z"/><circle cx="12" cy="12" r="3.6"/>',
+};
+
+function shelfControl(icon: keyof typeof shelfGlyphs, dimmed = false): string {
+  return `<span class="windowControl${dimmed ? " dimmed" : ""}"><svg viewBox="0 0 24 24" fill="none">${shelfGlyphs[icon]}</svg></span>`;
+}
+
 function renderShelfWindow(
   language: SiteLanguage,
   {
-    mode = "menuBar",
     empty = false,
+    selected = false,
     emphasizeSource = false,
     items,
   }: {
-    mode?: PreviewState["mode"];
     empty?: boolean;
+    selected?: boolean;
     emphasizeSource?: boolean;
     items?: readonly PreviewItem[];
   } = {},
@@ -62,30 +74,35 @@ function renderShelfWindow(
   const copy = siteCopy[language].preview;
   const shelfItems = items ?? copy.sampleItems;
   const hasItems = !empty && shelfItems.length > 0;
+  const selectedCount = selected && hasItems ? Math.min(2, shelfItems.length) : 0;
   const content = empty
     ? `<div class="emptyShelf"><p>${escapeHtml(copy.emptyMessage)}</p></div>`
-    : `<ul class="itemList" role="list">${shelfItems.map((item) => [
-      '<li class="itemRow">',
-      renderItemIcon(item.kind),
+    : `<ul class="itemList" role="list">${shelfItems.map((item, index) => [
+      `<li class="itemRow${index < selectedCount ? " isSelected" : ""}">`,
+      selected ? `<span class="selectionMark" aria-hidden="true">${index < selectedCount ? "✓" : ""}</span>` : "",
       '<div class="itemCopy">',
       `<p class="itemTitle">${escapeHtml(item.title)}</p>`,
       `<p class="itemDetail"><span${emphasizeSource ? ' class="sourceEmphasis"' : ""}>${escapeHtml(item.source)}</span><span class="detailSeparator"> · </span>${escapeHtml(item.note)}</p>`,
       '</div>',
-      '<span class="itemMenu" aria-hidden="true">…</span>',
+      selected ? "" : '<span class="itemMenu" aria-hidden="true">…</span>',
       '</li>',
     ].join("")).join("")}</ul>`;
 
   return [
-    `<div class="shelf${mode === "notch" ? " notchShelf" : ""}" data-shelf-mode="${escapeHtml(mode)}" data-shelf-state="${empty ? "empty" : "items"}" lang="${escapeHtml(language)}">`,
-    mode === "notch" ? '<div class="notchCutout" aria-hidden="true"></div>' : "",
+    `<div class="shelf" data-shelf-state="${empty ? "empty" : "items"}" lang="${escapeHtml(language)}">`,
     '<div class="shelfHeader">',
     renderMark(30, 26, "cc:", "mark"),
-    `<span class="itemCount" aria-live="polite">${empty ? 0 : shelfItems.length}</span>`,
-    '<span class="windowControl windowSettings" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M10 2h4l1 3 2 1 3-1 2 3-2 2v4l2 2-2 3-3-1-2 1-1 3h-4l-1-3-2-1-3 1-2-3 2-2v-4L2 8l2-3 3 1 2-1 1-3Z"></path><circle cx="12" cy="12" r="3.5"></circle></svg></span>',
+    `<span class="itemCount" aria-live="polite">${empty ? 0 : selected ? selectedCount : shelfItems.length}</span>`,
+    '<div class="shelfTools" aria-hidden="true">',
+    shelfControl("grid"),
+    shelfControl(selected ? "done" : "select", !hasItems),
+    shelfControl("trash", !hasItems),
+    shelfControl("settings"),
+    '</div>',
     '</div>',
     content,
-    `<div class="shelfFooter"><span class="footerPrimary"><span>${escapeHtml(copy.addFiles)}</span></span>`,
-    hasItems ? `<span class="footerActions"><span class="dragLabel">${escapeHtml(copy.dragFiles)}</span></span>` : "",
+    `<div class="shelfFooter"><span class="footerPrimary"><span><b aria-hidden="true">＋</b> ${escapeHtml(copy.addFiles)}</span></span>`,
+    hasItems ? `<span class="footerActions"><span class="dragLabel"><b aria-hidden="true">⠿</b> ${selected ? escapeHtml(copy.dragSelected) + ` (${selectedCount})` : escapeHtml(copy.dragFiles)}</span></span>` : "",
     '</div></div>',
   ].join("");
 }
@@ -121,22 +138,19 @@ export function renderInteractivePreview(language: SiteLanguage, state: PreviewS
   const copy = siteCopy[language].preview;
   return [
     `<div class="preview" data-preview-variant="interactive" lang="${escapeHtml(language)}">`,
-    `<div class="stage macDesktop${state.mode === "menuBar" && state.light ? " light" : ""}" data-desktop-mode="${state.mode}">`,
+    `<div class="stage macDesktop${state.light ? " light" : ""}">`,
     '<div class="desktopScreen">',
     '<img class="desktopBackdrop" src="/cc/mac-desktop-scene.jpg" width="1643" height="957" alt="" fetchpriority="high">',
     `<span class="desktopMenuMark" aria-hidden="true">${renderMark(25, 20, "")}</span>`,
     `<div class="desktopShelf">${renderShelfWindow(language, state)}</div>`,
     '</div></div>',
     '<div class="previewControls">',
-    `<div class="segmented" role="group" aria-label="${escapeHtml(copy.location)}">`,
-    `<button type="button" aria-pressed="${state.mode === "menuBar" ? "true" : "false"}" data-action="preview-mode" data-mode="menuBar">${escapeHtml(copy.menuBar)}</button>`,
-    `<button type="button" aria-pressed="${state.mode === "notch" ? "true" : "false"}" data-action="preview-mode" data-mode="notch">${escapeHtml(copy.notch)}</button>`,
-    '</div>',
     `<div class="segmented" role="group" aria-label="${escapeHtml(copy.contents)}">`,
-    `<button type="button" aria-pressed="${state.empty ? "false" : "true"}" data-action="preview-content" data-empty="false">${escapeHtml(copy.items)}</button>`,
+    `<button type="button" aria-pressed="${state.empty || state.selected ? "false" : "true"}" data-action="preview-content" data-empty="false">${escapeHtml(copy.items)}</button>`,
+    `<button type="button" aria-pressed="${state.selected && !state.empty ? "true" : "false"}" data-action="preview-selection">${escapeHtml(copy.selected)}</button>`,
     `<button type="button" aria-pressed="${state.empty ? "true" : "false"}" data-action="preview-content" data-empty="true">${escapeHtml(copy.empty)}</button>`,
     '</div>',
-    state.mode === "menuBar" ? `<button class="quietButton" type="button" aria-pressed="${state.light ? "true" : "false"}" data-action="preview-theme">${escapeHtml(state.light ? copy.dark : copy.light)}</button>` : "",
+    `<button class="quietButton" type="button" aria-pressed="${state.light ? "true" : "false"}" data-action="preview-theme">${escapeHtml(state.light ? copy.dark : copy.light)}</button>`,
     '</div>',
     `<p class="demoNote">${escapeHtml(copy.demoNote)}</p>`,
     '</div>',
