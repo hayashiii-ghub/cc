@@ -3,17 +3,11 @@ import SwiftUI
 struct ActionBar: View {
     @ObservedObject var store: ShelfStore
     let selectedItems: [ShelfItem]?
-    let surface: ShelfSurface
-    let onAddFiles: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
             Button {
-                if let onAddFiles {
-                    onAddFiles()
-                } else {
-                    _ = store.addItemsFromOpenPanel()
-                }
+                _ = store.addItemsFromOpenPanel()
             } label: {
                 HStack(spacing: 5) {
                     if store.isImporting {
@@ -55,7 +49,7 @@ struct ActionBar: View {
                     Text(selectedItems == nil ? "Drag All" : "Drag (\(items.count))")
                 }
                 .shelfControlLabel()
-                .foregroundStyle(surface.foreground)
+                .foregroundStyle(Color.primary)
                 .opacity(isBusy || items.isEmpty ? 0.4 : 1)
                 .overlay {
                     ShelfItemsDragSource(items: items, isEnabled: !isBusy)
@@ -67,7 +61,7 @@ struct ActionBar: View {
             }
         }
         .font(.callout)
-        .foregroundStyle(surface.foreground)
+        .foregroundStyle(Color.primary)
         .padding(.horizontal, 10)
         .frame(height: ShelfLayout.footerHeight)
     }

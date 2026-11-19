@@ -1,14 +1,14 @@
 import SwiftUI
 
 extension View {
-    func shelfControlLabel(iconOnly: Bool = false) -> some View {
+    func shelfControlLabel(width: CGFloat = 94, tint: Color? = nil) -> some View {
         self
             .font(.system(size: 13, weight: .medium))
             .lineLimit(1)
             .minimumScaleFactor(0.85)
-            .frame(width: iconOnly ? 32 : 94, height: 32)
+            .frame(width: width, height: 32)
             .contentShape(Capsule())
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .glassEffect(.regular.tint(tint).interactive(), in: Capsule())
     }
 }
 
@@ -33,7 +33,7 @@ struct ShelfIconButton: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 18, height: 18)
-                .shelfControlLabel(iconOnly: true)
+                .shelfControlLabel(width: 32)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))

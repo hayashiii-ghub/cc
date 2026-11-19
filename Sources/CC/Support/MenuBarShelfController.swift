@@ -9,7 +9,6 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
 
     private let store: ShelfStore
     private let onShowSettings: () -> Void
-    private let onClearAll: () -> Void
     private var panel: NSPanel?
     private var anchorFrame = NSRect.zero
     private var presentedScreenID: UInt32?
@@ -19,12 +18,10 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
 
     init(
         store: ShelfStore,
-        onShowSettings: @escaping () -> Void,
-        onClearAll: @escaping () -> Void
+        onShowSettings: @escaping () -> Void
     ) {
         self.store = store
         self.onShowSettings = onShowSettings
-        self.onClearAll = onClearAll
         super.init()
         itemCountObserver = store.$items
             .map { $0.count }
@@ -85,6 +82,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
     }
 
     func hideShelf() {
+        store.cancelRemoval()
         panel?.orderOut(nil)
         stopEventMonitors()
     }
@@ -135,8 +133,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         let hostingController = NSHostingController(
             rootView: ContentView(
                 store: store,
-                onShowSettings: onShowSettings,
-                onClearAll: onClearAll
+                onShowSettings: onShowSettings
             )
         )
         // The item-count layout owns the panel height, including its empty drop area.
@@ -218,7 +215,11 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
             guard let self, NSApp.modalWindow == nil else { return event }
 
             if event.type == .keyDown, event.keyCode == 53 {
-                self.hideShelf()
+                if self.store.pendingRemoval != nil {
+                    self.store.cancelRemoval()
+                } else {
+                    self.hideShelf()
+                }
                 return nil
             }
 

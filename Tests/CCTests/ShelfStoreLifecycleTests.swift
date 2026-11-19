@@ -18,7 +18,10 @@ struct ShelfStoreLifecycleTests {
         #expect(item.isManagedFile)
         #expect(FileManager.default.fileExists(atPath: managedURL.path))
 
-        store.remove(item)
+        store.requestRemoval(selectedIDs: [item.id])
+        #expect(store.items.map(\.id) == [item.id])
+        #expect(store.pendingRemoval?.ids == [item.id])
+        store.confirmRemoval()
 
         #expect(store.items.isEmpty)
         #expect(!FileManager.default.fileExists(atPath: managedURL.path))
@@ -36,7 +39,10 @@ struct ShelfStoreLifecycleTests {
         #expect(item.isManagedFile)
         #expect(item.url != sourceURL)
 
-        store.remove(item)
+        store.requestRemoval(selectedIDs: [item.id])
+        #expect(store.items.map(\.id) == [item.id])
+        #expect(store.pendingRemoval?.ids == [item.id])
+        store.confirmRemoval()
 
         #expect(FileManager.default.fileExists(atPath: sourceURL.path))
     }
@@ -58,6 +64,28 @@ struct ShelfStoreLifecycleTests {
         #expect(store.items.isEmpty)
         #expect(FileManager.default.fileExists(atPath: sourceURL.path))
         #expect(!FileManager.default.fileExists(atPath: managedURL.path))
+    }
+
+    @Test func inlineRemovalPreservesCancelledItemsAndNewArrivals() throws {
+        let fixture = ShelfStoreTestFixture()
+        let repository = fixture.repository
+        let first = try repository.addText("first")
+        let second = try repository.addText("second")
+        let store = fixture.makeStore()
+        store.requestRemoval(selectedIDs: [first.id])
+        store.cancelRemoval()
+        store.confirmRemoval()
+        #expect(try repository.list().count == 2)
+
+        store.requestRemoval()
+        let third = try repository.addText("third")
+        store.confirmRemoval()
+        #expect(try repository.list().count == 3)
+        #expect(store.pendingRemoval == nil)
+
+        store.requestRemoval(selectedIDs: [first.id, second.id])
+        store.confirmRemoval()
+        #expect(try repository.list() == [third])
     }
 
     @Test func confirmedClearRefreshesAgentAdditionsWithoutClearingThem() throws {

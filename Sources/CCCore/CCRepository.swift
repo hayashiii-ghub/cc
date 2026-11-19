@@ -187,11 +187,19 @@ public struct CCRepository: Sendable {
     }
 
     public func remove(_ id: UUID) throws {
+        try remove(ids: [id])
+    }
+
+    public func remove(ids: Set<UUID>) throws {
+        guard !ids.isEmpty else { return }
         try transaction {
             var database = try readDatabase()
-            let record = try registeredRecord(id, in: database)
-            try deleting(records: [record]) {
-                database.records.removeAll { $0.id == id }
+            let records = database.records.filter { ids.contains($0.id) }
+            guard records.count == ids.count else {
+                throw failure("not_found", "No registered cc: item has that ID.")
+            }
+            try deleting(records: records) {
+                database.records.removeAll { ids.contains($0.id) }
                 try writeDatabase(database)
             }
         }

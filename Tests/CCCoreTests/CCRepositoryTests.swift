@@ -60,6 +60,24 @@ struct CCRepositoryTests {
         #expect(try String(contentsOf: source, encoding: .utf8) == "keep")
     }
 
+    @Test func selectedRemovalIsAtomicAndPreservesUnselectedItemsAndOriginals() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let source = fixture.root.appendingPathComponent("original.txt")
+        try Data("original".utf8).write(to: source)
+        let file = try repository.addFile(source)
+        let copy = try #require(try repository.contentURL(for: file))
+        let keep = try repository.addText("keep")
+        let note = try repository.addText("remove")
+        #expect(throws: CCRepositoryError.self) { try repository.remove(ids: [file.id, UUID()]) }
+        #expect(FileManager.default.fileExists(atPath: copy.path))
+        try repository.remove(ids: [file.id, note.id])
+        #expect(try repository.list() == [keep])
+        #expect(!FileManager.default.fileExists(atPath: copy.path))
+        #expect(try String(contentsOf: source, encoding: .utf8) == "original")
+    }
+
     @Test func confirmedClearRequiresTheExactRecordIDs() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
