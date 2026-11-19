@@ -71,7 +71,7 @@ function renderShelfWindow(
       `<p class="itemTitle">${escapeHtml(item.title)}</p>`,
       `<p class="itemDetail"><span${emphasizeSource ? ' class="sourceEmphasis"' : ""}>${escapeHtml(item.source)}</span><span class="detailSeparator"> · </span>${escapeHtml(item.note)}</p>`,
       '</div>',
-      `<span class="itemMenu" aria-hidden="true">${escapeHtml(copy.details)}</span>`,
+      '<span class="itemMenu" aria-hidden="true">…</span>',
       '</li>',
     ].join("")).join("")}</ul>`;
 
@@ -80,12 +80,12 @@ function renderShelfWindow(
     mode === "notch" ? '<div class="notchCutout" aria-hidden="true"></div>' : "",
     '<div class="shelfHeader">',
     renderMark(30, 26, "cc:", "mark"),
-    `<span class="itemCount" aria-live="polite">${escapeHtml(empty ? copy.emptyCount : copy.count)}</span>`,
+    `<span class="itemCount" aria-live="polite">${empty ? 0 : shelfItems.length}</span>`,
     '<span class="windowControl windowSettings" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M10 2h4l1 3 2 1 3-1 2 3-2 2v4l2 2-2 3-3-1-2 1-1 3h-4l-1-3-2-1-3 1-2-3 2-2v-4L2 8l2-3 3 1 2-1 1-3Z"></path><circle cx="12" cy="12" r="3.5"></circle></svg></span>',
     '</div>',
     content,
-    `<div class="shelfFooter"><span class="footerPrimary"><span>${escapeHtml(copy.addFiles)}</span><span>${escapeHtml(copy.paste)}</span></span>`,
-    hasItems ? `<span class="footerActions"><span class="dragLabel">${escapeHtml(copy.dragFiles)}</span><span class="clearAllLabel">${escapeHtml(copy.clearAll)}</span></span>` : "",
+    `<div class="shelfFooter"><span class="footerPrimary"><span>${escapeHtml(copy.addFiles)}</span></span>`,
+    hasItems ? `<span class="footerActions"><span class="dragLabel">${escapeHtml(copy.dragFiles)}</span></span>` : "",
     '</div></div>',
   ].join("");
 }
