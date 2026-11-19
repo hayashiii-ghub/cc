@@ -74,26 +74,23 @@ for (const language of ["en", "ja"] as const) {
     assert.ok(document.includes(`<meta name="description" content="${escapeHtml(copy.meta.description)}">`));
   });
 
-  for (const mode of ["menuBar", "notch"] as const) {
-    for (const light of [false, true]) {
-      for (const empty of [false, true]) {
-        test(`renders ${language} ${mode} light=${light} empty=${empty}`, () => {
-          const state: PreviewState = { mode, light, empty };
-          const html = renderInteractivePreview(language, state);
-          const copy = siteCopy[language].preview;
-          assert.match(html, new RegExp(`data-shelf-mode="${mode}" data-shelf-state="${empty ? "empty" : "items"}"`));
-          const itemCount = empty ? 0 : copy.sampleItems.length;
-          assert.ok(html.includes(`class="itemCount" aria-live="polite">${itemCount}</span>`));
-          assert.equal((html.match(/class="itemTitle"/g) ?? []).length, empty ? 0 : 3);
-          const stageClasses = html.match(/class="(stage[^"]*)"/)?.[1]?.split(" ") ?? [];
-          assert.equal(stageClasses.includes("light"), mode === "menuBar" && light);
-          assert.equal(html.includes('class="notchCutout"'), mode === "notch");
-          assert.equal(html.includes('data-action="preview-theme"'), mode === "menuBar");
-          assert.equal(html.includes(escapeHtml(copy.emptyMessage)), empty);
-          assert.match(html, new RegExp(`aria-pressed="true" data-action="preview-mode" data-mode="${mode}"`));
-          assert.match(html, new RegExp(`aria-pressed="true" data-action="preview-content" data-empty="${empty}"`));
-        });
-      }
+  for (const light of [false, true]) {
+    for (const empty of [false, true]) {
+      test(`renders ${language} light=${light} empty=${empty}`, () => {
+        const state: PreviewState = { light, empty };
+        const html = renderInteractivePreview(language, state);
+        const copy = siteCopy[language].preview;
+        assert.match(html, new RegExp(`data-shelf-state="${empty ? "empty" : "items"}"`));
+        const itemCount = empty ? 0 : copy.sampleItems.length;
+        assert.ok(html.includes(`class="itemCount" aria-live="polite">${itemCount}</span>`));
+        assert.equal((html.match(/class="itemTitle"/g) ?? []).length, empty ? 0 : 3);
+        const stageClasses = html.match(/class="(stage[^"]*)"/)?.[1]?.split(" ") ?? [];
+        assert.equal(stageClasses.includes("light"), light);
+        assert.doesNotMatch(html, /preview-mode|preview-notch|notchStatus/);
+        assert.ok(html.includes('data-action="preview-theme"'));
+        assert.equal(html.includes(escapeHtml(copy.emptyMessage)), empty);
+        assert.match(html, new RegExp(`aria-pressed="true" data-action="preview-content" data-empty="${empty}"`));
+      });
     }
   }
 }
