@@ -12,9 +12,9 @@ struct SettingsView: View {
     let onCheckForUpdates: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     general
                     Divider()
                     ShelfOpeningSettings(preferences: openingPreferences)
@@ -24,15 +24,21 @@ struct SettingsView: View {
                     agentToolsSection
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
             }
             footer
         }
         .font(.system(size: 13, weight: .regular))
         .controlSize(.regular)
-        .padding(20)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            Color.clear
+                .glassEffect(.regular, in: Rectangle())
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+        }
     }
 
     private var general: some View {
@@ -106,6 +112,14 @@ struct SettingsView: View {
             Button("Updates…", action: onCheckForUpdates)
                 .disabled(agentTools.isWorking)
             Spacer()
+            Link(destination: URL(string: "https://github.com/hayashiii-ghub/cc#readme")!) {
+                Image(systemName: "questionmark.circle")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Help")
+            .help("Help")
             Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q", modifiers: .command)
                 .disabled(agentTools.isWorking)

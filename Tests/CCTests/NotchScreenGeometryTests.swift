@@ -17,7 +17,7 @@ struct NotchScreenGeometryTests {
         let twoItems = geometry.expandedFrame(itemCount: 2)
         let sevenItems = geometry.expandedFrame(itemCount: 7)
 
-        #expect(twoItems == NSRect(x: 576, y: 704, width: 360, height: 278))
+        #expect(twoItems == NSRect(x: 576, y: 728, width: 360, height: 254))
         #expect(sevenItems == NSRect(x: 576, y: 530, width: 360, height: 452))
         for count in [0, 1, 2, 4, 7, 100] {
             let frame = geometry.expandedFrame(itemCount: count)

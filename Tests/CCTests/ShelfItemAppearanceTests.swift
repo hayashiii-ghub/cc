@@ -15,6 +15,7 @@ struct ShelfItemAppearanceTests {
     @Test func hidesTheInternalInboxPathFromImportedFileDetails() {
         let item = ShelfItem(kind: .image, title: "image.png", detail: "Imported from Drop", url: URL(fileURLWithPath: "/cc/Inbox/private-id/image.png"), isManagedFile: true)
         #expect(ShelfItemAppearance(item: item).subtitle == "You · PNG")
+        #expect(ShelfItemAppearance(item: item).visibleSubtitle == nil)
         #expect(ShelfItemAppearance(item: item).title == "image.png")
     }
 
@@ -35,7 +36,7 @@ struct ShelfItemAppearanceTests {
     @Test func showsTheAgentAndItsShortExplanation() {
         let item = ShelfItem(kind: .text, title: "Draft", detail: "", text: "Full content", source: "codex", note: "Revised introduction")
         let appearance = ShelfItemAppearance(item: item)
-        #expect(appearance.subtitle == "Codex · Revised introduction")
+        #expect(appearance.visibleSubtitle == "Codex · Revised introduction")
         #expect(appearance.help.contains("12 characters"))
     }
 

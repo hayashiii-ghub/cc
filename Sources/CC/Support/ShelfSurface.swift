@@ -18,7 +18,7 @@ enum ShelfSurface: Equatable {
     }
 
     var itemBackground: Color {
-        self == .island ? .white.opacity(0.065) : .primary.opacity(0.035)
+        self == .island ? .white.opacity(0.13) : .primary.opacity(0.085)
     }
 
     var tint: NSColor {

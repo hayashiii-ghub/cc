@@ -7,6 +7,22 @@ import Testing
 private func testFlock(_ descriptor: Int32, _ operation: Int32) -> Int32
 
 struct CCRepositoryTests {
+    @Test func shelfSnapshotSkipsBusyStoreAndRecovers() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        let repository = CCRepository(rootURL: fixture.data)
+        let record = try repository.addText("first")
+        let descriptor = Darwin.open(fixture.data.appendingPathComponent(".lock").path, O_RDWR)
+        try #require(descriptor >= 0)
+        defer { Darwin.close(descriptor) }
+        try #require(testFlock(descriptor, LOCK_EX | LOCK_NB) == 0)
+        #expect(throws: CCRepositoryError(code: "store_busy", message: "The shelf is being updated.")) {
+            try repository.shelfSnapshot(waitForLock: false)
+        }
+        try #require(testFlock(descriptor, LOCK_UN) == 0)
+        #expect(try repository.shelfSnapshot(waitForLock: false).records == [record])
+    }
+
     @Test func copiesFilesAndKeepsThemAcrossSourceChangesAndRestarts() throws {
         let fixture = try Fixture()
         defer { fixture.remove() }

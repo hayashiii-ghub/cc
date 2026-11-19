@@ -2,13 +2,13 @@ import AppKit
 
 enum ShelfIcon {
     static func templateImage(hasUnreadItems: Bool = false) -> NSImage {
-        let image = loadTemplateImage(pointSize: 20)
+        let image = loadTemplateImage(pointSize: 22)
         guard hasUnreadItems else { return image }
 
-        let badgedImage = NSImage(size: NSSize(width: 20, height: 20), flipped: false) { rect in
+        let badgedImage = NSImage(size: image.size, flipped: false) { rect in
             image.draw(in: rect)
             NSColor.black.setFill()
-            NSBezierPath(ovalIn: NSRect(x: 0.5, y: 16.5, width: 2.5, height: 2.5)).fill()
+            NSBezierPath(ovalIn: NSRect(x: rect.minX + 0.5, y: rect.maxY - 3.5, width: 2.5, height: 2.5)).fill()
             return true
         }
         badgedImage.isTemplate = true

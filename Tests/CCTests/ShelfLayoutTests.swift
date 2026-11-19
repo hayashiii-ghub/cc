@@ -13,10 +13,18 @@ struct ShelfLayoutTests {
     }
 
     @Test func heightGrowsWithRowsAndStopsAtTheScrollLimit() {
-        #expect(ShelfLayout.size(itemCount: 2).height == 246)
-        #expect(ShelfLayout.size(itemCount: 4).height == 382)
+        #expect(ShelfLayout.size(itemCount: 2).height == 222)
+        #expect(ShelfLayout.size(itemCount: 4).height == 334)
         #expect(ShelfLayout.size(itemCount: 7).height == 420)
         #expect(ShelfLayout.size(itemCount: 100).height == 420)
+    }
+
+    @Test func iconGridAddsHeightOnlyWhenStartingANewRow() {
+        #expect(ShelfLayout.size(itemCount: 0, showsIcons: true).height == 180)
+        #expect(ShelfLayout.size(itemCount: 1, showsIcons: true).height == 206)
+        #expect(ShelfLayout.size(itemCount: 3, showsIcons: true).height == 206)
+        #expect(ShelfLayout.size(itemCount: 4, showsIcons: true).height == 302)
+        #expect(ShelfLayout.size(itemCount: 12, showsIcons: true).height == 420)
     }
 
     @Test func resizingKeepsTheMenuBarAnchorFixed() {

@@ -159,7 +159,7 @@ private final class ShelfItemsDragSourceView: NSImageView, NSDraggingSource {
         } else if !allowsDragging {
             toolTip = "Wait for the Current Operation"
         } else {
-            toolTip = "Drag All \(items.count) \(items.count == 1 ? "Item" : "Items")"
+            toolTip = "Drag \(items.count) \(items.count == 1 ? "Item" : "Items")"
         }
         if !isEnabled { mouseDownEvent = nil }
         window?.invalidateCursorRects(for: self)
