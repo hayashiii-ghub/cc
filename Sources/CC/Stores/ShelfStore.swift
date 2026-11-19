@@ -21,6 +21,11 @@ private struct FileExportSummaryError: LocalizedError {
     }
 }
 
+struct ShelfRemovalRequest {
+    let ids: Set<UUID>
+    let clearsShelf: Bool
+}
+
 @MainActor
 final class ShelfStore: ObservableObject {
     static let acceptedTypeIdentifiers = ShelfItemImporter.acceptedTypeIdentifiers
@@ -30,6 +35,7 @@ final class ShelfStore: ObservableObject {
     }
     @Published private(set) var items: [ShelfItem] = []
     @Published private(set) var unreadItemIDs: Set<UUID> = []
+    @Published private(set) var pendingRemoval: ShelfRemovalRequest?
     @Published private(set) var storageError: String?
     @Published private(set) var isExporting = false
     @Published private(set) var isImporting = false
@@ -109,7 +115,15 @@ final class ShelfStore: ObservableObject {
                 )
             }
             receiptSound.observe(records)
-            if items != updatedItems { items = updatedItems }
+            if items != updatedItems {
+                items = updatedItems
+                if let request = pendingRemoval {
+                    let currentIDs = Set(items.map(\.id))
+                    if !request.ids.isSubset(of: currentIDs) || (request.clearsShelf && currentIDs != request.ids) {
+                        cancelRemoval()
+                    }
+                }
+            }
             let unread = Set(items.map(\.id)).subtracting(seenItemIDs)
             if unreadItemIDs != unread { unreadItemIDs = unread }
             if storageError != nil { storageError = nil }
@@ -202,8 +216,31 @@ final class ShelfStore: ObservableObject {
         return addText(text)
     }
 
-    func remove(_ item: ShelfItem) {
-        mutate { try repository.remove(item.id) }
+    func removeItem(_ id: UUID) {
+        guard pendingRemoval == nil, !isImporting, !isExporting, storageError == nil else { return }
+        mutate { try repository.remove(id) }
+    }
+
+    func requestRemoval(selectedIDs: Set<UUID>? = nil) {
+        guard !isImporting, !isExporting, storageError == nil else { return }
+        let currentIDs = Set(items.map(\.id))
+        let ids = selectedIDs?.intersection(currentIDs) ?? currentIDs
+        guard !ids.isEmpty else { return }
+        pendingRemoval = ShelfRemovalRequest(ids: ids, clearsShelf: selectedIDs == nil)
+    }
+
+    func cancelRemoval() {
+        pendingRemoval = nil
+    }
+
+    func confirmRemoval() {
+        guard let request = pendingRemoval, !isImporting, !isExporting, storageError == nil else { return }
+        cancelRemoval()
+        if request.clearsShelf {
+            clear(expectedIDs: request.ids)
+        } else {
+            mutate { try repository.remove(ids: request.ids) }
+        }
     }
 
     @discardableResult

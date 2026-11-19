@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-The optional Notch Island interaction and landing-page presentation in cc: were
+The landing-page presentation in cc: was
 informed by [CodexIsland](https://github.com/ericjypark/codex-island). cc:
 and CodexIsland are independent projects; this acknowledgement does not imply
 affiliation or endorsement.

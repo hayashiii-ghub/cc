@@ -9,8 +9,6 @@ private let supportedCommands = [
     "clear-shelf",
     "show-shelf",
     "toggle-shelf",
-    "use-menu-bar",
-    "use-notch-island",
     "show-settings",
 ]
 

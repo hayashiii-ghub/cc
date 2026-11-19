@@ -6,7 +6,7 @@ struct ShelfItemRow: View {
     let onReveal: () -> Void
     let onCopy: () -> Void
     let onRemove: () -> Void
-    var surface: ShelfSurface = .regular
+    let removesSelection: Bool
     var showsIcon = false
     var selection: Binding<Bool>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -35,6 +35,10 @@ struct ShelfItemRow: View {
                 .toggleStyle(.button)
                 .buttonStyle(.plain)
                 .accessibilityLabel(appearance.title)
+                .contextMenu {
+                    Button(removesSelection ? "Remove Selected…" : "Remove This Item",
+                           role: .destructive, action: onRemove)
+                }
             } else if showsIcon {
                 openable(iconLabel)
                     .contextMenu { itemActions }
@@ -43,9 +47,10 @@ struct ShelfItemRow: View {
                     .overlay(alignment: .topTrailing) { detailsMenu }
             } else {
                 normalRow
+                    .contextMenu { itemActions }
             }
         }
-        .foregroundStyle(surface.foreground)
+        .foregroundStyle(Color.primary)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(rowBackground, in: RoundedRectangle(cornerRadius: 10))
         .contentShape(Rectangle())
@@ -59,7 +64,7 @@ struct ShelfItemRow: View {
 
     private var rowBackground: Color {
         if selection?.wrappedValue == true { return Color.accentColor.opacity(isHovered ? 0.24 : 0.16) }
-        return isHovered ? surface.itemBackground : .clear
+        return isHovered ? Color.primary.opacity(0.085) : .clear
     }
 
     private var preview: some View {
@@ -81,7 +86,7 @@ struct ShelfItemRow: View {
                 if let subtitle = appearance.visibleSubtitle {
                     Text(subtitle)
                         .font(.system(size: 11))
-                        .foregroundStyle(surface.foreground.opacity(0.72))
+                        .foregroundStyle(Color.primary.opacity(0.72))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -93,7 +98,7 @@ struct ShelfItemRow: View {
     private func selectionMark(_ selected: Bool) -> some View {
         Image(systemName: selected ? "checkmark.circle.fill" : "circle")
             .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(selected ? Color.accentColor : surface.secondary)
+            .foregroundStyle(selected ? Color.accentColor : Color.secondary)
             .accessibilityHidden(true)
     }
 
@@ -140,7 +145,7 @@ struct ShelfItemRow: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(isHovered ? surface.foreground : surface.secondary)
+                .foregroundStyle(isHovered ? Color.primary : Color.secondary)
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
         }

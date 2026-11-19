@@ -4,7 +4,6 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var store: ShelfStore
     let onShowSettings: () -> Void
-    let onClearAll: () -> Void
     @State private var isDropTargeted = false
 
     private var panelShape: RoundedRectangle {
@@ -14,8 +13,7 @@ struct ContentView: View {
     var body: some View {
         ShelfContentView(
             store: store,
-            onShowSettings: onShowSettings,
-            onClearAll: onClearAll
+            onShowSettings: onShowSettings
         )
             .glassEffect(.regular, in: panelShape)
             .overlay {
@@ -27,7 +25,7 @@ struct ContentView: View {
             }
             .clipShape(panelShape)
             .onDrop(of: ShelfStore.acceptedTypeIdentifiers, isTargeted: $isDropTargeted) { providers in
-                store.handleDrop(providers: providers)
+                store.pendingRemoval == nil && store.handleDrop(providers: providers)
             }
     }
 }

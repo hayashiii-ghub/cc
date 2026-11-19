@@ -3,7 +3,6 @@ import SwiftUI
 
 @MainActor
 struct SettingsView: View {
-    @ObservedObject var preferences: ShelfPresentationPreferences
     @ObservedObject var openingPreferences: ShelfOpenPreferences
     @ObservedObject var soundPreferences: ShelfSoundPreferences
     @ObservedObject var shortcutPreferences: ShortcutPreferences
@@ -42,30 +41,14 @@ struct SettingsView: View {
     }
 
     private var general: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Shelf")
-                Spacer(minLength: 12)
-                Picker("Shelf Location", selection: $preferences.mode) {
-                    Text("Menu Bar").tag(ShelfPresentationMode.menuBar)
-                    Text("Notch").tag(ShelfPresentationMode.notch)
-                        .disabled(!preferences.hasNotchedDisplay)
-                }
-                .pickerStyle(.menu)
+        HStack {
+            Text("Sound for AI items")
+            Spacer(minLength: 12)
+            Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
                 .labelsHidden()
-                .frame(width: 180, alignment: .trailing)
-            }
-            .frame(minHeight: 32)
-
-            HStack {
-                Text("Sound for AI items")
-                Spacer(minLength: 12)
-                Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-            }
-            .frame(minHeight: 32)
+                .toggleStyle(.switch)
         }
+        .frame(minHeight: 32)
     }
 
     private var shortcuts: some View {

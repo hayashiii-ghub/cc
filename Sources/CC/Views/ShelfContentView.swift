@@ -3,10 +3,7 @@ import SwiftUI
 
 struct ShelfContentView: View {
     @ObservedObject var store: ShelfStore
-    var surface: ShelfSurface = .regular
     let onShowSettings: () -> Void
-    let onClearAll: () -> Void
-    var onAddFiles: (() -> Void)? = nil
 
     @State private var isSelecting = false
     @State private var selectedIDs = Set<UUID>()
@@ -15,7 +12,6 @@ struct ShelfContentView: View {
         VStack(spacing: 0) {
             ShelfHeader(
                 count: store.items.count,
-                surface: surface,
                 selectedCount: isSelecting ? selectedIDs.count : nil,
                 showsIcons: store.showsIcons,
                 toggleLayout: { store.showsIcons.toggle() },
@@ -24,38 +20,74 @@ struct ShelfContentView: View {
                     isSelecting.toggle()
                 },
                 hasUnreadItems: !store.unreadItemIDs.isEmpty,
-                canClearAll: !store.items.isEmpty && !store.isExporting && !store.isImporting && !isSelecting,
-                onClearAll: onClearAll,
+                canClearAll: !store.items.isEmpty && !store.isExporting && !store.isImporting && (!isSelecting || !selectedIDs.isEmpty),
+                onClearAll: { store.requestRemoval(selectedIDs: isSelecting ? selectedIDs : nil) },
                 onShowSettings: onShowSettings
             )
+            .disabled(store.pendingRemoval != nil)
 
             Divider()
 
             Group {
                 if let message = store.storageError {
-                    ShelfStorageErrorView(message: message, onRetry: store.refresh, surface: surface)
+                    ShelfStorageErrorView(message: message, onRetry: store.refresh)
                 } else if store.items.isEmpty {
-                    ShelfEmptyView(surface: surface)
+                    ShelfEmptyView()
                 } else {
                     itemList
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .disabled(store.pendingRemoval != nil)
 
             Divider()
 
-            ActionBar(
-                store: store,
-                selectedItems: isSelecting ? store.items.filter { selectedIDs.contains($0.id) } : nil,
-                surface: surface,
-                onAddFiles: onAddFiles
-            )
+            if let request = store.pendingRemoval {
+                removalBar(request)
+            } else {
+                ActionBar(
+                    store: store,
+                    selectedItems: isSelecting ? store.items.filter { selectedIDs.contains($0.id) } : nil
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: store.items.map(\.id)) { _, ids in
             selectedIDs.formIntersection(ids)
             if ids.isEmpty { isSelecting = false }
         }
+    }
+
+    private func removalBar(_ request: ShelfRemovalRequest) -> some View {
+        let count = request.ids.count
+        let title = request.clearsShelf ? "Clear all \(count)" : "Remove \(count)"
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(title) \(count == 1 ? "item" : "items")?")
+                    .font(.headline)
+                Text("Original files stay in place.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            GlassEffectContainer(spacing: 0) {
+                HStack(spacing: 8) {
+                    Button(action: store.cancelRemoval) {
+                        Text("Cancel").shelfControlLabel(width: 68)
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    Button(role: .destructive, action: store.confirmRemoval) {
+                        Text(request.clearsShelf ? "Clear All" : "Remove")
+                            .foregroundStyle(.white)
+                            .shelfControlLabel(width: 74, tint: Color(.sRGB, red: 0.60, green: 0.06, blue: 0.10))
+                    }
+                    .disabled(store.isImporting || store.isExporting || store.storageError != nil)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: ShelfLayout.footerHeight)
     }
 
     private func selection(for id: UUID) -> Binding<Bool> {
@@ -73,13 +105,20 @@ struct ShelfContentView: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6),
                                      count: store.showsIcons ? ShelfLayout.iconColumns : 1), spacing: 0) {
                 ForEach(store.items.reversed()) { item in
+                    let removesSelection = isSelecting && selectedIDs.count > 1 && selectedIDs.contains(item.id)
                     ShelfItemRow(
                         item: item,
                         onOpen: { store.open(item) },
                         onReveal: { store.reveal(item) },
                         onCopy: { store.copyToPasteboard(item) },
-                        onRemove: { store.remove(item) },
-                        surface: surface,
+                        onRemove: {
+                            if removesSelection {
+                                store.requestRemoval(selectedIDs: selectedIDs)
+                            } else {
+                                store.removeItem(item.id)
+                            }
+                        },
+                        removesSelection: removesSelection,
                         showsIcon: store.showsIcons,
                         selection: isSelecting ? selection(for: item.id) : nil
                     )
@@ -95,7 +134,6 @@ struct ShelfContentView: View {
 
 private struct ShelfHeader: View {
     let count: Int
-    let surface: ShelfSurface
     let selectedCount: Int?
     let showsIcons: Bool
     let toggleLayout: () -> Void
@@ -115,13 +153,8 @@ private struct ShelfHeader: View {
         HStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 titleLabel
-                Text(verbatim: String(selectedCount ?? count))
-                    .foregroundStyle(surface.foreground.opacity(0.82))
-                    .help(selectedCount.map { "\($0) of \(count) selected" } ?? "\(count) items")
-                    .lineLimit(1)
-                    .accessibilityLabel(selectedCount.map { "\($0) of \(count) selected" } ?? "\(count) items in cc:")
+                countLabel
             }
-
             Spacer(minLength: 4)
 
             ShelfIconButton(showsIcons ? "Show as list" : "Show as icons",
@@ -132,7 +165,7 @@ private struct ShelfHeader: View {
                             action: toggleSelection)
                 .disabled(count == 0)
                 .accessibilityValue(selectedCount == nil ? "Off" : "On")
-            ShelfIconButton("Clear all shelf items…", systemImage: "trash", action: onClearAll)
+            ShelfIconButton(selectedCount == nil ? "Clear all shelf items…" : "Remove selected items…", systemImage: "trash", action: onClearAll)
                 .disabled(!canClearAll)
             ShelfIconButton("Settings", systemImage: "gearshape", action: onShowSettings)
         }
@@ -142,10 +175,18 @@ private struct ShelfHeader: View {
         .frame(height: ShelfLayout.headerHeight)
     }
 
+    private var countLabel: some View {
+        Text(verbatim: String(selectedCount ?? count))
+            .foregroundStyle(Color.primary.opacity(0.82))
+            .help(selectedCount.map { "\($0) of \(count) selected" } ?? "\(count) items")
+            .lineLimit(1)
+            .accessibilityLabel(selectedCount.map { "\($0) of \(count) selected" } ?? "\(count) items in cc:")
+    }
+
     private var titleLabel: some View {
         HStack(spacing: 6) {
             Text("cc:")
-                .foregroundStyle(surface.foreground)
+                .foregroundStyle(Color.primary)
             if hasUnreadItems {
                 Circle().fill(.blue).frame(width: 5, height: 5)
                     .accessibilityLabel("New items")

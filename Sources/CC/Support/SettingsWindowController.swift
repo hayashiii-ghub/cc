@@ -6,7 +6,6 @@ final class SettingsWindowController: NSObject {
     private static let contentWidth: CGFloat = 380
     private static let preferredContentHeight: CGFloat = 482
 
-    private let preferences: ShelfPresentationPreferences
     private let openingPreferences: ShelfOpenPreferences
     private let soundPreferences: ShelfSoundPreferences
     private let shortcutController: ShortcutController
@@ -16,14 +15,12 @@ final class SettingsWindowController: NSObject {
     private var hostingController: NSHostingController<SettingsView>?
 
     init(
-        preferences: ShelfPresentationPreferences,
         openingPreferences: ShelfOpenPreferences,
         soundPreferences: ShelfSoundPreferences,
         shortcutController: ShortcutController,
         agentTools: AgentToolsStatusController,
         onCheckForUpdates: @escaping () -> Void
     ) {
-        self.preferences = preferences
         self.openingPreferences = openingPreferences
         self.soundPreferences = soundPreferences
         self.shortcutController = shortcutController
@@ -46,7 +43,6 @@ final class SettingsWindowController: NSObject {
 
     private var settingsView: SettingsView {
         SettingsView(
-            preferences: preferences,
             openingPreferences: openingPreferences,
             soundPreferences: soundPreferences,
             shortcutPreferences: shortcutController.preferences,
