@@ -4,6 +4,7 @@ import Foundation
 struct ShelfItemAppearance {
     let title: String
     let subtitle: String
+    let visibleSubtitle: String?
     let help: String
 
     init(item: ShelfItem) {
@@ -56,6 +57,15 @@ struct ShelfItemAppearance {
         let note = item.note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let summary = note.flatMap { $0.isEmpty ? nil : $0 } ?? typeDescription
         subtitle = "\(source) · \(summary)"
+        if item.source != "human" {
+            visibleSubtitle = subtitle
+        } else if let note, !note.isEmpty {
+            visibleSubtitle = note
+        } else if item.isManagedFile && (item.kind == .folder || item.url?.pathExtension.isEmpty == false) {
+            visibleSubtitle = nil
+        } else {
+            visibleSubtitle = typeDescription
+        }
         help = [subtitle, typeDescription, destination].joined(separator: "\n")
     }
 

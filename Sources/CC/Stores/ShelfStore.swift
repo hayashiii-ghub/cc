@@ -25,6 +25,9 @@ private struct FileExportSummaryError: LocalizedError {
 final class ShelfStore: ObservableObject {
     static let acceptedTypeIdentifiers = ShelfItemImporter.acceptedTypeIdentifiers
 
+    @Published var showsIcons = UserDefaults.standard.bool(forKey: "shelfShowsIcons") {
+        didSet { UserDefaults.standard.set(showsIcons, forKey: "shelfShowsIcons") }
+    }
     @Published private(set) var items: [ShelfItem] = []
     @Published private(set) var unreadItemIDs: Set<UUID> = []
     @Published private(set) var storageError: String?
@@ -62,14 +65,14 @@ final class ShelfStore: ObservableObject {
            let ids = try? JSONDecoder().decode(Set<UUID>.self, from: data) {
             seenItemIDs = ids
         }
-        refresh()
+        refreshIfAvailable()
     }
 
     func startObserving() {
         guard refreshTimer == nil else { return }
-        refresh()
+        refreshIfAvailable()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in self?.refreshIfAvailable() }
         }
         refreshTimer?.tolerance = 0.25
     }
@@ -80,9 +83,16 @@ final class ShelfStore: ObservableObject {
     }
 
     func refresh() {
+        refresh(waitForLock: true)
+    }
+
+    func refreshIfAvailable() {
+        refresh(waitForLock: false)
+    }
+
+    private func refresh(waitForLock: Bool) {
         do {
-            let records = try repository.list()
-            let contentURLs = try repository.contentURLs(for: records)
+            let (records, contentURLs) = try repository.shelfSnapshot(waitForLock: waitForLock)
             let updatedItems = records.map { record in
                 ShelfItem(
                     id: record.id,
@@ -103,14 +113,17 @@ final class ShelfStore: ObservableObject {
             let unread = Set(items.map(\.id)).subtracting(seenItemIDs)
             if unreadItemIDs != unread { unreadItemIDs = unread }
             if storageError != nil { storageError = nil }
+        } catch let error as CCRepositoryError where error.code == "store_busy" {
+            // Keep the displayed snapshot until the next observation.
+            return
         } catch {
             storageError = error.localizedDescription
         }
     }
 
     func markSeen() {
-        refresh()
-        rememberSeen(Set(items.map(\.id)))
+        guard !unreadItemIDs.isEmpty else { return }
+        rememberSeen(unreadItemIDs)
     }
 
     private var seenItemsURL: URL {

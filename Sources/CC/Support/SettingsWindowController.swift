@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class SettingsWindowController {
-    private static let contentWidth: CGFloat = 440
-    private static let preferredContentHeight: CGFloat = 500
+final class SettingsWindowController: NSObject {
+    private static let contentWidth: CGFloat = 380
+    private static let preferredContentHeight: CGFloat = 482
 
     private let preferences: ShelfPresentationPreferences
     private let openingPreferences: ShelfOpenPreferences
@@ -69,15 +69,19 @@ final class SettingsWindowController {
                     height: Self.preferredContentHeight
                 )
             ),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
+        self.window = window
         window.title = "cc:"
         window.identifier = NSUserInterfaceItemIdentifier("CCSettingsWindow")
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: 440, height: 400)
-        window.contentMaxSize = NSSize(width: 560, height: 720)
+        window.contentMinSize = NSSize(width: 380, height: 400)
+        window.contentMaxSize = NSSize(width: 800, height: CGFloat.greatestFiniteMagnitude)
 
         let hostingController = NSHostingController(rootView: settingsView)
         hostingController.sizingOptions = []
@@ -88,7 +92,6 @@ final class SettingsWindowController {
         window.center()
 
         self.hostingController = hostingController
-        self.window = window
         return window
     }
 

@@ -63,8 +63,8 @@ struct NotchScreenGeometry: Equatable {
         )
     }
 
-    func expandedFrame(itemCount: Int) -> NSRect {
-        let content = ShelfLayout.size(itemCount: itemCount)
+    func expandedFrame(itemCount: Int, showsIcons: Bool = false) -> NSRect {
+        let content = ShelfLayout.size(itemCount: itemCount, showsIcons: showsIcons)
         return topCenteredFrame(size: NSSize(width: content.width, height: topInset + content.height))
     }
 

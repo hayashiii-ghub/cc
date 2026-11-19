@@ -29,8 +29,9 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         itemCountObserver = store.$items
             .map { $0.count }
             .removeDuplicates()
+            .combineLatest(store.$showsIcons.removeDuplicates())
             .receive(on: RunLoop.main)
-            .sink { [weak self] count in
+            .sink { [weak self] count, _ in
                 self?.resizeVisiblePanel(itemCount: count)
             }
     }
@@ -44,7 +45,11 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         clickLocation: NSPoint? = nil,
         clickScreen: NSScreen? = nil
     ) {
-        store.refresh()
+        store.refreshIfAvailable()
+        if let panel, panel.isVisible, !WindowServerPresentation.isOnScreen(panel) {
+            hideShelf()
+            self.panel = nil
+        }
         let panel = shelfPanel()
 
         guard positionPanel(
@@ -57,6 +62,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         startEventMonitors()
         panel.orderFrontRegardless()
         panel.makeKey()
+        panel.makeFirstResponder(nil)
     }
 
     func toggleShelf(
@@ -67,7 +73,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         let targetScreen = clickScreen ?? clickLocation.flatMap { location in
             NSScreen.screens.first { $0.frame.contains(location) }
         } ?? button.window?.screen
-        if isShelfVisible, targetScreen?.ccShelfDisplayID == presentedScreenID {
+        if let panel, WindowServerPresentation.isOnScreen(panel), targetScreen?.ccShelfDisplayID == presentedScreenID {
             hideShelf()
         } else {
             showShelf(
@@ -117,7 +123,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
             return panel
         }
 
-        let size = ShelfLayout.size(itemCount: store.items.count)
+        let size = ShelfLayout.size(itemCount: store.items.count, showsIcons: store.showsIcons)
         let panel = MenuBarShelfPanel(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -163,18 +169,16 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
         clickLocation: NSPoint?,
         clickScreen: NSScreen?
     ) -> Bool {
-        guard let anchorWindow = button.window else { return false }
-
         // Status-item clicks use screen coordinates; opening without a click
         // uses the host window instead of the button's local coordinate space.
-        let anchorCenterX = clickLocation?.x ?? anchorWindow.frame.midX
+        guard let anchorCenterX = clickLocation?.x ?? button.window?.frame.midX else { return false }
         let screen = clickScreen ?? clickLocation.flatMap { location in
             NSScreen.screens.first { $0.frame.contains(location) }
-        } ?? anchorWindow.screen
+        } ?? button.window?.screen
         guard let screen else { return false }
 
         let availableFrame = screen.frame
-        let size = ShelfLayout.size(itemCount: store.items.count)
+        let size = ShelfLayout.size(itemCount: store.items.count, showsIcons: store.showsIcons)
 
         var origin = NSPoint(
             x: anchorCenterX - size.width / 2,
@@ -198,7 +202,7 @@ final class MenuBarShelfController: NSObject, NSWindowDelegate {
 
     private func resizeVisiblePanel(itemCount: Int) {
         guard let panel, panel.isVisible else { return }
-        let frame = ShelfLayout.resizedFrame(panel.frame, itemCount: itemCount)
+        let frame = ShelfLayout.resizedFrame(panel.frame, itemCount: itemCount, showsIcons: store.showsIcons)
         guard frame != panel.frame else { return }
         panel.setFrame(frame, display: true)
         panel.contentView?.layoutSubtreeIfNeeded()

@@ -50,8 +50,9 @@ final class NotchIslandController: NSObject {
         itemCountObserver = store.$items
             .map { $0.count }
             .removeDuplicates()
+            .combineLatest(store.$showsIcons.removeDuplicates())
             .receive(on: RunLoop.main)
-            .sink { [weak self] count in
+            .sink { [weak self] count, _ in
                 self?.resizePanel(itemCount: count)
             }
     }
@@ -125,7 +126,7 @@ final class NotchIslandController: NSObject {
         if needsHostingUpdate {
             configurePanel(for: geometry)
         }
-        panel?.setFrame(geometry.expandedFrame(itemCount: store.items.count), display: true)
+        panel?.setFrame(geometry.expandedFrame(itemCount: store.items.count, showsIcons: store.showsIcons), display: true)
         panel?.orderFrontRegardless()
         updateMouseCapture()
         schedulePanelVerification(allowRecovery: allowRecovery)
@@ -133,7 +134,7 @@ final class NotchIslandController: NSObject {
     }
 
     private func configurePanel(for geometry: NotchScreenGeometry) {
-        let frame = geometry.expandedFrame(itemCount: store.items.count)
+        let frame = geometry.expandedFrame(itemCount: store.items.count, showsIcons: store.showsIcons)
         let panel = panel ?? makePanel(frame: frame)
         panel.identifier = NSUserInterfaceItemIdentifier("CCIslandPanel-\(preferredScreenID ?? 0)")
         let rootView = NotchIslandView(
@@ -173,7 +174,7 @@ final class NotchIslandController: NSObject {
 
     private func resizePanel(itemCount: Int) {
         guard let geometry, let panel else { return }
-        let frame = geometry.expandedFrame(itemCount: itemCount)
+        let frame = geometry.expandedFrame(itemCount: itemCount, showsIcons: store.showsIcons)
         guard frame != panel.frame else { return }
         panel.setFrame(frame, display: true)
         panel.contentView?.layoutSubtreeIfNeeded()
@@ -214,7 +215,7 @@ final class NotchIslandController: NSObject {
     func showShelf(on screen: NSScreen? = nil) {
         guard start(on: screen) else { return }
         onWillShow()
-        store.refresh()
+        store.refreshIfAvailable()
         store.markSeen()
         confirmationTask?.cancel()
         confirmationTask = nil
@@ -224,6 +225,7 @@ final class NotchIslandController: NSObject {
         panel?.ignoresMouseEvents = false
         panel?.orderFrontRegardless()
         panel?.makeKey()
+        panel?.makeFirstResponder(nil)
         schedulePanelVerification(allowRecovery: true)
     }
 
@@ -250,6 +252,7 @@ final class NotchIslandController: NSObject {
             if wasExpanded {
                 self.panel?.ignoresMouseEvents = false
                 self.panel?.makeKey()
+                self.panel?.makeFirstResponder(nil)
             }
         }
     }
@@ -346,7 +349,7 @@ final class NotchIslandController: NSObject {
         }
 
         if presentation.phase == .expanded {
-            panel.ignoresMouseEvents = !geometry.expandedFrame(itemCount: store.items.count).contains(NSEvent.mouseLocation)
+            panel.ignoresMouseEvents = !geometry.expandedFrame(itemCount: store.items.count, showsIcons: store.showsIcons).contains(NSEvent.mouseLocation)
             return
         }
 
@@ -375,7 +378,7 @@ final class NotchIslandController: NSObject {
         case .targeted, .accepted:
             return geometry.dropFrame
         case .expanded:
-            return geometry.expandedFrame(itemCount: store.items.count)
+            return geometry.expandedFrame(itemCount: store.items.count, showsIcons: store.showsIcons)
         }
     }
 

@@ -55,6 +55,7 @@ chmod +x "$APP_MACOS/cc" "$TMP_ROOT/$CC_CLI_PRODUCT_NAME"
 cc_embed_cli "$APP_BUNDLE" "$TMP_ROOT/$CC_CLI_PRODUCT_NAME"
 cmp -s "$TMP_ROOT/cc-host" "$APP_MACOS/cc"
 cc_copy_bundle_resources "$ROOT_DIR" "$APP_RESOURCES"
+cmp "$ROOT_DIR/Assets/SelectItems.svg" "$APP_RESOURCES/SelectItems.svg"
 cc_embed_sparkle "$FAKE_ROOT" "$APP_BUNDLE" "$APP_MACOS/cc"
 cc_write_info_plist "$APP_BUNDLE/Contents/Info.plist" 1.2.3
 INFO_PLIST="$APP_BUNDLE/Contents/Info.plist"
@@ -186,7 +187,7 @@ mkdir -p "$FAKE_ROOT/script" "$FAKE_ROOT/Assets" "$FAKE_ROOT/skills" "$TMP_ROOT/
 for script in app_bundle.sh sparkle.sh version.sh build_and_run.sh install_agent_tools.sh; do
   cp "$ROOT_DIR/script/$script" "$FAKE_ROOT/script/$script"
 done
-cp "$ROOT_DIR/Assets/MenuBarTemplate.svg" "$FAKE_ROOT/Assets/MenuBarTemplate.svg"
+cp "$ROOT_DIR/Assets/MenuBarTemplate.svg" "$ROOT_DIR/Assets/SelectItems.svg" "$FAKE_ROOT/Assets/"
 ditto "$ROOT_DIR/skills/cc-handoff" "$FAKE_ROOT/skills/cc-handoff"
 cp "$APP_MACOS/cc" "$TMP_ROOT/build-bin/cc"
 cp "$APP_HELPERS/cc-shelf" "$TMP_ROOT/build-bin/cc-shelf"

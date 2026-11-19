@@ -29,6 +29,15 @@ public struct CCRepository: Sendable {
         try transaction { try readDatabase().records }
     }
 
+    public func shelfSnapshot(waitForLock: Bool) throws -> (records: [CCRecord], contentURLs: [UUID: URL]) {
+        let records = try transaction(waitForLock: waitForLock) { try readDatabase().records }
+        var urls: [UUID: URL] = [:]
+        for record in records where record.relativePath != nil {
+            urls[record.id] = try? managedContentURL(record, validatesTree: false)
+        }
+        return (records, urls)
+    }
+
     public func get(_ id: UUID) throws -> CCRecord {
         let record = try transaction { try registeredRecord(id, in: readDatabase()) }
         _ = try managedContentURL(record)
@@ -229,7 +238,7 @@ public struct CCRepository: Sendable {
         }
     }
 
-    private func transaction<T>(_ body: () throws -> T) throws -> T {
+    private func transaction<T>(waitForLock: Bool = true, _ body: () throws -> T) throws -> T {
         do {
             guard rootURL.isFileURL else { throw failure("invalid_input", "The data directory must be local.") }
             try ensurePrivateDirectory(rootURL)
@@ -241,7 +250,11 @@ public struct CCRepository: Sendable {
             guard Darwin.fchmod(descriptor, 0o600) == 0 else {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             }
-            while ccFlock(descriptor, LOCK_EX) != 0 {
+            let operation = waitForLock ? LOCK_EX : LOCK_EX | LOCK_NB
+            while ccFlock(descriptor, operation) != 0 {
+                if !waitForLock && errno == EWOULDBLOCK {
+                    throw failure("store_busy", "The shelf is being updated.")
+                }
                 guard errno == EINTR else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
             }
             defer { _ = ccFlock(descriptor, LOCK_UN) }

@@ -145,6 +145,7 @@ struct NotchIslandView: View {
                 onClearAll: onClearAll,
                 onAddFiles: onAddFinderSelection
             )
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
             .preferredColorScheme(.dark)
         }
         .frame(width: expandedSize.width, height: expandedSize.height)
@@ -153,7 +154,7 @@ struct NotchIslandView: View {
     private var expandedSize: NSSize {
         NSSize(
             width: contentWidth,
-            height: topInset + ShelfLayout.size(itemCount: store.items.count).height
+            height: topInset + ShelfLayout.size(itemCount: store.items.count, showsIcons: store.showsIcons).height
         )
     }
 

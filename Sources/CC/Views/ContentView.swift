@@ -8,7 +8,7 @@ struct ContentView: View {
     @State private var isDropTargeted = false
 
     private var panelShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
     }
 
     var body: some View {
@@ -17,12 +17,13 @@ struct ContentView: View {
             onShowSettings: onShowSettings,
             onClearAll: onClearAll
         )
-            .background(.thickMaterial, in: panelShape)
+            .glassEffect(.regular, in: panelShape)
             .overlay {
                 panelShape.strokeBorder(
                     isDropTargeted ? Color.accentColor : Color.primary.opacity(0.08),
                     lineWidth: isDropTargeted ? 1.5 : 0.5
                 )
+                .allowsHitTesting(false)
             }
             .clipShape(panelShape)
             .onDrop(of: ShelfStore.acceptedTypeIdentifiers, isTargeted: $isDropTargeted) { providers in
