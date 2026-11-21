@@ -134,16 +134,22 @@ function renderWorkflow(language: SiteLanguage): string {
   </section>`;
 }
 
-export function renderInteractivePreview(language: SiteLanguage, state: PreviewState): string {
-  const copy = siteCopy[language].preview;
+export function renderDesktopPreview(language: SiteLanguage, state: PreviewState = defaultPreviewState): string {
   return [
-    `<div class="preview" data-preview-variant="interactive" lang="${escapeHtml(language)}">`,
     `<div class="stage macDesktop${state.light ? " light" : ""}">`,
     '<div class="desktopScreen">',
     '<img class="desktopBackdrop" src="/cc/mac-desktop-scene.jpg" width="1643" height="957" alt="" fetchpriority="high">',
     `<span class="desktopMenuMark" aria-hidden="true">${renderMark(25, 20, "")}</span>`,
     `<div class="desktopShelf">${renderShelfWindow(language, state)}</div>`,
     '</div></div>',
+  ].join("");
+}
+
+export function renderInteractivePreview(language: SiteLanguage, state: PreviewState): string {
+  const copy = siteCopy[language].preview;
+  return [
+    `<div class="preview" data-preview-variant="interactive" lang="${escapeHtml(language)}">`,
+    renderDesktopPreview(language, state),
     '<div class="previewControls">',
     `<div class="segmented" role="group" aria-label="${escapeHtml(copy.contents)}">`,
     `<button type="button" aria-pressed="${state.empty || state.selected ? "false" : "true"}" data-action="preview-content" data-empty="false">${escapeHtml(copy.items)}</button>`,
