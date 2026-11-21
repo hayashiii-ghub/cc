@@ -19,6 +19,7 @@
   },
   "include": [
     "src/**/*.ts",
+    "media/**/*.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "cloudflare.config.ts",
