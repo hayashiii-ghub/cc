@@ -33,7 +33,7 @@ Appleの公証は未対応です。初回起動がブロックされた場合は
 
 `site/`の静的ビルドを使い、既定の`cc-site-preview`と`production` modeの`cc-site`を分けています。本番設定だけに`cc.shigoto.dev`を登録し、プレビューには独自ドメインを接続しません。設定・buildの成功と、実際のDNS・HTTPS切替完了は分けて確認します。アプリ・更新フィードは変更しません。
 
-Node.js 24.22.1 / Bun 1.4.4、Docker Compose の`dev`（[`compose.yaml`](compose.yaml)、image `dev-environment:0.2.0`。作り方は`hayashiii-ghub/dotfiles`の`dev-environment/`）を使います。cf `1.0.0-beta.28`とWrangler `4.158.0`は`site/package.json`と`bun.lock`で固定しています。cfの実行はNodeです。Docker Desktopを起動し、リポジトリのルートから実行します。
+Node.js 26.13.1（`site/.node-version`）/ Bun 1.4.5（`site/.bun-version`・`packageManager`）、Docker Compose の`dev`（[`compose.yaml`](compose.yaml)、image `dev-environment:0.3.0`。作り方は`hayashiii-ghub/dotfiles`の`dev-environment/`）を使います。cf `1.0.0-beta.28`とWrangler `4.158.0`は`site/package.json`と`bun.lock`で固定しています。cfの実行はNodeです。Docker Desktopを起動し、リポジトリのルートから実行します。
 
 ```sh
 docker compose run --rm dev bun install --frozen-lockfile
@@ -51,7 +51,7 @@ docker compose run --rm --service-ports dev bun run cf:dev
 
 準備とレビューが済んだら、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`でコードとドメイン設定を更新します。`--no-provision`は不足するbindingリソースの作成を止めるだけで、ドメイン適用は止めません。アップロード済みWorkerのドメイン設定だけを更新する場合は、同じ前提を確認してから`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を代わりに使います。適用後に[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と`https://cc.shigoto.dev`を両方確認します。
 
-Cloudflare Buildsの本番自動公開は、上の準備確認後に`main`だけを対象として有効にします。root directoryは`site/`、Node.jsは24.22.1、Bunは1.4.4、buildは`bun run check && bun run test && bun run cf:build:production`、deployは`node node_modules/cf/bin/cf deploy --prebuilt --mode production --worker cc-site`です。有効化後はmainへのpushで検査・公開し、他branchからは本番公開しません。上のMacからの手動コマンドも引き続き使えます。
+Cloudflare Buildsの本番自動公開は、上の準備確認後に`main`だけを対象として有効にします。root directoryは`site/`、Node.jsとBunは`site/.node-version`と`packageManager`から決まり（26.13.1・1.4.5）、buildは`bun run check && bun run test && bun run cf:build:production`、deployは`node node_modules/cf/bin/cf deploy --prebuilt --mode production --worker cc-site`です。有効化後はmainへのpushで検査・公開し、他branchからは本番公開しません。上のMacからの手動コマンドも引き続き使えます。
 
 Build Outputはmodeごとに保存されず、最後のbuildで置き換わります。cf beta.28は`--mode`省略時にその出力のmodeを使うため、省略してもプレビューには戻りません。実行前に`.cloudflare/output/v0/config.json`の`buildContext.mode`と`.cloudflare/output/v0/workers/default/worker.config.json`の`name`・`domains`を確認し、本番出力には`--mode production --worker cc-site`を付けます。プレビューへ戻る場合は`cf:check`で作り直します。
 
