@@ -33,7 +33,7 @@ Appleの公証は未対応です。初回起動がブロックされた場合は
 
 `site/`の静的ビルドを使い、既定の`cc-site-preview`と`production` modeの`cc-site`を分けています。本番設定だけに`cc.shigoto.dev`を登録し、プレビューには独自ドメインを接続しません。設定・buildの成功と、実際のDNS・HTTPS切替完了は分けて確認します。アプリ・更新フィードは変更しません。
 
-Node.js 26.13.1（`site/.node-version`）/ Bun 1.4.5（`site/.bun-version`・`packageManager`）、Docker Compose の`dev`（[`compose.yaml`](compose.yaml)、image `dev-environment:0.3.0`。作り方は`hayashiii-ghub/dotfiles`の`dev-environment/`）を使います。cf `1.0.0-beta.28`とWrangler `4.158.0`は`site/package.json`と`bun.lock`で固定しています。cfの実行はNodeです。Docker Desktopを起動し、リポジトリのルートから実行します。
+Node.js 26.13.1（`site/.node-version`）/ Bun 1.4.5（`site/.bun-version`・`packageManager`）、Docker Compose の`dev`（[`compose.yaml`](compose.yaml)、image `dev-environment:0.3.0`。作り方は`hayashiii-ghub/dotfiles`の`dev-environment/`）を使います。cf `1.0.0-rc.1`とWrangler `4.164.0`は`site/package.json`と`bun.lock`で固定しています。cfの実行はNodeです。Docker Desktopを起動し、リポジトリのルートから実行します。
 
 ```sh
 docker compose run --rm dev bun install --frozen-lockfile
@@ -45,11 +45,11 @@ docker compose run --rm --service-ports dev bun run cf:dev
 
 確認先は`http://localhost:8795`。build出力は`site/dist/`、CFの公開用出力は`site/.cloudflare/output/v0/`、依存とcacheは名前付きvolume（`node_modules`・`home`）に保存します。開発サーバーはCtrl+Cで止まり、containerも消えます。
 
-認証と公開はMac側で行います。Macの既存Node.js 24.22.1環境へcf `1.0.0-beta.28`をglobal installしており、既定のNode.jsは変更していません。ログインは`fnm exec --using=24.22.1 cf auth login`、プレビュー公開は`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --worker cc-site-preview`で行います。資格情報をcontainerへコピーしません。
+手動の公開もDockerの中のcf（`site/`の依存に入っている版）で行います。初回は`docker compose run --rm dev node node_modules/cf/bin/cf auth login --no-browser`で表示されるコードをブラウザで承認します（ログイン情報はこの案件の`home` volumeだけに残ります）。プレビュー公開は`docker compose run --rm dev bun run cf:build`のあと`docker compose run --rm dev node node_modules/cf/bin/cf deploy --prebuilt --worker cc-site-preview`です。
 
 本番は`docker compose run --rm dev bun run cf:check:production`でbuild・dry-runします。本番への適用前に、既存DNSの引継ぎ、zoneの有効化、HTTPSの準備完了を確認します。`cf deploy`も設定済みの独自ドメインを適用するため、この確認前には実行しません。
 
-準備とレビューが済んだら、Macの`site/`から`fnm exec --using=24.22.1 cf deploy --prebuilt --mode production --worker cc-site --no-provision`でコードとドメイン設定を更新します。`--no-provision`は不足するbindingリソースの作成を止めるだけで、ドメイン適用は止めません。アップロード済みWorkerのドメイン設定だけを更新する場合は、同じ前提を確認してから`fnm exec --using=24.22.1 cf workers triggers deploy --prebuilt --mode production --worker cc-site`を代わりに使います。適用後に[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と`https://cc.shigoto.dev`を両方確認します。
+準備とレビューが済んだら、`docker compose run --rm dev node node_modules/cf/bin/cf deploy --prebuilt --mode production --worker cc-site --no-provision`でコードとドメイン設定を更新します。`--no-provision`は不足するbindingリソースの作成を止めるだけで、ドメイン適用は止めません。アップロード済みWorkerのドメイン設定だけを更新する場合は、同じ前提を確認してから`docker compose run --rm dev node node_modules/cf/bin/cf workers triggers deploy --prebuilt --mode production --worker cc-site`を代わりに使います。適用後に[workers.devの確認先](https://cc-site.hayashigoto.workers.dev/)と`https://cc.shigoto.dev`を両方確認します。
 
 Cloudflare Buildsの本番自動公開は、上の準備確認後に`main`だけを対象として有効にします。root directoryは`site/`、Node.jsとBunは`site/.node-version`と`packageManager`から決まり（26.13.1・1.4.5）、buildは`bun run check && bun run test && bun run cf:build:production`、deployは`node node_modules/cf/bin/cf deploy --prebuilt --mode production --worker cc-site`です。有効化後はmainへのpushで検査・公開し、他branchからは本番公開しません。上のMacからの手動コマンドも引き続き使えます。
 
