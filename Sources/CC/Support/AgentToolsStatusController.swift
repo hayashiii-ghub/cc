@@ -21,9 +21,12 @@ struct AgentToolsReport: Codable, Equatable, Sendable {
     let claude: Status
     let antigravity: Status
     let legacyCLI: LegacyCLI
+    /// What stands in the way of setup, and where it is. The check's JSON has neither; `AgentToolsChecker` adds them.
+    var blocker: String?
+    var blockerPath: String?
 
     enum CodingKeys: String, CodingKey {
-        case status, cli, codex, claude, antigravity
+        case status, cli, codex, claude, antigravity, blocker, blockerPath
         case legacyCLI = "legacy_cli"
     }
 
@@ -95,10 +98,44 @@ struct AgentToolsChecker: Sendable {
             let data = output.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             guard process.terminationReason == .exit, process.terminationStatus == 0 else { return .unknown }
-            return try JSONDecoder().decode(AgentToolsReport.self, from: data)
+            var report = try JSONDecoder().decode(AgentToolsReport.self, from: data)
+            if report.status == .blocked || report.status == .userModified, let diagnostic = planDiagnostic() {
+                (report.blocker, report.blockerPath) = Self.blocker(from: diagnostic)
+            }
+            return report
         } catch {
             return .unknown
         }
+    }
+
+    /// The installer explains a refusal only when asked for its plan, which changes nothing either.
+    private func planDiagnostic() -> String? {
+        let process = AgentToolsProcess.make(appURL: appURL, homeURL: homeURL, arguments: ["--print-plan"])
+        let errors = Pipe()
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = errors
+        guard (try? process.run()) != nil else { return nil }
+        let data = errors.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return String(decoding: data, as: UTF8.self)
+            .split(whereSeparator: \.isNewline).last.map(String.init)
+    }
+
+    /// Turns "Preserving an unrelated CLI symlink: /path" into a sentence and the path to reveal.
+    static func blocker(from diagnostic: String) -> (text: String, path: String?) {
+        let prefix = "Preserving "
+        guard diagnostic.hasPrefix(prefix), let separator = diagnostic.range(of: ": /", options: .backwards) else {
+            return (diagnostic, nil)
+        }
+        let what = diagnostic[diagnostic.index(diagnostic.startIndex, offsetBy: prefix.count)..<separator.lowerBound]
+        let path = String(diagnostic[diagnostic.index(separator.lowerBound, offsetBy: 2)...])
+        var text = "Blocked by \(what): \((path as NSString).abbreviatingWithTildeInPath)"
+        // A link into another copy of the app is the usual cause, and that copy is where to set up from.
+        if let destination = try? FileManager.default.destinationOfSymbolicLink(atPath: path),
+           let app = destination.range(of: ".app/") {
+            text += ", which belongs to \(destination[..<app.lowerBound]).app"
+        }
+        return (text, path)
     }
 }
 

@@ -15,6 +15,12 @@ check:
 	@for script in $(SHELL_SCRIPTS); do \
 		bash -n "$$script" || exit 1; \
 	done
+	@# The settings panel sources are mirrored by hand in ato?. Neither repository depends on the
+	@# other, so this only compares the copies when an ato? checkout sits beside this one.
+	@if [ -d ../ato/Sources/UsageRings/Shared ] && ! diff -r Sources/CC/Shared ../ato/Sources/UsageRings/Shared; then \
+		echo "Sources/CC/Shared differs from ato?'s Sources/UsageRings/Shared. Apply the change to both." >&2; \
+		exit 1; \
+	fi
 
 run:
 	./script/build_and_run.sh

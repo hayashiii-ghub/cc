@@ -8,13 +8,7 @@ struct ShelfOpeningSettings: View {
     @State private var isChoosingApplication = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Open with")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
-                .padding(.bottom, 4)
-
+        SettingsSection("Open with") {
             ForEach(ShelfOpenCategory.allCases) { category in
                 openingRow(for: category)
             }
@@ -29,9 +23,7 @@ struct ShelfOpeningSettings: View {
 
     private func openingRow(for category: ShelfOpenCategory) -> some View {
         let options = applications(for: category)
-        return HStack {
-            Text(categoryTitle(category))
-            Spacer(minLength: 12)
+        return SettingsRow(categoryTitle(category)) {
             Menu {
                 Picker(category.title, selection: selection(for: category, applications: options)) {
                     Text("macOS Default").tag("systemDefault")
@@ -58,13 +50,12 @@ struct ShelfOpeningSettings: View {
                     .truncationMode(.middle)
             }
             .menuStyle(.borderedButton)
-            .controlSize(.large)
             .buttonSizing(.flexible)
-            .frame(width: 180, height: 28, alignment: .trailing)
+            .controlSize(.small)
+            .frame(width: 150, alignment: .trailing)
             .accessibilityLabel(category.title)
             .accessibilityValue(destinationTitle(for: category))
         }
-        .frame(minHeight: 32)
     }
 
     private func categoryTitle(_ category: ShelfOpenCategory) -> String {

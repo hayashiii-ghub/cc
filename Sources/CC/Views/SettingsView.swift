@@ -8,75 +8,117 @@ struct SettingsView: View {
     @ObservedObject var shortcutPreferences: ShortcutPreferences
     @ObservedObject var agentTools: AgentToolsStatusController
     let shortcutController: ShortcutController
-    let onCheckForUpdates: () -> Void
+    let updates: AppUpdateController
+    let onClose: () -> Void
+    @State private var showsSettings = false
 
+    /// Two screens in one panel: what you use every day, and behind the gear everything that is set once.
     var body: some View {
-        VStack(spacing: 8) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    general
-                    Divider()
-                    ShelfOpeningSettings(preferences: openingPreferences)
-                    Divider()
-                    shortcuts
-                    Divider()
-                    agentToolsSection
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 2)
+        Group {
+            if showsSettings {
+                settings
+            } else {
+                overview
             }
-            footer
         }
-        .font(.system(size: 13, weight: .regular))
-        .controlSize(.regular)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            Color.clear
-                .glassEffect(.regular, in: Rectangle())
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+        // Coming back from fixing a file elsewhere should not need a button press.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            agentTools.refresh()
         }
     }
 
-    private var general: some View {
-        HStack {
-            Text("Sound for AI items")
-            Spacer(minLength: 12)
-            Toggle("Play Sound When Agents Add Items", isOn: $soundPreferences.isEnabled)
-                .labelsHidden()
-                .toggleStyle(.switch)
+    private var overview: some View {
+        PanelChrome(title: "cc:", onClose: onClose) {
+            GlassIconButton("Settings", systemImage: "gearshape", glyphSize: 16) {
+                showsSettings = true
+            }
+        } content: {
+            VStack(alignment: .leading, spacing: 10) {
+                agentToolsSummary
+                shortcuts
+                ShelfOpeningSettings(preferences: openingPreferences)
+            }
+        } footer: {
+            footer
         }
-        .frame(minHeight: 32)
+    }
+
+    private var settings: some View {
+        PanelChrome(title: "Settings", onBack: { showsSettings = false }, onClose: onClose) {
+            GlassIconButton("Check AI tools", systemImage: "arrow.clockwise", glyphSize: 15) {
+                agentTools.refresh()
+            }
+            .disabled(agentTools.isWorking)
+        } content: {
+            VStack(alignment: .leading, spacing: 10) {
+                agentToolsSection
+                SystemSettingsSection(updates: updates)
+            }
+        } footer: {
+            footer
+        }
+    }
+
+    /// The same on both screens, so updating, help, and quitting never move.
+    private var footer: some View {
+        SettingsFooter(
+            updates: updates,
+            helpURL: URL(string: "https://github.com/hayashiii-ghub/cc#readme")!,
+            isBusy: agentTools.isWorking
+        )
+    }
+
+    /// Whether assistants can use the shelf, in one row; the per-tool breakdown is a setting.
+    private var agentToolsSummary: some View {
+        SettingsSection {
+            SettingsRow(
+                "AI Tools",
+                detail: agentTools.errorMessage ?? agentTools.report?.blocker ?? reviewReason ?? aggregateStatus
+                    ?? "Codex, Claude Code and Antigravity can use your shelf.",
+                isWarning: agentTools.errorMessage != nil || reviewReason != nil
+            ) {
+                if let path = agentTools.report?.blockerPath {
+                    // A Set Up button that cannot be pressed is a dead end; show what is in the way instead.
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                    }
+                } else if agentTools.report?.isConfigured == true {
+                    Image(systemName: "checkmark")
+                        .font(SettingsStyle.statusSymbol)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Connected")
+                } else {
+                    Button(agentTools.setupTitle) { agentTools.setUp() }
+                        .disabled(!agentTools.canSetUp)
+                }
+            }
+        }
     }
 
     private var shortcuts: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            shortcutRow("Add selection", action: .addFinderSelection)
+        SettingsSection("Shortcuts", accessory: resetShortcutsButton) {
+            shortcutRow("Add Finder selection", action: .addFinderSelection)
+                .help("Adds what’s selected while Finder is in front.")
             shortcutRow("Show shelf", action: .toggleShelf)
-
+                .help("Opens or closes the shelf from any app.")
             if let message = shortcutPreferences.errorMessage {
-                Text(message)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(.red)
+                SettingsNote(message, isWarning: true)
                     .accessibilityLabel("Shortcut error: \(message)")
-                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    @ViewBuilder private var resetShortcutsButton: some View {
+        if shortcutPreferences.values != .defaults || shortcutPreferences.recordingAction != nil {
+            Button("Reset") { shortcutController.restoreDefaults() }
+                .buttonStyle(.link)
+                .controlSize(.small)
+                .accessibilityLabel("Restore Default Shortcuts")
         }
     }
 
     private func shortcutRow(_ title: String, action: ShelfShortcut) -> some View {
-        HStack {
-            Text(title)
-            if action == .toggleShelf,
-               shortcutPreferences.values != .defaults || shortcutPreferences.recordingAction != nil {
-                Button("Reset") { shortcutController.restoreDefaults() }
-                    .buttonStyle(.link)
-                    .controlSize(.small)
-                    .accessibilityLabel("Restore Default Shortcuts")
-            }
-            Spacer(minLength: 12)
+        SettingsRow(title) {
             ShortcutRecorder(
                 binding: shortcutPreferences.values.binding(for: action),
                 isRecording: shortcutPreferences.recordingAction == action,
@@ -85,88 +127,35 @@ struct SettingsView: View {
                 onCancel: { shortcutController.cancelRecording(action) },
                 onRecord: { shortcutController.setShortcut($0, for: action) }
             )
-            .frame(width: 180, height: 28, alignment: .trailing)
+            .frame(width: 150, height: 24, alignment: .trailing)
         }
-        .frame(minHeight: 32)
-    }
-
-    private var footer: some View {
-        HStack {
-            Button("Updates…", action: onCheckForUpdates)
-                .disabled(agentTools.isWorking)
-            Spacer()
-            Link(destination: URL(string: "https://github.com/hayashiii-ghub/cc#readme")!) {
-                Image(systemName: "questionmark.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel("Help")
-            .help("Help")
-            Button("Quit") { NSApp.terminate(nil) }
-                .keyboardShortcut("q", modifiers: .command)
-                .disabled(agentTools.isWorking)
-        }
-        .frame(minHeight: 28)
     }
 
     private var agentToolsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                Text("AI Tools")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                if let aggregateStatus {
-                    Text(aggregateStatus)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 4)
-                if agentTools.report?.isConfigured != true {
-                    Button(agentTools.setupTitle) { agentTools.setUp() }
-                        .disabled(!agentTools.canSetUp)
-                }
-                Button { agentTools.refresh() } label: {
-                    Group {
-                        if agentTools.isWorking {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .frame(width: 12, height: 12)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                    }
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(agentTools.isWorking)
-                .accessibilityLabel("Check AI Tools")
-                .help("Check AI tools")
+        let tools: [(title: String, status: AgentToolsReport.Status)] = [
+            ("cc-shelf command", agentTools.report?.cli ?? .unknown),
+            ("Codex", agentTools.report?.codex ?? .unknown),
+            ("Claude Code", agentTools.report?.claude ?? .unknown),
+            ("Antigravity", agentTools.report?.antigravity ?? .unknown)
+        ]
+        // The installer checks in this order and reports the first thing in its way, so the
+        // explanation belongs under the first tool that needs review.
+        let blocked = tools.first { $0.status == .blocked || $0.status == .userModified }?.title
+        return SettingsSection("AI Tools") {
+            ForEach(tools, id: \.title) { tool in
+                toolStatus(tool.title, status: tool.status,
+                           detail: tool.title == blocked ? agentTools.report?.blocker : nil)
             }
-            .frame(minHeight: 32)
-
-            VStack(spacing: 4) {
-                HStack(spacing: 16) {
-                    toolStatus("CLI", status: agentTools.report?.cli ?? .unknown)
-                    toolStatus("Codex", status: agentTools.report?.codex ?? .unknown)
-                }
-                HStack(spacing: 16) {
-                    toolStatus("Claude Code", status: agentTools.report?.claude ?? .unknown)
-                    toolStatus("Antigravity", status: agentTools.report?.antigravity ?? .unknown)
-                }
-            }
-
             if let message = agentTools.errorMessage {
-                statusMessage(message, isWarning: true)
+                SettingsNote(message, isWarning: true)
             }
-            if let message = reviewReason, message != agentTools.errorMessage {
-                statusMessage(message, isWarning: true)
+            if agentTools.report?.blocker == nil, let message = reviewReason, message != agentTools.errorMessage {
+                SettingsNote(message, isWarning: true)
             }
             if let message = agentTools.operationMessage {
-                statusMessage(message, isWarning: false)
+                SettingsNote(message)
             }
+            SettingsToggle("Sound when agents add items", isOn: $soundPreferences.isEnabled)
         }
     }
 
@@ -187,27 +176,19 @@ struct SettingsView: View {
         }
     }
 
-    private func statusMessage(_ message: String, isWarning: Bool) -> some View {
-        Text(message)
-            .font(.system(size: 11, weight: .regular))
-            .foregroundStyle(isWarning ? .orange : .secondary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func toolStatus(_ title: String, status: AgentToolsReport.Status) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-            Image(systemName: toolStatusSymbol(status))
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(status == .blocked || status == .userModified ? .orange : .secondary)
-                .accessibilityHidden(true)
+    private func toolStatus(_ title: String, status: AgentToolsReport.Status, detail: String?) -> some View {
+        let needsReview = status == .blocked || status == .userModified
+        return SettingsRow(title, detail: detail, isWarning: true) {
+            HStack(spacing: 6) {
+                Text(toolStatusTitle(status))
+                    .font(SettingsStyle.caption)
+                Image(systemName: toolStatusSymbol(status))
+                    .font(SettingsStyle.statusSymbol)
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(needsReview ? Color.orange : Color.secondary)
         }
-        .font(.system(size: 12, weight: .regular))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .help("\(title): \(toolStatusTitle(status))")
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
-        .accessibilityValue(toolStatusTitle(status))
+        .accessibilityElement(children: .combine)
     }
 
     private func toolStatusSymbol(_ status: AgentToolsReport.Status) -> String {
@@ -222,7 +203,7 @@ struct SettingsView: View {
 
     private func toolStatusTitle(_ status: AgentToolsReport.Status) -> String {
         switch status {
-        case .upToDate: "Configured"
+        case .upToDate: "Connected"
         case .notInstalled: "Not set up"
         case .outdated: "Update available"
         case .userModified, .blocked: "Needs review"

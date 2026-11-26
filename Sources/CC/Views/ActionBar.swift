@@ -17,7 +17,7 @@ struct ActionBar: View {
                     }
                     Text(store.isImporting ? "Adding" : "Add Files")
                 }
-                .shelfControlLabel()
+                .glassControlLabel()
             }
             .buttonStyle(.plain)
             .accessibilityLabel(store.isImporting ? "Adding Files" : "Add Files")
@@ -48,7 +48,7 @@ struct ActionBar: View {
                     .accessibilityHidden(true)
                     Text(selectedItems == nil ? "Drag All" : "Drag (\(items.count))")
                 }
-                .shelfControlLabel()
+                .glassControlLabel()
                 .foregroundStyle(Color.primary)
                 .opacity(isBusy || items.isEmpty ? 0.4 : 1)
                 .overlay {
