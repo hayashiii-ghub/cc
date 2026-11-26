@@ -25,6 +25,7 @@
               "value": "02-colon-light.svg"
             }
           ],
+          "opacity": 0.9,
           "name": "02-colon"
         }
       ],
@@ -49,6 +50,7 @@
               "value": "01-cc-light.svg"
             }
           ],
+          "opacity": 0.9,
           "name": "01-cc"
         }
       ],
