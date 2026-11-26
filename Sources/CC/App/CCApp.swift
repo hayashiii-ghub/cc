@@ -41,15 +41,21 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let finderSelectionReader = FinderSelectionReader()
     private let updateController = AppUpdateController()
     private let agentTools = AgentToolsStatusController()
-    private lazy var settingsWindowController = SettingsWindowController(
-        openingPreferences: store.openingPreferences,
-        soundPreferences: store.soundPreferences,
-        shortcutController: shortcutController,
-        agentTools: agentTools,
-        onCheckForUpdates: { [weak self] in
-            self?.updateController.controller.checkForUpdates(nil)
-        }
-    )
+    private lazy var settingsPanel = PanelController(
+        title: "cc:",
+        size: NSSize(width: 400, height: 476),
+        onClose: { [unowned self] in updateController.clearResult() }
+    ) { [unowned self] close in
+        SettingsView(
+            openingPreferences: store.openingPreferences,
+            soundPreferences: store.soundPreferences,
+            shortcutPreferences: shortcutController.preferences,
+            agentTools: agentTools,
+            shortcutController: shortcutController,
+            updates: updateController,
+            onClose: close
+        )
+    }
     private lazy var menuBarShelfController = MenuBarShelfController(
         store: store,
         onShowSettings: { [weak self] in
@@ -131,6 +137,13 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        updateController.onNeedsAttention = { [weak self] in self?.showSettings() }
+#if DEBUG
+        // Keep development checks off by default without replacing an explicit preference.
+        if UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil {
+            updateController.updater.automaticallyChecksForUpdates = false
+        }
+#endif
         updateController.start()
         shortcutController.start(finderIsFrontmost: FinderShortcutAvailability.isEnabled(
             frontmostBundleIdentifier: NSWorkspace.shared.frontmostApplication?.bundleIdentifier
@@ -147,7 +160,8 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
 #if DEBUG
         configureDemoTriggers()
 #endif
-        if notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool == true {
+        if notification.userInfo?[NSApplication.launchIsDefaultUserInfoKey] as? Bool == true,
+           !LaunchAtLogin.wasLaunchedAtLogin {
             showSettings()
         }
     }
@@ -436,7 +450,8 @@ final class CCApplication: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showSettings() {
         DispatchQueue.main.async { [weak self] in
             self?.menuBarShelfController.hideShelf()
-            self?.settingsWindowController.show()
+            self?.agentTools.refresh()
+            self?.settingsPanel.show()
         }
     }
 

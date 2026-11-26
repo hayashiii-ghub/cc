@@ -285,6 +285,16 @@ struct AgentToolsStatusTests {
         }
         try #require(!controller.isWorking)
     }
+
+    @Test func aRefusalNamesWhatIsInTheWayAndWhere() {
+        let blocker = AgentToolsChecker.blocker(from: "Preserving a user-edited skill: /nowhere/.claude/skills/cc-handoff")
+        #expect(blocker.text == "Blocked by a user-edited skill: /nowhere/.claude/skills/cc-handoff")
+        #expect(blocker.path == "/nowhere/.claude/skills/cc-handoff")
+
+        let other = AgentToolsChecker.blocker(from: "Could not inspect the selected cc: app.")
+        #expect(other.text == "Could not inspect the selected cc: app.")
+        #expect(other.path == nil)
+    }
 }
 
 private actor CheckResults {

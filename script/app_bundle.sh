@@ -21,7 +21,7 @@ cc_copy_bundle_resources() {
     --minimum-deployment-target "$CC_MIN_SYSTEM_VERSION" \
     --app-icon cc \
     --output-partial-info-plist "$resources_dir/ccIcon.plist"
-  cp "$root_dir/Assets/MenuBarTemplate.svg" "$root_dir/Assets/SelectItems.svg" "$resources_dir/"
+  cp "$root_dir/Assets/MenuBarTemplate.svg" "$resources_dir/"
   cp "$root_dir/script/install_agent_tools.sh" "$resources_dir/install_agent_tools.sh"
   chmod +x "$resources_dir/install_agent_tools.sh"
   mkdir -p "$resources_dir/skills"

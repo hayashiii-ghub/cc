@@ -21,6 +21,7 @@ For shelf handoff/read/open/remove requests, follow [cc-handoff](skills/cc-hando
 ## Development
 
 - `Sources/CC`, `CCCore`, `CCCLI`: app, storage, CLI; matching tests are in `Tests/`. `Tools/CCDemo` is debug-only. Source builds require Xcode and macOS 26+.
+- `Sources/CC/Shared` (settings panel, shelf glass controls, footer, Sparkle user driver) is mirrored by hand in ato?'s `Sources/UsageRings/Shared`. Keep both copies identical; do not add a dependency between the repositories. Update progress renders inside the settings panel; do not restore Sparkle's standard windows.
 - Preserve product `cc:`, CLI `cc-shelf` (`Contents/Helpers/cc-shelf`, installed at `~/.local/bin/cc-shelf`), identity `work.hayashigoto.cc`, store `~/Library/Application Support/cc`, and scheme `cc:`. Do not use the system `cc` compiler as the CLI, add aliases, or restore the `context` namespace.
 - `make check` validates app/CLI/installer/packaging scripts; `make run` builds/opens. `swift run cc-shelf --help` inspects CLI options. `swift run cc-demo add-finder-selection` targets the running debug app; releases omit demo triggers.
 - `make install-agent-tools` uses `/Applications/cc.app`; set `CC_INSTALL_APP` for another app and `CC_INSTALL_HOME` for isolated tests.

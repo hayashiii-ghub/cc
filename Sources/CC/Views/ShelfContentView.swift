@@ -73,13 +73,13 @@ struct ShelfContentView: View {
             GlassEffectContainer(spacing: 0) {
                 HStack(spacing: 8) {
                     Button(action: store.cancelRemoval) {
-                        Text("Cancel").shelfControlLabel(width: 68)
+                        Text("Cancel").glassControlLabel(width: 68)
                     }
                     .keyboardShortcut(.defaultAction)
                     Button(role: .destructive, action: store.confirmRemoval) {
                         Text(request.clearsShelf ? "Clear All" : "Remove")
                             .foregroundStyle(.white)
-                            .shelfControlLabel(width: 74, tint: Color(.sRGB, red: 0.60, green: 0.06, blue: 0.10))
+                            .glassControlLabel(width: 74, tint: Color(.sRGB, red: 0.60, green: 0.06, blue: 0.10))
                     }
                     .disabled(store.isImporting || store.isExporting || store.storageError != nil)
                 }
@@ -138,12 +138,6 @@ private struct ShelfHeader: View {
     let showsIcons: Bool
     let toggleLayout: () -> Void
     let toggleSelection: () -> Void
-    private static let selectImage: Image = {
-        guard let url = Bundle.main.url(forResource: "SelectItems", withExtension: "svg"),
-              let image = NSImage(contentsOf: url) else { return Image(systemName: "checklist") }
-        return Image(nsImage: image).renderingMode(.template)
-    }()
-
     let hasUnreadItems: Bool
     let canClearAll: Bool
     let onClearAll: () -> Void
@@ -157,17 +151,17 @@ private struct ShelfHeader: View {
             }
             Spacer(minLength: 4)
 
-            ShelfIconButton(showsIcons ? "Show as list" : "Show as icons",
+            GlassIconButton(showsIcons ? "Show as list" : "Show as icons",
                             systemImage: showsIcons ? "list.bullet" : "square.grid.2x2",
                             action: toggleLayout)
-            ShelfIconButton(selectedCount == nil ? "Select items" : "Finish selection",
-                            image: selectedCount == nil ? Self.selectImage : Image(systemName: "checkmark"),
+            GlassIconButton(selectedCount == nil ? "Select items" : "Finish selection",
+                            systemImage: selectedCount == nil ? "checklist" : "checkmark",
                             action: toggleSelection)
                 .disabled(count == 0)
                 .accessibilityValue(selectedCount == nil ? "Off" : "On")
-            ShelfIconButton(selectedCount == nil ? "Clear all shelf items…" : "Remove selected items…", systemImage: "trash", action: onClearAll)
+            GlassIconButton(selectedCount == nil ? "Clear all shelf items…" : "Remove selected items…", systemImage: "trash", action: onClearAll)
                 .disabled(!canClearAll)
-            ShelfIconButton("Settings", systemImage: "gearshape", action: onShowSettings)
+            GlassIconButton("Settings", systemImage: "gearshape", action: onShowSettings)
         }
         .font(.system(size: 20, weight: .bold, design: .rounded))
         .padding(.leading, 16)
